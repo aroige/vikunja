@@ -366,21 +366,7 @@
 			"day": "Tag",
 			"hour": "Stunde",
 			"range": "Zeitraum",
-			"chartLabel": "Projekt Gantt-Diagramm",
-			"taskBarsForRow": "Aufgabenleisten für Zeile {rowId}",
-			"taskBarLabel": "Aufgabe: {task}. Von {startDate} bis {endDate}. {dateType}. Klicke zum Bearbeiten, ziehe zum Verschieben.",
-			"scheduledDates": "Geplante Daten",
-			"estimatedDates": "Voraussichtliche Daten",
-			"resizeStartDate": "Startdatum für Aufgabe {task} anpassen",
-			"resizeEndDate": "Enddatum für Aufgabe {task} anpassen",
-			"timelineHeader": "Zeitleiste mit Monaten und Tagen",
-			"monthsRow": "Monatszeile",
-			"daysRow": "Tageszeile",
-			"monthLabel": "Monat: {month}",
-			"dayLabel": "Tag: {date}, {weekday}",
-			"dayLabelToday": "Heute: {date}, {weekday}",
-			"taskAriaLabel": "Aufgabe: {task}",
-			"taskAriaLabelById": "Aufgabe {id}"
+			"noDates": "Diese Aufgabe hat keine Daten definiert."
 		},
 		"table": {
 			"title": "Tabelle",
@@ -455,7 +441,6 @@
 		"title": "Filter",
 		"clear": "Filter zurücksetzen",
 		"showResults": "Ergebnisse anzeigen",
-		"noResults": "Keine Ergebnisse",
 		"fromView": "Die aktuelle Ansicht hat bereits einen Filter gesetzt:",
 		"fromViewBoth": "Er wird in Kombination mit dem, was du hier setzt, verwendet.",
 		"attributes": {
@@ -1115,15 +1100,6 @@
 			"navigateDown": "Nächste Aufgabe hervorheben",
 			"navigateUp": "Vorherige Aufgabe hervorheben",
 			"open": "Markierte Aufgabe öffnen"
-		},
-		"gantt": {
-			"title": "Gantt-Diagramm",
-			"moveTaskLeft": "Aufgabe auf früheres Datum verschieben",
-			"moveTaskRight": "Aufgabe auf späteres Datum verschieben",
-			"expandTaskLeft": "Das Startdatum der Aufgabe früher verschieben",
-			"expandTaskRight": "Das Enddatum der Aufgabe später verschieben",
-			"shrinkTaskLeft": "Das Startdatum verringern",
-			"shrinkTaskRight": "Das Enddatum verringern"
 		}
 	},
 	"update": {

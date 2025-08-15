@@ -304,7 +304,8 @@
 			"month": "Mês",
 			"day": "Dia",
 			"hour": "Hora",
-			"range": "Período"
+			"range": "Período",
+			"noDates": "Esta tarefa não tem datas definidas."
 		},
 		"table": {
 			"title": "Tabela",

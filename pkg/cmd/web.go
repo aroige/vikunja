@@ -60,8 +60,7 @@ func setupUnixSocket(e *echo.Echo) error {
 		defer utils.Umask(oldmask)
 	}
 
-	cfg := net.ListenConfig{}
-	l, err := cfg.Listen(context.Background(), "unix", path)
+	l, err := net.Listen("unix", path)
 	if err != nil {
 		return err
 	}
