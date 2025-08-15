@@ -90,6 +90,12 @@ Now that the frontend is built, you can build the backend. The backend will embe
    ```
    This will create a `vikunja.exe` file in the root directory. This is the main application binary.
 
+	Build using docker:
+
+	```bash
+	docker run --rm -v c:/GitHub/aroige/vikunja:/app -w /app golang:1.23 go build -o vikunja.exe
+	```
+
 ## Running for Development
 
 For development, you can run the backend and the frontend separately. This allows for hot-reloading of the frontend when you make changes.

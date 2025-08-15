@@ -184,6 +184,21 @@ const (
 	filterConcatOr  taskFilterConcatinator = "or"
 )
 
+type taskSearchOptions struct {
+	search             string
+	page               int
+	perPage            int
+	sortby             []*sortParam
+	parsedFilters      []*taskFilter
+	filterIncludeNulls bool
+	filter             string
+	filterTimezone     string
+	isSavedFilter      bool
+	projectIDs         []int64
+	expand             []TaskCollectionExpandable
+	projectViewID      int64
+}
+
 // ReadAll is a dummy function to still have that endpoint documented
 // @Summary Get tasks
 // @Description Returns all tasks on any project the user has access to.
@@ -1874,6 +1889,7 @@ func (ts *dbTaskSearcher) Search(opts *TaskSearchOptions) (tasks []*Task, totalI
 	totalItems, err = searcher.Count(new(Task))
 	return
 }
+
 type typesenseTaskSearcher struct {
 	s *xorm.Session
 }
