@@ -346,7 +346,8 @@
 			"month": "Mese",
 			"day": "Giorno",
 			"hour": "Ora",
-			"range": "Intervallo di date"
+			"range": "Intervallo di date",
+			"noDates": "Questa attività non ha date impostate."
 		},
 		"table": {
 			"title": "Tabella",

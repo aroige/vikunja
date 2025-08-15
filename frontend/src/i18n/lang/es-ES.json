@@ -268,7 +268,8 @@
 			"month": "Mes",
 			"day": "Día",
 			"hour": "Hora",
-			"range": "Rango de fechas"
+			"range": "Rango de fechas",
+			"noDates": "Esta tarea no tiene fechas establecidas."
 		},
 		"table": {
 			"title": "Tabla",

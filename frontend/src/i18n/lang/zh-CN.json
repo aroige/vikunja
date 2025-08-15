@@ -308,7 +308,8 @@
 			"month": "月",
 			"day": "日",
 			"hour": "时",
-			"range": "日期范围"
+			"range": "日期范围",
+			"noDates": "此任务没有设定日期。"
 		},
 		"table": {
 			"title": "表格",

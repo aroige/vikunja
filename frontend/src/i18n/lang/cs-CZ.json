@@ -314,7 +314,8 @@
 			"month": "Měsíc",
 			"day": "Den",
 			"hour": "Hodina",
-			"range": "Časové období"
+			"range": "Časové období",
+			"noDates": "Tento úkol nemá nastaveno žádné datum."
 		},
 		"table": {
 			"title": "Tabulka",

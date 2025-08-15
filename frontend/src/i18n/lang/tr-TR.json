@@ -366,21 +366,7 @@
 			"day": "Gün",
 			"hour": "Saat",
 			"range": "Tarih Aralığı",
-			"chartLabel": "Proje Gantt Şeması",
-			"taskBarsForRow": "{rowId} satırı için görev çubukları",
-			"taskBarLabel": "Görev: {task}. {startDate} tarihinden {endDate} tarihine. {dateType}. Düzenlemek için tıklayın, taşımak için sürükleyin.",
-			"scheduledDates": "Planlanmış tarihler",
-			"estimatedDates": "Tahmini tarihler",
-			"resizeStartDate": "{task} görevi için başlangıç tarihini yeniden boyutlandır",
-			"resizeEndDate": "{task} görevi için bitiş tarihini yeniden boyutlandır",
-			"timelineHeader": "Aylar ve günler içeren zaman çizelgesi başlığı",
-			"monthsRow": "Ay satırı",
-			"daysRow": "Gün satırı",
-			"monthLabel": "Ay: {month}",
-			"dayLabel": "Gün: {date}, {weekday}",
-			"dayLabelToday": "Bugün: {date}, {weekday}",
-			"taskAriaLabel": "Görev: {task}",
-			"taskAriaLabelById": "Görev {id}"
+			"noDates": "Bu görevin tarihi belirlenmemiş."
 		},
 		"table": {
 			"title": "Tablo",
@@ -455,7 +441,6 @@
 		"title": "Filtreler",
 		"clear": "Filtreleri Temizle",
 		"showResults": "Sonuçları göster",
-		"noResults": "Sonuç yok",
 		"fromView": "Mevcut görünümde de bir filtre ayarlanmış:",
 		"fromViewBoth": "Burada girdiğinizle birlikte kullanılacak.",
 		"attributes": {
@@ -1115,15 +1100,6 @@
 			"navigateDown": "Sonraki görevi vurgula",
 			"navigateUp": "Önceki görevi vurgula",
 			"open": "Vurgulanan görevi aç"
-		},
-		"gantt": {
-			"title": "Gantt Şeması",
-			"moveTaskLeft": "Görevi daha erken tarihe taşı",
-			"moveTaskRight": "Görevi daha geç tarihe taşı",
-			"expandTaskLeft": "Görev başlangıç tarihini daha erkene genişlet",
-			"expandTaskRight": "Görev bitiş tarihini daha geçe genişlet",
-			"shrinkTaskLeft": "Görevi başlangıç tarihinden küçült",
-			"shrinkTaskRight": "Görevi bitiş tarihinden küçült"
 		}
 	},
 	"update": {

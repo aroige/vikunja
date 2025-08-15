@@ -189,17 +189,36 @@ func setRootPath() {
 }
 
 func setGoFiles() {
-	// GOFILES := $(shell find . -name "*.go" -type f ! -path "*/bindata.go")
-	files, err := runCmdWithOutput("find", "./pkg", "-name", "*.go", "-type", "f", "!", "-path", "*/bindata.go")
-	if err != nil {
-		fmt.Printf("Error getting go files: %s\n", err)
-		os.Exit(1)
-	}
-	for _, f := range strings.Split(string(files), "\n") {
-		if strings.HasSuffix(f, ".go") {
-			GoFiles = append(GoFiles, RootPath+strings.TrimLeft(f, "."))
-		}
-	}
+    if runtime.GOOS == "windows" {
+        // Windows implementation using filepath.Walk
+        GoFiles = []string{}
+        err := filepath.Walk(RootPath+"/pkg", func(path string, info os.FileInfo, err error) error {
+            if err != nil {
+                return err
+            }
+            if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.Contains(path, "bindata.go") {
+                // Convert to slash path and add to GoFiles
+                GoFiles = append(GoFiles, filepath.ToSlash(path))
+            }
+            return nil
+        })
+        if err != nil {
+            fmt.Printf("Error walking directories: %s\n", err)
+            os.Exit(1)
+        }
+    } else {
+        // Original implementation for Unix systems
+        files, err := runCmdWithOutput("find", "./pkg", "-name", "*.go", "-type", "f", "!", "-path", "*/bindata.go")
+        if err != nil {
+            fmt.Printf("Error getting go files: %s\n", err)
+            os.Exit(1)
+        }
+        for _, f := range strings.Split(string(files), "\n") {
+            if strings.HasSuffix(f, ".go") {
+                GoFiles = append(GoFiles, RootPath+strings.TrimLeft(f, "."))
+            }
+        }
+    }
 }
 
 // Some variables can always get initialized, so we do just that.
