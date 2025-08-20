@@ -1,8 +1,6 @@
 .idea/
 .idea/*/*
 .idea/httpRequests
-.history/
-tmp/
 config.yml
 config.yaml
 !docs/config.yml

@@ -59,7 +59,6 @@ func RegisterProjects(a *echo.Group) {
 
 	// Project Tasks
 	projects.GET("/:id/tasks", GetProjectTasks)
-	projects.POST("/:id/tasks", CreateProjectTask)
 }
 
 type ProjectLinks struct {
