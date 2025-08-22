@@ -221,8 +221,16 @@ type taskSearchOptions struct {
 // @Success 200 {array} models.Task "The tasks"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/all [get]
-func (t *Task) ReadAll(_ *xorm.Session, _ web.Auth, _ string, _ int, _ int) (result interface{}, resultCount int, totalItems int64, err error) {
-	return nil, 0, 0, nil
+func (t *Task) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	return getRawTasksForProjects(s, nil, u, &taskSearchOptions{
+		search:  search,
+		page:    page,
+		perPage: perPage,
+	})
 }
 
 func getFilterCond(f *taskFilter, includeNulls bool) (cond builder.Cond, err error) {
@@ -831,7 +839,11 @@ func setNewTaskIndex(s *xorm.Session, t *Task) (err error) {
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{id}/tasks [put]
-func (t *Task) Create(s *xorm.Session, u *user.User) (err error) {
+func (t *Task) Create(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 	return createTask(s, t, u, true, true)
 }
 
@@ -1020,7 +1032,11 @@ func setTaskInBucketInViews(s *xorm.Session, t *Task, u *user.User, setBucket bo
 // @Router /tasks/{id} [post]
 //
 //nolint:gocyclo
-func (t *Task) Update(s *xorm.Session, u *user.User) (err error) {
+func (t *Task) Update(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 
 	// Check if the task exists and get the old values
 	ot, err := GetTaskByIDSimple(s, t.ID)
@@ -1618,11 +1634,15 @@ func updateTaskLastUpdated(s *xorm.Session, task *Task) error {
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{id} [delete]
-func (t *Task) Delete(s *xorm.Session, u *user.User) (err error) {
+func (t *Task) Delete(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 
 	// duplicate the task for the event
 	fullTask := &Task{ID: t.ID}
-	err = fullTask.ReadOne(s, u)
+	err = fullTask.ReadOne(s, a)
 	if err != nil {
 		return err
 	}
@@ -1718,7 +1738,11 @@ func (t *Task) Delete(s *xorm.Session, u *user.User) (err error) {
 // @Failure 404 {object} models.Message "Task not found"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /tasks/{id} [get]
-func (t *Task) ReadOne(s *xorm.Session, u *user.User) (err error) {
+func (t *Task) ReadOne(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 
 	expand := t.Expand
 	*t, err = GetTaskByIDSimple(s, t.ID)
