@@ -16,12 +16,12 @@
 
 package webtests
 
+
 import (
 	"net/http"
 	"testing"
 
 	apiv1 "code.vikunja.io/api/pkg/routes/api/v1"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

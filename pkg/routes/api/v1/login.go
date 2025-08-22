@@ -132,13 +132,18 @@ func RenewToken(c echo.Context) (err error) {
 	s := db.NewSession()
 	defer s.Close()
 
+	authObj, err := auth.GetAuthFromClaims(c)
+	if err != nil {
+		return handler.HandleHTTPError(err)
+	}
+
 	jwtinf := c.Get("user").(*jwt.Token)
 	claims := jwtinf.Claims.(jwt.MapClaims)
 	typ := int(claims["type"].(float64))
 	if typ == auth.AuthTypeLinkShare {
 		share := &models.LinkSharing{}
 		share.ID = int64(claims["id"].(float64))
-		err := share.ReadOne(s)
+		err := share.ReadOne(s, authObj)
 		if err != nil {
 			_ = s.Rollback()
 			return handler.HandleHTTPError(err)

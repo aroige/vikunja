@@ -111,7 +111,11 @@ func getDefaultBucketID(s *xorm.Session, view *ProjectView) (bucketID int64, err
 // @Success 200 {array} models.Bucket "The buckets"
 // @Failure 500 {object} models.Message "Internal server error"
 // @Router /projects/{id}/views/{view}/buckets [get]
-func (b *Bucket) ReadAll(s *xorm.Session, u *user.User, _ string, _ int, _ int) (result interface{}, resultCount int, numberOfTotalItems int64, err error) {
+func (b *Bucket) ReadAll(s *xorm.Session, a web.Auth, _ string, _ int, _ int) (result interface{}, resultCount int, numberOfTotalItems int64, err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return nil, 0, 0, err
+	}
 
 	view, err := GetProjectViewByIDAndProject(s, b.ProjectViewID, b.ProjectID)
 	if err != nil {
@@ -305,7 +309,11 @@ func GetTasksInBucketsForView(s *xorm.Session, view *ProjectView, projects []*Pr
 // @Failure 404 {object} web.HTTPError "The project does not exist."
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{id}/views/{view}/buckets [put]
-func (b *Bucket) Create(s *xorm.Session, u *user.User) (err error) {
+func (b *Bucket) Create(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 	b.CreatedBy = u
 	b.CreatedByID = u.ID
 
@@ -336,7 +344,7 @@ func (b *Bucket) Create(s *xorm.Session, u *user.User) (err error) {
 // @Failure 404 {object} web.HTTPError "The bucket does not exist."
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{projectID}/views/{view}/buckets/{bucketID} [post]
-func (b *Bucket) Update(s *xorm.Session) (err error) {
+func (b *Bucket) Update(s *xorm.Session, a web.Auth) (err error) {
 	_, err = s.
 		Where("id = ?", b.ID).
 		Cols(
@@ -363,8 +371,7 @@ func (b *Bucket) Update(s *xorm.Session) (err error) {
 // @Failure 404 {object} web.HTTPError "The bucket does not exist."
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{projectID}/views/{view}/buckets/{bucketID} [delete]
-func (b *Bucket) Delete(s *xorm.Session, u *user.User) (err error) {
-
+func (b *Bucket) Delete(s *xorm.Session, a web.Auth) (err error) {
 	// Prevent removing the last bucket
 	total, err := s.Where("project_view_id = ?", b.ProjectViewID).Count(&Bucket{})
 	if err != nil {

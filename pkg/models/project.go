@@ -178,7 +178,11 @@ var FavoritesPseudoProject = Project{
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects [get]
-func (p *Project) ReadAll(s *xorm.Session, u *user.User, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
+func (p *Project) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return nil, 0, 0, err
+	}
 	return getAllRawProjects(s, u, search, page, perPage, p.IsArchived)
 }
 
@@ -223,7 +227,11 @@ func getAllRawProjects(s *xorm.Session, u *user.User, search string, page int, p
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{id} [get]
-func (p *Project) ReadOne(s *xorm.Session, u *user.User) (err error) {
+func (p *Project) ReadOne(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 
 	if p.ID == FavoritesPseudoProject.ID {
 		p.Views = FavoritesPseudoProject.Views
@@ -1017,7 +1025,11 @@ func recalculateProjectPositions(s *xorm.Session, parentProjectID int64) (err er
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{id} [post]
-func (p *Project) Update(s *xorm.Session, u *user.User) (err error) {
+func (p *Project) Update(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 	fid := GetSavedFilterIDFromProjectID(p.ID)
 	if fid > 0 {
 		f, err := GetSavedFilterSimpleByID(s, fid)
@@ -1068,7 +1080,11 @@ func updateProjectByTaskID(s *xorm.Session, taskID int64) (err error) {
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects [put]
-func (p *Project) Create(s *xorm.Session, u *user.User) (err error) {
+func (p *Project) Create(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 	err = CreateProject(s, p, u, true, true)
 	if err != nil {
 		return
@@ -1079,7 +1095,7 @@ func (p *Project) Create(s *xorm.Session, u *user.User) (err error) {
 		return
 	}
 
-	return fullProject.ReadOne(s, u)
+	return fullProject.ReadOne(s, a)
 }
 
 func (p *Project) isDefaultProject(s *xorm.Session) (is bool, err error) {
@@ -1100,8 +1116,11 @@ func (p *Project) isDefaultProject(s *xorm.Session) (is bool, err error) {
 // @Failure 403 {object} web.HTTPError "The user does not have access to the project"
 // @Failure 500 {object} models.Message "Internal error"
 // @Router /projects/{id} [delete]
-func (p *Project) Delete(s *xorm.Session, u *user.User) (err error) {
-
+func (p *Project) Delete(s *xorm.Session, a web.Auth) (err error) {
+	u, err := user.GetFromAuth(a)
+	if err != nil {
+		return err
+	}
 	isDefaultProject, err := p.isDefaultProject(s)
 	if err != nil {
 		return err
@@ -1283,4 +1302,9 @@ SELECT id FROM descendant_ids`,
 		return fmt.Errorf("failed to update is_archived for descendant projects for parent ID %d to %t: %w", parentProjectID, shouldBeArchived, err)
 	}
 	return nil
+}
+
+// CanAdmin checks if a user has admin access to a project
+func (p *Project) CanAdmin(s *xorm.Session, u *user.User) (can bool, err error) {
+	return p.IsAdmin(s, u)
 }
