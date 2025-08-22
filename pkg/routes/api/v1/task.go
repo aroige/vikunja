@@ -85,7 +85,7 @@ func GetAllTasksByProject(c echo.Context) error {
 	search := c.QueryParam("s")
 
 	ts := services.NewTaskService()
-	tasks, _, _, err := ts.GetByProject(s, projectID, auth, search, page, perPage)
+	tasks, _, _, err := ts.GetByProject(s, projectID, auth, search, page, perPage, services.TaskOptions{})
 	if err != nil {
 		return handler.HandleHTTPError(err)
 	}
@@ -113,7 +113,7 @@ func GetAllTasks(c echo.Context) error {
 	search := c.QueryParam("s")
 
 	ts := services.NewTaskService()
-	tasks, _, _, err := ts.GetAll(s, auth, search, page, perPage)
+	tasks, _, _, err := ts.GetAll(s, auth, search, page, perPage, services.TaskOptions{})
 	if err != nil {
 		return handler.HandleHTTPError(err)
 	}
