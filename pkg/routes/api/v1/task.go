@@ -24,7 +24,6 @@ import (
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/modules/auth"
 	"code.vikunja.io/api/pkg/services"
-	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web/handler"
 	"github.com/labstack/echo/v4"
 )
@@ -55,7 +54,7 @@ func RegisterTasks(a *echo.Group) {
 	a.GET("/tasks/:task/attachments", GetTaskAttachments)
 	a.DELETE("/tasks/:task/attachments/:attachment", DeleteTaskAttachment)
 	a.GET("/tasks/:task/comments", GetTaskComments)
-	a.PUT("/tasks/:task/comments", CreateTaskComment)
+	a.PUT("/tasks/:task/comments", CreateComment)
 	a.DELETE("/tasks/:task/comments/:commentid", DeleteTaskComment)
 	a.POST("/tasks/:task/comments/:commentid", UpdateTaskComment)
 	a.GET("/tasks/:task/comments/:commentid", GetTaskComment)
@@ -306,47 +305,6 @@ func DeleteTaskAttachment(c echo.Context) error {
 
 func GetTaskComments(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, "Not implemented")
-}
-
-func CreateTaskComment(c echo.Context) error {
-	s := db.NewSession()
-	defer s.Close()
-
-	auth, err := auth.GetAuthFromClaims(c)
-	if err != nil {
-		return handler.HandleHTTPError(err)
-	}
-	user, err := user.GetFromAuth(auth)
-	if err != nil {
-		return handler.HandleHTTPError(err)
-	}
-
-	taskID, err := strconv.ParseInt(c.Param("task"), 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid task ID").SetInternal(err)
-	}
-
-	tc := new(models.TaskComment)
-	if err := c.Bind(tc); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid task comment object provided.").SetInternal(err)
-	}
-	tc.TaskID = taskID
-	tc.AuthorID = user.ID
-
-	if err := c.Validate(tc); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error()).SetInternal(err)
-	}
-
-	cs := services.NewCommentService()
-	if err := cs.Create(s, tc, user); err != nil {
-		return handler.HandleHTTPError(err)
-	}
-
-	if err := s.Commit(); err != nil {
-		return handler.HandleHTTPError(err)
-	}
-
-	return c.JSON(http.StatusCreated, tc)
 }
 
 func DeleteTaskComment(c echo.Context) error {
