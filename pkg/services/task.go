@@ -91,22 +91,35 @@ func (ts *TaskService) GetAll(s *xorm.Session, a web.Auth, search string, page, 
 		return nil, 0, 0, err
 	}
 
-	// Get all projects the user has access to
-	projects, _, err := models.GetAllProjectsForUser(s, u.ID, &models.ProjectOptions{})
-	if err != nil {
-		return nil, 0, 0, err
-	}
+	if options.ProjectID != 0 {
+		// Check if the user has access to the project
+		p := &models.Project{ID: options.ProjectID}
+		can, _, err := p.CanRead(s, u)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		if !can {
+			// If the user does not have access, return no tasks.
+			return []*models.Task{}, 0, 0, nil
+		}
+		s = s.Where("project_id = ?", options.ProjectID)
+	} else {
+		// Get all projects the user has access to
+		projects, _, err := models.GetAllProjectsForUser(s, u.ID, &models.ProjectOptions{})
+		if err != nil {
+			return nil, 0, 0, err
+		}
 
-	if len(projects) == 0 {
-		return []*models.Task{}, 0, 0, nil
-	}
+		if len(projects) == 0 {
+			return []*models.Task{}, 0, 0, nil
+		}
 
-	projectIDs := make([]int64, len(projects))
-	for i, p := range projects {
-		projectIDs[i] = p.ID
+		projectIDs := make([]int64, len(projects))
+		for i, p := range projects {
+			projectIDs[i] = p.ID
+		}
+		s = s.In("project_id", projectIDs)
 	}
-
-	s = s.In("project_id", projectIDs)
 
 	s, err = ts.applyTaskOptions(s, options)
 	if err != nil {
