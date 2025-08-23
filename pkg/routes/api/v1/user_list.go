@@ -18,12 +18,8 @@ package v1
 
 import (
 	"net/http"
-	"strconv"
 
 	"code.vikunja.io/api/pkg/db"
-
-	"code.vikunja.io/api/pkg/models"
-	auth2 "code.vikunja.io/api/pkg/modules/auth"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web/handler"
 	"github.com/labstack/echo/v4"
