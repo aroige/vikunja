@@ -59,3 +59,28 @@ func TestTaskService_GetAllByProject_Sort(t *testing.T) {
 	assert.Equal(t, task2.ID, tasks[1].ID)
 	assert.Equal(t, task3.ID, tasks[2].ID)
 }
+
+func TestTaskService_GetAll_Permissions(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	ts := NewTaskService()
+
+	// user-1 and user-2 are from test fixtures.
+	// project-1 belongs to user-1.
+	user2, err := user.GetUserByID(s, 2)
+	assert.NoError(t, err)
+
+	// Attempt to get tasks from project-1 as user-2.
+	pagedResult, _, _, err := ts.GetAll(s, user2, "", 0, 0, TaskOptions{
+		TaskFilterBy: models.TaskFilterBy{ProjectID: 1},
+	})
+	assert.NoError(t, err)
+
+	tasks, ok := pagedResult.([]*models.Task)
+	assert.True(t, ok)
+
+	// user-2 should not have access to tasks in project-1.
+	assert.Empty(t, tasks, "user-2 should not see tasks from project-1")
+}
