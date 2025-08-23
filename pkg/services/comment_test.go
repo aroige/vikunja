@@ -14,12 +14,40 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package models
+package services
 
 import (
 	"testing"
 
+	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/models"
+	"code.vikunja.io/api/pkg/user"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
+func TestCommentCreate(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	cs := NewCommentService()
+
+	testUser, err := user.GetUserByID(s, 1)
+	assert.NoError(t, err)
+
+	// Create a comment
+	comment := &models.TaskComment{
+		Comment:  "test comment",
+		AuthorID: testUser.ID,
+		TaskID:   1,
+	}
+
+	err = cs.Create(s, comment, testUser)
+	assert.NoError(t, err)
+
+	// Verify the comment was created
+	var createdComment models.TaskComment
+	_, err = s.Where("id = ?", comment.ID).Get(&createdComment)
+	assert.NoError(t, err)
+	assert.Equal(t, "test comment", createdComment.Comment)
+}

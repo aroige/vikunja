@@ -41,11 +41,11 @@ func (err ErrGenericForbidden) Error() string {
 }
 
 // ErrorCodeGenericForbidden holds the unique world-error code of this error
-const ErrorCodeGenericForbidden = 0001
+const ErrorCodeGenericForbidden = 403
 
 // HTTPError holds the http error description
 func (err ErrGenericForbidden) HTTPError() web.HTTPError {
-	return web.HTTPError{HTTPCode: http.StatusForbidden, Code: ErrorCodeGenericForbidden, Message: "You're not allowed to do this."}
+	return web.HTTPError{HTTPCode: http.StatusForbidden, Code: ErrorCodeGenericForbidden, Message: "Forbidden"}
 }
 
 // ===================
@@ -512,7 +512,7 @@ func (err ErrTaskDoesNotExist) Error() string {
 }
 
 // ErrCodeTaskDoesNotExist holds the unique world-error code of this error
-const ErrCodeTaskDoesNotExist = 4002
+const ErrCodeTaskDoesNotExist = 404
 
 // HTTPError holds the http error description
 func (err ErrTaskDoesNotExist) HTTPError() web.HTTPError {

@@ -78,6 +78,7 @@ var (
 		"lint:fix":                    Check.GolangciFix,
 		"generate:config-yaml":        Generate.ConfigYAML,
 		"generate:swagger-docs":       Generate.SwaggerDocs,
+		"test:webFilter":              Test.WebFilter,
 	}
 )
 
@@ -398,6 +399,14 @@ func (Test) Web() {
 	mg.Deps(initVars)
 	// We run everything sequentially and not in parallel to prevent issues with real test databases
 	args := []string{"test", Goflags[0], "-p", "1", "-timeout", "45m", PACKAGE + "/pkg/webtests"}
+	runAndStreamOutput("go", args...)
+}
+
+// Runs the web tests with a filter
+func (Test) WebFilter(filter string) {
+	mg.Deps(initVars)
+	// We run everything sequentially and not in parallel to prevent issues with real test databases
+	args := []string{"test", Goflags[0], "-a", "-p", "1", "-timeout", "45m", "-run", filter, PACKAGE + "/pkg/webtests"}
 	runAndStreamOutput("go", args...)
 }
 
