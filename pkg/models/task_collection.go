@@ -232,11 +232,7 @@ func (tf *TaskCollection) ReadAllTasks(s *xorm.Session, u *user.User, search str
 	return tf.ReadAllTasks(s, u, search, page, perPage)
 }
 
-func (tf *TaskCollection) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return nil, 0, 0, err
-	}
+func (tf *TaskCollection) ReadAll(s *xorm.Session, u *user.User, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
 	// If the project id is < -1 this means we're dealing with a saved filter - in that case we get and populate the filter
 	// -1 is the favorites project which works as intended
 	if !tf.isSavedFilter && tf.ProjectID < -1 {
@@ -286,7 +282,7 @@ func (tf *TaskCollection) ReadAll(s *xorm.Session, a web.Auth, search string, pa
 			}
 		}
 
-		return tc.ReadAll(s, a, search, page, perPage)
+		return tc.ReadAll(s, u, search, page, perPage)
 	}
 
 	var view *ProjectView

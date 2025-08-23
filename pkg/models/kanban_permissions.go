@@ -18,16 +18,11 @@ package models
 
 import (
 	"code.vikunja.io/api/pkg/user"
-	"code.vikunja.io/api/pkg/web"
 	"xorm.io/xorm"
 )
 
 // CanCreate checks if a user can create a new bucket
-func (b *Bucket) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (b *Bucket) CanCreate(s *xorm.Session, u *user.User) (bool, error) {
 	pv, err := GetProjectViewByIDAndProject(s, b.ProjectViewID, b.ProjectID)
 	if err != nil {
 		return false, err
@@ -38,20 +33,12 @@ func (b *Bucket) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 // CanUpdate checks if a user can update an existing bucket
-func (b *Bucket) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (b *Bucket) CanUpdate(s *xorm.Session, u *user.User) (bool, error) {
 	return b.canDoBucket(s, u)
 }
 
 // CanDelete checks if a user can delete an existing bucket
-func (b *Bucket) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (b *Bucket) CanDelete(s *xorm.Session, u *user.User) (bool, error) {
 	return b.canDoBucket(s, u)
 }
 

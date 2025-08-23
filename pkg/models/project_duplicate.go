@@ -41,11 +41,7 @@ type ProjectDuplicate struct {
 }
 
 // CanCreate checks if a user has the permission to duplicate a project
-func (pd *ProjectDuplicate) CanCreate(s *xorm.Session, a web.Auth) (canCreate bool, err error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (pd *ProjectDuplicate) CanCreate(s *xorm.Session, u *user.User) (canCreate bool, err error) {
 	// Project Exists + user has read access to project
 	pd.Project = &Project{ID: pd.ProjectID}
 	canRead, _, err := pd.Project.CanRead(s, u)
@@ -59,7 +55,7 @@ func (pd *ProjectDuplicate) CanCreate(s *xorm.Session, a web.Auth) (canCreate bo
 
 	// Parent project exists + user has write access to is (-> can create new projects)
 	parent := &Project{ID: pd.ParentProjectID}
-	return parent.CanCreate(s, a)
+	return parent.CanCreate(s, u)
 }
 
 // Create duplicates a project
@@ -78,11 +74,7 @@ func (pd *ProjectDuplicate) CanCreate(s *xorm.Session, a web.Auth) (canCreate bo
 // @Router /projects/{projectID}/duplicate [put]
 //
 //nolint:gocyclo
-func (pd *ProjectDuplicate) Create(s *xorm.Session, a web.Auth) (err error) {
-	doer, err := user.GetFromAuth(a)
-	if err != nil {
-		return err
-	}
+func (pd *ProjectDuplicate) Create(s *xorm.Session, doer *user.User) (err error) {
 
 	log.Debugf("Duplicating project %d", pd.ProjectID)
 

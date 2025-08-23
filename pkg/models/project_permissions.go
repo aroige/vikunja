@@ -21,7 +21,6 @@ import (
 
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/utils"
-	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
 )
@@ -63,11 +62,7 @@ func (p *Project) CanWrite(s *xorm.Session, u *user.User) (bool, error) {
 }
 
 // CanRead checks if a user has read access to a project
-func (p *Project) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, 0, err
-	}
+func (p *Project) CanRead(s *xorm.Session, u *user.User) (bool, int, error) {
 
 	// The favorite project needs a special treatment
 	if p.ID == FavoritesPseudoProject.ID {
@@ -83,6 +78,7 @@ func (p *Project) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 	}
 
 	// Check if the user is either owner or can read
+	var err error
 	originalProject, err := GetProjectSimpleByID(s, p.ID)
 	if err != nil {
 		return false, 0, err
@@ -94,11 +90,7 @@ func (p *Project) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 }
 
 // CanUpdate checks if the user can update a project
-func (p *Project) CanUpdate(s *xorm.Session, a web.Auth) (canUpdate bool, err error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (p *Project) CanUpdate(s *xorm.Session, u *user.User) (canUpdate bool, err error) {
 	// The favorite project can't be edited
 	if p.ID == FavoritesPseudoProject.ID {
 		return false, nil
@@ -144,21 +136,13 @@ func (p *Project) CanUpdate(s *xorm.Session, a web.Auth) (canUpdate bool, err er
 }
 
 // CanDelete checks if the user can delete a project
-func (p *Project) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (p *Project) CanDelete(s *xorm.Session, u *user.User) (bool, error) {
 	can, _, err := p.checkPermission(s, u, PermissionAdmin)
 	return can, err
 }
 
 // CanCreate checks if the user can create a project
-func (p *Project) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (p *Project) CanCreate(s *xorm.Session, u *user.User) (bool, error) {
 	if p.ParentProjectID != 0 {
 		parent := &Project{ID: p.ParentProjectID}
 		return parent.CanWrite(s, u)

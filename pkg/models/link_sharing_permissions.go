@@ -18,16 +18,11 @@ package models
 
 import (
 	"code.vikunja.io/api/pkg/user"
-	"code.vikunja.io/api/pkg/web"
 	"xorm.io/xorm"
 )
 
 // CanRead implements the read permission check for a link share
-func (share *LinkSharing) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, 0, err
-	}
+func (share *LinkSharing) CanRead(s *xorm.Session, u *user.User) (bool, int, error) {
 	// Don't allow creating link shares if the user itself authenticated with a link share
 	if u == nil {
 		return false, 0, nil
@@ -41,29 +36,17 @@ func (share *LinkSharing) CanRead(s *xorm.Session, a web.Auth) (bool, int, error
 }
 
 // CanDelete implements the delete permission check for a link share
-func (share *LinkSharing) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (share *LinkSharing) CanDelete(s *xorm.Session, u *user.User) (bool, error) {
 	return share.canDoLinkShare(s, u)
 }
 
 // CanUpdate implements the update permission check for a link share
-func (share *LinkSharing) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (share *LinkSharing) CanUpdate(s *xorm.Session, u *user.User) (bool, error) {
 	return share.canDoLinkShare(s, u)
 }
 
 // CanCreate implements the create permission check for a link share
-func (share *LinkSharing) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
-	u, err := user.GetFromAuth(a)
-	if err != nil {
-		return false, err
-	}
+func (share *LinkSharing) CanCreate(s *xorm.Session, u *user.User) (bool, error) {
 	return share.canDoLinkShare(s, u)
 }
 
