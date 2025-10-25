@@ -696,10 +696,9 @@ func (ts *TaskService) getTaskFilterOptsFromCollection(tf *models.TaskCollection
 			} else if tf.ProjectViewID != 0 {
 				param.projectViewID = tf.ProjectViewID
 			} else {
-				return nil, fmt.Errorf("You must provide a project view ID when sorting by position")
+				return nil, fmt.Errorf("you must provide a project view ID when sorting by position")
 			}
 		}
-
 		// Param validation
 		if err := param.validate(); err != nil {
 			return nil, err
@@ -1403,7 +1402,7 @@ func (ts *TaskService) getTasksForProjects(s *xorm.Session, projects []*models.P
 		whereCond = builder.And(whereCond, searchCond)
 	}
 	// Apply custom filters if present
-	if opts.parsedFilters != nil && len(opts.parsedFilters) > 0 {
+	if len(opts.parsedFilters) > 0 {
 		filterCond, err := ts.convertFiltersToDBFilterCond(opts.parsedFilters, opts.filterIncludeNulls)
 		if err != nil {
 			return nil, 0, 0, err
@@ -2636,7 +2635,7 @@ func (ts *TaskService) AddDetailsToTasks(s *xorm.Session, taskMap map[int64]*mod
 	}
 
 	// Handle expansion parameters using proper service layer methods
-	if expand != nil && len(expand) > 0 {
+	if len(expand) > 0 {
 		for _, expandable := range expand {
 			switch expandable {
 			case models.TaskCollectionExpandBuckets:
@@ -2723,7 +2722,7 @@ func (ts *TaskService) addAssigneesToTasks(s *xorm.Session, taskIDs []int64, tas
 			// Check if assignee already exists to avoid duplicates
 			alreadyExists := false
 			for _, existingAssignee := range taskMap[a.TaskID].Assignees {
-				if existingAssignee.ID == taskAssignees[i].User.ID {
+				if existingAssignee.ID == taskAssignees[i].ID {
 					alreadyExists = true
 					break
 				}
@@ -2761,7 +2760,7 @@ func (ts *TaskService) addLabelsToTasks(s *xorm.Session, taskIDs []int64, taskMa
 			alreadyExists := false
 			if taskMap[l.TaskID].Labels != nil {
 				for _, existingLabel := range taskMap[l.TaskID].Labels {
-					if existingLabel.ID == l.Label.ID {
+					if existingLabel.ID == l.ID {
 						alreadyExists = true
 						break
 					}
@@ -3352,7 +3351,7 @@ func (ts *TaskService) syncTaskAssignees(s *xorm.Session, task *models.Task, des
 
 	currentAssigneeMap := make(map[int64]struct{}, len(currentAssignees))
 	for _, entry := range currentAssignees {
-		currentAssigneeMap[entry.User.ID] = struct{}{}
+		currentAssigneeMap[entry.ID] = struct{}{}
 	}
 
 	desiredAssigneeMap := make(map[int64]*user.User)
@@ -3695,7 +3694,7 @@ func (ts *TaskService) applyFiltersToQuery(query *xorm.Session, opts *taskSearch
 	}
 
 	// Apply custom filters if present
-	if opts.parsedFilters != nil && len(opts.parsedFilters) > 0 {
+	if len(opts.parsedFilters) > 0 {
 		filterCond, err := ts.convertFiltersToDBFilterCond(opts.parsedFilters, opts.filterIncludeNulls)
 		if err != nil {
 			return nil, nil, err

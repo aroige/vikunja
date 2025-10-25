@@ -54,7 +54,7 @@ func TestAPITokenService_Create(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, token.ID)
 		assert.NotEmpty(t, token.Token)
-		assert.True(t, len(token.Token) > 8)
+		assert.Greater(t, len(token.Token), 8)
 		assert.NotEmpty(t, token.TokenSalt)
 		assert.NotEmpty(t, token.TokenHash)
 		assert.NotEmpty(t, token.TokenLastEight)
@@ -528,7 +528,7 @@ func createTokenWithPermissions(t *testing.T, s *xorm.Session, permissions model
 
 // T007: Test helper function to create a mock Echo context
 // This is useful for testing route handlers that require a context
-func createMockContext(method, path string, token *models.APIToken) echo.Context {
+func createMockContext(_ string, path string, token *models.APIToken) echo.Context {
 	// Note: For US1 tests, we may not need full Echo context mocking
 	// The registerTestAPIRoutes + models.CanDoAPIRoute pattern is sufficient
 	// This helper is provided for future extensibility if needed
@@ -1019,13 +1019,13 @@ func TestBulkTaskPermissionRegistration(t *testing.T) {
 	bulkRoutes, hasBulk := v1Routes["tasks_bulk"]
 	require.True(t, hasBulk, "Should have tasks_bulk routes registered in v1")
 
-	// Verify all expected permissions exist
-	assert.NotNil(t, bulkRoutes["update"], "Should have update permission for v1_tasks_bulk")
+	// Verify all expected permissions exist (uses 'bulk_update' to avoid conflicts with single-task update)
+	assert.NotNil(t, bulkRoutes["bulk_update"], "Should have bulk_update permission for v1_tasks_bulk")
 
 	// Verify the route details are correct
-	if bulkRoutes["update"] != nil {
-		assert.Equal(t, "POST", bulkRoutes["update"].Method)
-		assert.Contains(t, bulkRoutes["update"].Path, "/tasks/bulk")
+	if bulkRoutes["bulk_update"] != nil {
+		assert.Equal(t, "POST", bulkRoutes["bulk_update"].Method)
+		assert.Contains(t, bulkRoutes["bulk_update"].Path, "/tasks/bulk")
 	}
 }
 

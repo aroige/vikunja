@@ -133,7 +133,7 @@ func TestSQLiteImportService_BasicImport(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, report.Success)
 	assert.True(t, report.DatabaseImported)
-	assert.Greater(t, report.Counts.Users, int64(0))
+	assert.Positive(t, report.Counts.Users)
 	assert.Greater(t, report.Duration, time.Duration(0))
 
 	// Verify data was actually imported
@@ -207,7 +207,7 @@ func TestSQLiteImportService_TransactionRollback(t *testing.T) {
 	assert.Equal(t, int64(1), count, "Should only have one instance of the test user (from first import)")
 
 	// Verify error is reported
-	assert.Greater(t, len(report2.Errors), 0, "Should have error messages")
+	assert.NotEmpty(t, report2.Errors, "Should have error messages")
 	assert.Contains(t, report2.Errors[0], "failed to insert", "Error should mention insert failure")
 	assert.Greater(t, report2.Duration, time.Duration(0), "Should have recorded duration")
 
@@ -384,7 +384,7 @@ func TestSQLiteImportService_FilesMigration(t *testing.T) {
 	assert.True(t, report.Success)
 	assert.True(t, report.DatabaseImported)
 	assert.True(t, report.FilesMigrated)
-	assert.Nil(t, report.FilesError)
+	assert.NoError(t, report.FilesError)
 
 	// Verify files were copied correctly
 	for fileID, expectedContent := range testFiles {
@@ -828,7 +828,7 @@ func TestSQLiteImportService_NullValues(t *testing.T) {
 	exists, err := engine.Table("tasks").Where("id = ?", 7000).Get(&task)
 	require.NoError(t, err)
 	assert.True(t, exists)
-	assert.Equal(t, "", task.Description, "Description should be empty string")
+	assert.Empty(t, task.Description, "Description should be empty string")
 	assert.False(t, task.DueDate.Valid, "DueDate should be NULL")
 
 	// Cleanup
@@ -1228,7 +1228,7 @@ func createTestDBWithTransformations(t *testing.T) string {
 }
 
 // cleanupTestData removes test data after tests
-func cleanupTestData(t *testing.T, engine *xorm.Engine) {
+func cleanupTestData(_ *testing.T, engine *xorm.Engine) {
 	// Delete in reverse dependency order - wider range to catch all test IDs
 	_, _ = engine.Exec("DELETE FROM favorites WHERE id >= 7000")
 	_, _ = engine.Exec("DELETE FROM api_tokens WHERE id >= 7000")
