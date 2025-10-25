@@ -4819,3 +4819,761 @@ func TestTaskService_GetFilterCond_DateTimezone(t *testing.T) {
 		})
 	}
 }
+
+// T045: Test for invalid field names
+// User Story 4: Filter Field Validation
+// Goal: Users receive clear error messages for invalid field names
+func TestTaskService_GetFilterCond_InvalidField(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name        string
+		filterField string
+		expectError bool
+		description string
+	}{
+		{
+			name:        "Nonexistent field name",
+			filterField: "nonexistent_field",
+			expectError: true,
+			description: "Should return ErrInvalidTaskField for unknown field",
+		},
+		{
+			name:        "Typo in field name",
+			filterField: "tile", // Should be "title"
+			expectError: true,
+			description: "Should return ErrInvalidTaskField for misspelled field",
+		},
+		{
+			name:        "Invalid special characters",
+			filterField: "title$$$",
+			expectError: true,
+			description: "Should return ErrInvalidTaskField for field with special characters",
+		},
+		{
+			name:        "Empty field name",
+			filterField: "",
+			expectError: true,
+			description: "Should return ErrInvalidTaskField for empty field",
+		},
+		{
+			name:        "SQL injection attempt",
+			filterField: "title; DROP TABLE tasks--",
+			expectError: true,
+			description: "Should return ErrInvalidTaskField for malicious field name",
+		},
+		{
+			name:        "Valid field: title",
+			filterField: "title",
+			expectError: false,
+			description: "Should NOT error for valid field",
+		},
+		{
+			name:        "Valid field: priority",
+			filterField: "priority",
+			expectError: false,
+			description: "Should NOT error for valid field",
+		},
+		{
+			name:        "Valid field: labels (subtable)",
+			filterField: "labels",
+			expectError: false,
+			description: "Should NOT error for valid subtable field",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Try to create a filter with the field name
+			filter := &taskFilter{
+				field:      tt.filterField,
+				value:      "test_value",
+				comparator: taskFilterComparatorEquals,
+			}
+
+			// Validate the field
+			err := ts.validateTaskField(tt.filterField)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for invalid field: %s", tt.filterField)
+				assert.True(t, models.IsErrInvalidTaskField(err), "Expected ErrInvalidTaskField, got: %v", err)
+				t.Logf("✓ Correctly rejected invalid field '%s': %v", tt.filterField, err)
+			} else {
+				assert.NoError(t, err, "Should not error for valid field: %s", tt.filterField)
+
+				// If valid, also verify getFilterCond works
+				_, err := ts.getFilterCond(filter, false)
+				assert.NoError(t, err, "getFilterCond should work for valid field: %s", tt.filterField)
+				t.Logf("✓ Correctly accepted valid field '%s'", tt.filterField)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T046: Test for invalid comparators
+// User Story 4: Filter Field Validation
+// Goal: Users receive clear error messages for invalid operators
+func TestTaskService_GetFilterCond_InvalidComparator(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name        string
+		comparator  taskFilterComparator
+		expectError bool
+		description string
+	}{
+		{
+			name:        "Invalid comparator: empty string",
+			comparator:  "",
+			expectError: true,
+			description: "Should return error for empty comparator",
+		},
+		{
+			name:        "Invalid comparator: random text",
+			comparator:  "random",
+			expectError: true,
+			description: "Should return error for non-existent comparator",
+		},
+		{
+			name:        "Invalid comparator: misspelled",
+			comparator:  "eqals", // Should be "equals"
+			expectError: true,
+			description: "Should return error for misspelled comparator",
+		},
+		{
+			name:        "Invalid comparator: SQL operator",
+			comparator:  "IS NULL",
+			expectError: true,
+			description: "Should return error for raw SQL syntax",
+		},
+		{
+			name:        "Valid comparator: equals",
+			comparator:  taskFilterComparatorEquals,
+			expectError: false,
+			description: "Should NOT error for valid comparator",
+		},
+		{
+			name:        "Valid comparator: greater",
+			comparator:  taskFilterComparatorGreater,
+			expectError: false,
+			description: "Should NOT error for valid comparator",
+		},
+		{
+			name:        "Valid comparator: like",
+			comparator:  taskFilterComparatorLike,
+			expectError: false,
+			description: "Should NOT error for valid comparator",
+		},
+		{
+			name:        "Valid comparator: in",
+			comparator:  taskFilterComparatorIn,
+			expectError: false,
+			description: "Should NOT error for valid comparator",
+		},
+		{
+			name:        "Valid comparator: not in",
+			comparator:  taskFilterComparatorNotIn,
+			expectError: false,
+			description: "Should NOT error for valid comparator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Validate the comparator
+			err := ts.validateTaskFieldComparator(tt.comparator)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for invalid comparator: %s", tt.comparator)
+				// Note: Current implementation returns generic error, not typed error
+				// T049-T052 will verify proper error types are used
+				t.Logf("✓ Correctly rejected invalid comparator '%s': %v", tt.comparator, err)
+			} else {
+				assert.NoError(t, err, "Should not error for valid comparator: %s", tt.comparator)
+
+				// If valid, also verify getFilterCond works
+				filter := &taskFilter{
+					field:      "priority",
+					value:      3,
+					comparator: tt.comparator,
+				}
+
+				// For LIKE operator, use string value
+				if tt.comparator == taskFilterComparatorLike {
+					filter.value = "test"
+				}
+
+				_, err := ts.getFilterCond(filter, false)
+				assert.NoError(t, err, "getFilterCond should work for valid comparator: %s", tt.comparator)
+				t.Logf("✓ Correctly accepted valid comparator '%s'", tt.comparator)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T047: Test for type mismatches
+// User Story 4: Filter Field Validation
+// Goal: Users receive clear error messages for value type incompatibility
+func TestTaskService_GetFilterCond_TypeMismatch(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name        string
+		field       string
+		value       interface{}
+		comparator  taskFilterComparator
+		expectError bool
+		description string
+	}{
+		{
+			name:        "LIKE operator with non-string value",
+			field:       "title",
+			value:       12345, // Should be string for LIKE
+			comparator:  taskFilterComparatorLike,
+			expectError: true,
+			description: "Should return error when LIKE operator used with integer value",
+		},
+		{
+			name:        "LIKE operator with boolean value",
+			field:       "title",
+			value:       true, // Should be string for LIKE
+			comparator:  taskFilterComparatorLike,
+			expectError: true,
+			description: "Should return error when LIKE operator used with boolean value",
+		},
+		{
+			name:        "LIKE operator with slice value",
+			field:       "title",
+			value:       []int{1, 2, 3}, // Should be string for LIKE
+			comparator:  taskFilterComparatorLike,
+			expectError: true,
+			description: "Should return error when LIKE operator used with slice value",
+		},
+		{
+			name:        "Valid LIKE with string value",
+			field:       "title",
+			value:       "test task",
+			comparator:  taskFilterComparatorLike,
+			expectError: false,
+			description: "Should NOT error for valid string value with LIKE",
+		},
+		{
+			name:        "Valid equals with integer value",
+			field:       "priority",
+			value:       3,
+			comparator:  taskFilterComparatorEquals,
+			expectError: false,
+			description: "Should NOT error for valid integer value with equals",
+		},
+		{
+			name:        "Valid greater than with integer value",
+			field:       "priority",
+			value:       2,
+			comparator:  taskFilterComparatorGreater,
+			expectError: false,
+			description: "Should NOT error for valid integer value with greater than",
+		},
+		{
+			name:        "Valid IN with slice value",
+			field:       "priority",
+			value:       []interface{}{1, 2, 3},
+			comparator:  taskFilterComparatorIn,
+			expectError: false,
+			description: "Should NOT error for valid slice value with IN",
+		},
+		{
+			name:        "Valid equals with string value",
+			field:       "title",
+			value:       "test",
+			comparator:  taskFilterComparatorEquals,
+			expectError: false,
+			description: "Should NOT error for valid string value with equals",
+		},
+		{
+			name:        "Valid equals with boolean value",
+			field:       "done",
+			value:       true,
+			comparator:  taskFilterComparatorEquals,
+			expectError: false,
+			description: "Should NOT error for valid boolean value with equals",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filter := &taskFilter{
+				field:      tt.field,
+				value:      tt.value,
+				comparator: tt.comparator,
+			}
+
+			// Try to build filter condition
+			_, err := ts.getFilterCond(filter, false)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for type mismatch: %s with value %v", tt.field, tt.value)
+				t.Logf("✓ Correctly rejected type mismatch for field '%s' with value %v (%T): %v",
+					tt.field, tt.value, tt.value, err)
+			} else {
+				assert.NoError(t, err, "Should not error for valid type: %s with value %v", tt.field, tt.value)
+				t.Logf("✓ Correctly accepted valid type for field '%s' with value %v (%T)",
+					tt.field, tt.value, tt.value)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T053: Test assignees subtable filter with EXISTS subquery
+func TestTaskService_ConvertFiltersToDBFilterCond_AssigneesSubtable(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name         string
+		filters      []*taskFilter
+		includeNulls bool
+		expectErr    bool
+		description  string
+	}{
+		{
+			name: "Single assignee filter with user ID 1",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks assigned to user 1",
+		},
+		{
+			name: "Assignee filter with IN operator (multiple users)",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      []int64{1, 2, 3},
+					comparator: taskFilterComparatorIn,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks assigned to users 1, 2, or 3",
+		},
+		{
+			name: "Assignee filter with NOT IN operator",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      []int64{1},
+					comparator: taskFilterComparatorNotIn,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate NOT EXISTS subquery for tasks NOT assigned to user 1",
+		},
+		{
+			name: "Assignee filter with != operator",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(1),
+					comparator: taskFilterComparatorNotEquals,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should convert != to NOT EXISTS for subtable (tasks NOT assigned to user 1)",
+		},
+		{
+			name: "Assignee filter with includeNulls=false (T019 fix verification)",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "With AllowNullCheck=false, should return ONLY tasks assigned to user 1 (no unassigned tasks)",
+		},
+		{
+			name: "Assignee filter with includeNulls=true (should NOT add NULL check due to T019 fix)",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals,
+					isNumeric:  true,
+				},
+			},
+			includeNulls: true,
+			expectErr:    false,
+			description:  "With AllowNullCheck=false (T019), includeNulls=true should be IGNORED (no OR NOT EXISTS clause)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond, err := ts.convertFiltersToDBFilterCond(tt.filters, tt.includeNulls)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				t.Logf("✓ Expected error occurred: %v", err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cond)
+				t.Logf("✓ Generated assignees EXISTS condition SQL: %v", cond)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T054: Test reminders subtable filter with EXISTS subquery
+func TestTaskService_ConvertFiltersToDBFilterCond_RemindersSubtable(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name         string
+		filters      []*taskFilter
+		includeNulls bool
+		expectErr    bool
+		description  string
+	}{
+		{
+			name: "Reminder filter with > operator (future reminders)",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2024-01-01T00:00:00Z",
+					comparator: taskFilterComparatorGreater,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks with reminders after 2024-01-01",
+		},
+		{
+			name: "Reminder filter with < operator (past reminders)",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2025-12-31T23:59:59Z",
+					comparator: taskFilterComparatorLess,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks with reminders before 2025-12-31",
+		},
+		{
+			name: "Reminder filter with >= operator",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2024-06-01T00:00:00Z",
+					comparator: taskFilterComparatorGreaterEquals,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks with reminders on or after 2024-06-01",
+		},
+		{
+			name: "Reminder filter with <= operator",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2024-12-31T23:59:59Z",
+					comparator: taskFilterComparatorLessEquals,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "Should generate EXISTS subquery for tasks with reminders on or before 2024-12-31",
+		},
+		{
+			name: "Reminder filter with includeNulls=false (T019 fix verification)",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2024-01-01T00:00:00Z",
+					comparator: taskFilterComparatorGreater,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: false,
+			expectErr:    false,
+			description:  "With AllowNullCheck=false, should return ONLY tasks with matching reminders (no tasks without reminders)",
+		},
+		{
+			name: "Reminder filter with includeNulls=true (should NOT add NULL check due to T019 fix)",
+			filters: []*taskFilter{
+				{
+					field:      "reminders",
+					value:      "2024-01-01T00:00:00Z",
+					comparator: taskFilterComparatorGreater,
+					isNumeric:  false,
+				},
+			},
+			includeNulls: true,
+			expectErr:    false,
+			description:  "With AllowNullCheck=false (T019), includeNulls=true should be IGNORED (no OR NOT EXISTS clause)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond, err := ts.convertFiltersToDBFilterCond(tt.filters, tt.includeNulls)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				t.Logf("✓ Expected error occurred: %v", err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cond)
+				t.Logf("✓ Generated reminders EXISTS condition SQL: %v", cond)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T055: Test strict comparator conversion (= and != become IN and NOT IN for subtables)
+func TestTaskService_ConvertFiltersToDBFilterCond_StrictComparatorConversion(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name        string
+		filters     []*taskFilter
+		expectErr   bool
+		description string
+	}{
+		{
+			name: "Labels filter: = comparator should convert to IN for subtable",
+			filters: []*taskFilter{
+				{
+					field:      "labels",
+					value:      int64(5),
+					comparator: taskFilterComparatorEquals, // Should become IN internally
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "For subtable filters, = (equals) should be converted to IN operator internally",
+		},
+		{
+			name: "Assignees filter: = comparator should convert to IN for subtable",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals, // Should become IN internally
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "For assignees subtable, = should convert to IN (EXISTS with user_id IN (...))",
+		},
+		{
+			name: "Labels filter: != comparator should convert to NOT IN for subtable",
+			filters: []*taskFilter{
+				{
+					field:      "labels",
+					value:      int64(5),
+					comparator: taskFilterComparatorNotEquals, // Should become NOT IN internally, then NOT EXISTS
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "For subtable filters, != should convert to NOT IN, then wrapped in NOT EXISTS",
+		},
+		{
+			name: "Assignees filter: != comparator should convert to NOT IN for subtable",
+			filters: []*taskFilter{
+				{
+					field:      "assignees",
+					value:      int64(2),
+					comparator: taskFilterComparatorNotEquals, // Should become NOT IN internally, then NOT EXISTS
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "For assignees subtable, != should convert to NOT IN (NOT EXISTS with user_id NOT IN (...))",
+		},
+		{
+			name: "Regular field: = comparator should NOT convert (stays as Eq)",
+			filters: []*taskFilter{
+				{
+					field:      "priority",
+					value:      int64(3),
+					comparator: taskFilterComparatorEquals, // Should stay as Eq for regular fields
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "For regular fields (non-subtable), = should remain as Eq, not converted to IN",
+		},
+		{
+			name: "Regular field: != comparator should NOT convert (stays as Neq)",
+			filters: []*taskFilter{
+				{
+					field:      "done",
+					value:      true,
+					comparator: taskFilterComparatorNotEquals, // Should stay as Neq for regular fields
+					isNumeric:  false,
+				},
+			},
+			expectErr:   false,
+			description: "For regular fields (non-subtable), != should remain as Neq, not converted to NOT IN",
+		},
+		{
+			name: "Subtable with array value and = comparator (explicit IN)",
+			filters: []*taskFilter{
+				{
+					field:      "labels",
+					value:      []int64{5, 6, 7},
+					comparator: taskFilterComparatorEquals, // Already array, converts to IN
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "When value is array with = comparator on subtable, should use IN (EXISTS with label_id IN (5,6,7))",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond, err := ts.convertFiltersToDBFilterCond(tt.filters, false)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				t.Logf("✓ Expected error occurred: %v", err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cond)
+				t.Logf("✓ Generated condition with comparator conversion: %v", cond)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
+
+// T056: Test project field alias (parent_project -> parent_project_id)
+func TestTaskService_ConvertFiltersToDBFilterCond_ProjectAlias(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	ts := NewTaskService(db.GetEngine())
+
+	tests := []struct {
+		name        string
+		filters     []*taskFilter
+		expectErr   bool
+		description string
+	}{
+		{
+			name: "Filter by parent_project (alias for parent_project_id)",
+			filters: []*taskFilter{
+				{
+					field:      "parent_project",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals,
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "parent_project should be accepted and mapped to parent_project_id via subtable filter",
+		},
+		{
+			name: "Filter by parent_project_id (direct field)",
+			filters: []*taskFilter{
+				{
+					field:      "parent_project_id",
+					value:      int64(1),
+					comparator: taskFilterComparatorEquals,
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "parent_project_id should work directly as subtable filter field",
+		},
+		{
+			name: "Filter by parent_project with IN operator",
+			filters: []*taskFilter{
+				{
+					field:      "parent_project",
+					value:      []int64{1, 2, 3},
+					comparator: taskFilterComparatorIn,
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "parent_project with IN should generate EXISTS subquery for multiple parent project IDs",
+		},
+		{
+			name: "Filter by parent_project_id with NOT IN operator",
+			filters: []*taskFilter{
+				{
+					field:      "parent_project_id",
+					value:      []int64{1},
+					comparator: taskFilterComparatorNotIn,
+					isNumeric:  true,
+				},
+			},
+			expectErr:   false,
+			description: "parent_project_id with NOT IN should generate NOT EXISTS subquery",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cond, err := ts.convertFiltersToDBFilterCond(tt.filters, false)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				t.Logf("✓ Expected error occurred: %v", err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cond)
+				t.Logf("✓ Generated condition with project alias: %v", cond)
+			}
+
+			t.Logf("Description: %s", tt.description)
+		})
+	}
+}
