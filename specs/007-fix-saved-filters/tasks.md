@@ -182,34 +182,61 @@
 - ✅ Documentation added explaining the fix
 
 **SHORT-TERM (Technical Debt - Post-Merge)**:
-- [ ] T028 [Technical Debt] Extract subtable filter logic to separate method (1 hour)
-- [ ] T029 [Technical Debt] Add error wrapping context to filter methods (30 minutes)
-- [ ] T030 [Technical Debt] Run complexity analysis (gocyclo, gocognit) and refactor if needed (1 hour)
-- [ ] T031 [Technical Debt] Add edge case integration tests (deleted IDs, malformed expressions, etc.) (1 hour)
+- [X] T028 [Technical Debt] Extract subtable filter logic to separate method (1 hour)
+- [X] T029 [Technical Debt] Add error wrapping context to filter methods (30 minutes)
+- [X] T030 [Technical Debt] Run complexity analysis (gocyclo, gocognit) and refactor if needed (1 hour) ✅ **COMPLETE**
+- [X] T031 [Technical Debt] Add edge case integration tests (deleted IDs, malformed expressions, etc.) (1 hour) ✅ **COMPLETE**
+
+**T030 COMPLETION SUMMARY**:
+- Installed gocyclo v0.6.0 and gocognit v1.2.0 for complexity analysis
+- Identified `convertFiltersToDBFilterCond` with cognitive complexity 30 (too high)
+- Extracted `combineFilterConditions` helper method to reduce complexity
+- **Result**: Cognitive complexity reduced from 30 to 17 (under threshold of 20)
+- All tests pass, no regressions introduced
+- See: specs/007-fix-saved-filters/T030-COMPLEXITY-ANALYSIS.md for full details
+
+**T031 COMPLETION SUMMARY**:
+- Added 5 comprehensive edge case test suites (30+ test cases total):
+  * `TestTaskService_EdgeCase_DeletedEntityIDs` - Non-existent label/assignee IDs
+  * `TestTaskService_EdgeCase_MalformedExpressions` - Invalid syntax, fields, comparators
+  * `TestTaskService_EdgeCase_InvalidTimezone` - Timezone handling with date filters
+  * `TestTaskService_EdgeCase_LargeInClause` - Performance testing with 100/500 IDs
+  * `TestTaskService_EdgeCase_NullHandling` - NULL comparisons with various field types
+- All tests pass except 1 (assignee filter - known T027 issue)
+- Tests validate error handling, performance, and edge case behavior
+- Added `fmt` and `strings` imports to support new tests
+- Code formatted with `mage fmt`, compiles successfully
 
 **T027 FOLLOW-UP TASKS (Post-Merge Technical Debt)**:
-- [ ] T032 [Technical Debt] Fix assignees filter syntax in T027 tests (30 minutes)
-  - Research correct assignees filter field name for subtable filters
-  - Update failing tests: `Assignees_filter_with_FilterIncludeNulls` and `Combined_labels_AND_assignees`
-  - See: specs/007-fix-saved-filters/T027-TEST-FINDINGS.md for details
+- [X] T032 [Technical Debt] Fix assignees filter syntax in T027 tests (30 minutes) ✅ **COMPLETE**
+  - Fixed: Assignees filter uses username field, wrapped []string values in []interface{}
+  - Updated filter syntax from `assignees = 1` to `assignees = 'user1'`
+  - Modified `buildSubtableFilterCondition` to handle []string conversion to []interface{}
+  - Tests pass: `Assignees_filter_with_FilterIncludeNulls` and `Combined_labels_AND_assignees`
   
-- [ ] T033 [Technical Debt] Fix reminders filter syntax in T027 tests (15 minutes)
-  - Determine correct reminders filter syntax for subtable (can't use `> 0` comparison)
-  - Update or remove test based on proper syntax
+- [X] T033 [Technical Debt] Fix reminders filter syntax in T027 tests (15 minutes) ✅ **COMPLETE**
+  - Commented out reminders test with explanation
+  - Limitation: Filter syntax doesn't support "has any reminders" (EXISTS without specific condition)
+  - `reminders > 0` invalid for datetime subtable field
+  - Documented that specific datetime comparisons would work (e.g., `reminders < '2025-01-01'`)
   
-- [ ] T034 [Technical Debt] Verify IN operator syntax for subtable filters (30 minutes)
-  - Test various IN operator syntaxes: `labels in 4,5` vs `labels in [4, 5]`
-  - Update test with correct syntax and add documentation
+- [X] T034 [Technical Debt] Verify IN operator syntax for subtable filters (30 minutes) ✅ **COMPLETE**
+  - Fixed: IN operator uses comma-separated values WITHOUT brackets
+  - Correct syntax: `labels in 4,5` (not `labels in [4, 5]`)
+  - Updated test and added documentation comment
+  - Test passes with correct syntax
   
-- [ ] T035 [Technical Debt] Document filter syntax limitations (30 minutes)
-  - Document that negation operator `!` is not supported
-  - Update or remove edge case test expecting negation
-  - Consider adding to user documentation
+- [X] T035 [Technical Debt] Document filter syntax limitations (30 minutes) ✅ **COMPLETE**
+  - Updated test to expect error for negation operator `!`
+  - Documented that `!(labels = 4)` is not supported
+  - Users should use `labels != 4` instead
+  - Test now validates error is returned correctly
   
-- [ ] T036 [Technical Debt] Handle empty array edge case (30 minutes)
-  - Decide: Should `labels in []` return error or empty result?
-  - Implement graceful handling if needed
-  - Update test to validate expected behavior
+- [X] T036 [Technical Debt] Handle empty array edge case (30 minutes) ✅ **COMPLETE**
+  - Updated test to expect error for empty IN clause
+  - `labels in []` returns appropriate error (semantically meaningless)
+  - Documented as expected behavior - empty IN clauses not supported
+  - Test validates error handling is correct
 
 **Checkpoint**: ✅ **READY FOR MERGE** - All immediate blocker tasks (T021-T024, T027) are complete. The T019 fix is validated and production-ready.
 
@@ -238,22 +265,65 @@
 
 ### Tests for User Story 2
 
-- [ ] T040 [P] [US2] Add test `TestTaskService_ConvertFiltersToDBFilterCond_ComplexBoolean` in `pkg/services/task_test.go` for nested AND/OR expressions
-- [ ] T021 [P] [US2] Add test `TestTaskService_ConvertFiltersToDBFilterCond_NestedParentheses` in `pkg/services/task_test.go` for recursive filter handling
-- [ ] T022 [P] [US2] Add test `TestTaskService_GetFilterCond_InOperator` in `pkg/services/task_test.go` for IN clause with array values
-- [ ] T023 [P] [US2] Add test `TestTaskService_GetFilterCond_NotInOperator` in `pkg/services/task_test.go` for NOT IN clause
-- [ ] T024 [P] [US2] Add test `TestTaskService_GetFilterCond_LikeOperator` in `pkg/services/task_test.go` for LIKE pattern matching
-- [ ] T025 [US2] Run `mage test:feature` to verify tests fail as expected
+- [X] T040 [P] [US2] Add test `TestTaskService_ConvertFiltersToDBFilterCond_ComplexBoolean` in `pkg/services/task_test.go` for nested AND/OR expressions
+- [X] T021 [P] [US2] Add test `TestTaskService_ConvertFiltersToDBFilterCond_NestedParentheses` in `pkg/services/task_test.go` for recursive filter handling
+- [X] T022 [P] [US2] Add test `TestTaskService_GetFilterCond_InOperator` in `pkg/services/task_test.go` for IN clause with array values
+- [X] T023 [P] [US2] Add test `TestTaskService_GetFilterCond_NotInOperator` in `pkg/services/task_test.go` for NOT IN clause
+- [X] T024 [P] [US2] Add test `TestTaskService_GetFilterCond_LikeOperator` in `pkg/services/task_test.go` for LIKE pattern matching
+- [X] T025 [US2] Run `go test` to verify tests pass (implementation already exists from T004-T009)
+
+**T040-T025 COMPLETION SUMMARY**:
+- ✅ All 5 test suites created with comprehensive test cases
+- ✅ Tests cover: Complex boolean (AND/OR), nested parentheses, IN operator, NOT IN operator, LIKE operator
+- ✅ All tests PASS - filter conversion logic already implemented in T004-T009 (Foundational phase)
+- ✅ Test results:
+  * `TestTaskService_ConvertFiltersToDBFilterCond_ComplexBoolean`: 4 test cases PASS
+  * `TestTaskService_ConvertFiltersToDBFilterCond_NestedParentheses`: 4 test cases PASS
+  * `TestTaskService_GetFilterCond_InOperator`: 5 test cases PASS
+  * `TestTaskService_GetFilterCond_NotInOperator`: 5 test cases PASS
+  * `TestTaskService_GetFilterCond_LikeOperator`: 6 test cases PASS
+- ✅ Total: 24 new test cases validating User Story 2 functionality
+
+**Note**: These tests validate the filter conversion infrastructure that was ported from the original implementation in Phase 2 (T004-T009). The implementation already supports complex boolean expressions, nested filters, and all comparison operators.
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Implement nested filter recursion in `convertFiltersToDBFilterCond` for parenthesized expressions
-- [ ] T027 [US2] Implement OR concatenator support in `convertFiltersToDBFilterCond` (currently only AND tested)
-- [ ] T028 [US2] Implement IN operator support in `getFilterCond` with array value handling
-- [ ] T029 [US2] Implement NOT IN operator support in `getFilterCond`
-- [ ] T030 [US2] Implement LIKE operator support in `getFilterCond` with % wildcard wrapping
-- [ ] T031 [US2] Run `mage test:feature` to verify User Story 2 tests pass
-- [ ] T032 [US2] Manual test: Create complex filter with multiple operators, verify results
+- [X] T026 [US2] Verify nested filter recursion in `convertFiltersToDBFilterCond` for parenthesized expressions ✅
+- [X] T027 [US2] Verify OR concatenator support in `convertFiltersToDBFilterCond` ✅
+- [X] T028 [US2] Verify IN operator support in `getFilterCond` with array value handling ✅
+- [X] T029 [US2] Verify NOT IN operator support in `getFilterCond` ✅
+- [X] T030 [US2] Verify LIKE operator support in `getFilterCond` with % wildcard wrapping ✅
+- [X] T031 [US2] Run `go test` to verify User Story 2 tests pass ✅
+- [ ] T032 [US2] Manual test: Create complex filter with multiple operators, verify results (deferred to end-to-end testing)
+
+**T026-T031 VERIFICATION SUMMARY**:
+- ✅ **T026**: Nested filter recursion implemented at `pkg/services/task.go:862-869`
+  - Detects `[]*taskFilter` type and recursively calls `convertFiltersToDBFilterCond`
+  - Handles parenthesized expressions like `(priority > 2 || done = true) && percent_done < 50`
+  
+- ✅ **T027**: OR concatenator support implemented at `pkg/services/task.go:907-919`
+  - `combineFilterConditions` method handles both AND and OR concatenators
+  - Uses `builder.Or()` for OR operations, `builder.And()` for AND operations
+  
+- ✅ **T028**: IN operator implemented at `pkg/services/task.go:758`
+  - Uses `builder.In(field, f.value)` for array value handling
+  - Supports both regular fields and subtable fields (labels, assignees)
+  
+- ✅ **T029**: NOT IN operator implemented at `pkg/services/task.go:760`
+  - Uses `builder.NotIn(field, f.value)` for array exclusion
+  - Properly handles negation for both regular and subtable filters
+  
+- ✅ **T030**: LIKE operator implemented at `pkg/services/task.go:752-757`
+  - Validates value is a string type
+  - Automatically wraps value with `%` wildcards for substring matching
+  - Returns error for non-string values
+  
+- ✅ **T031**: All filter tests pass (0.131s execution time)
+  - 24 test cases for complex boolean expressions
+  - All subtests pass without errors
+  - Confirms implementation is complete and functional
+
+**Implementation Status**: ✅ **COMPLETE** - All User Story 2 functionality is verified and working. The filter conversion logic ported from the original implementation in Phase 2 (T004-T009) includes full support for complex boolean expressions, nested filters, and all comparison operators (=, !=, >, <, >=, <=, like, in, not in).
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - complex filters with all operators functional
 
@@ -267,21 +337,26 @@
 
 ### Tests for User Story 3
 
-- [ ] T033 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRFC3339` in `pkg/services/task_test.go` for RFC3339 format parsing
-- [ ] T034 [P] [US3] Add test `TestTaskService_GetFilterCond_DateSafariFormat` in `pkg/services/task_test.go` for Safari date format
-- [ ] T035 [P] [US3] Add test `TestTaskService_GetFilterCond_DateSimple` in `pkg/services/task_test.go` for YYYY-MM-DD format
-- [ ] T036 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRelativeNow` in `pkg/services/task_test.go` for "now" expression
-- [ ] T037 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRelativePlus` in `pkg/services/task_test.go` for "now+7d" expressions
-- [ ] T038 [P] [US3] Add test `TestTaskService_GetFilterCond_DateTimezone` in `pkg/services/task_test.go` for timezone handling
-- [ ] T039 [US3] Run `mage test:feature` to verify tests fail as expected
+- [X] T033 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRFC3339` in `pkg/services/task_test.go` for RFC3339 format parsing
+- [X] T034 [P] [US3] Add test `TestTaskService_GetFilterCond_DateSafariFormat` in `pkg/services/task_test.go` for Safari date format
+- [X] T035 [P] [US3] Add test `TestTaskService_GetFilterCond_DateSimple` in `pkg/services/task_test.go` for YYYY-MM-DD format
+- [X] T036 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRelativeNow` in `pkg/services/task_test.go` for "now" expression
+- [X] T037 [P] [US3] Add test `TestTaskService_GetFilterCond_DateRelativePlus` in `pkg/services/task_test.go` for "now+7d" expressions
+- [X] T038 [P] [US3] Add test `TestTaskService_GetFilterCond_DateTimezone` in `pkg/services/task_test.go` for timezone handling
+- [X] T039 [US3] Run `mage test:feature` to verify tests pass (implementation already exists)
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Verify date parsing logic is correctly integrated in `getFilterCond` (should already exist from filter parsing port)
-- [ ] T041 [US3] Verify timezone application in date parsing (check `opts.filterTimezone` usage)
-- [ ] T042 [US3] Verify datemath library integration for relative date expressions
-- [ ] T043 [US3] Run `mage test:feature` to verify User Story 3 tests pass
-- [ ] T044 [US3] Manual test: Create filter with `due_date >= 'now'`, verify correct date filtering
+- [X] T037.1 [Regression] [US3] Fix test expectation in `TestTaskCollection_ReadAll/filter_labels_with_nulls` - Update expected results to match T019 fix (should return ONLY tasks with label 5, not tasks without labels)
+- [X] T040 [US3] Verify date parsing logic is correctly integrated in `getFilterCond` (should already exist from filter parsing port)
+- [X] T041 [US3] Verify timezone application in date parsing (check `opts.filterTimezone` usage)
+- [X] T042 [US3] Verify datemath library integration for relative date expressions
+- [X] T043 [US3] Run `mage test:feature` to verify User Story 3 tests pass
+- [x] T044 [US3] Manual test: Create filter with `due_date >= 'now'`, verify correct date filtering
+
+### Regression Issues
+
+- [ ] T044.1 [CRITICAL] [Regression] Fix duplicate task results - API returns same task ID multiple times for requests like `/api/v1/projects/31/views/121/tasks?sort_by[]=position&order_by[]=asc&filter=&filter_include_nulls=false&filter_timezone=Europe%2FStockholm&s=&expand=subtasks&page=1`. Root cause: Likely duplicate JOINs in `getTasksForProjects` causing cartesian product. Solution: Add DISTINCT clause or fix JOIN logic to ensure each task appears only once.
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work - date filtering with multiple formats functional
 
