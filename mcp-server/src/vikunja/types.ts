@@ -136,3 +136,53 @@ export const RELATION_INVERSES: Record<RelationKind, RelationKind> = {
  * Hierarchical relation types that must prevent cycles
  */
 export const HIERARCHICAL_RELATIONS: RelationKind[] = ['subtask', 'parenttask'];
+
+/**
+ * Task Relation
+ * Represents a relationship between two tasks
+ */
+export interface TaskRelation {
+  task_id: number;
+  other_task_id: number;
+  relation_kind: RelationKind;
+  created_by: VikunjaUser;
+  created_at: string; // ISO 8601
+}
+
+/**
+ * Relations Grouped by Kind
+ * Used when retrieving all relations for a task
+ */
+export interface RelationsGrouped {
+  subtasks?: TaskRelation[];
+  parenttasks?: TaskRelation[];
+  related?: TaskRelation[];
+  duplicates?: TaskRelation[];
+  duplicateof?: TaskRelation[];
+  blocking?: TaskRelation[];
+  blocked?: TaskRelation[];
+  precedes?: TaskRelation[];
+  follows?: TaskRelation[];
+  copiedfrom?: TaskRelation[];
+  copiedto?: TaskRelation[];
+}
+
+/**
+ * Get Relations Response
+ */
+export interface GetRelationsResponse {
+  task_id: number;
+  relations: RelationsGrouped;
+  total_count: number;
+}
+
+/**
+ * Relation Operation Result
+ */
+export interface RelationOperationResult {
+  success: boolean;
+  task_id: number;
+  other_task_id: number;
+  relation_kind: RelationKind;
+  message: string;
+}

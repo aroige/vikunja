@@ -4,6 +4,7 @@ import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, Dele
 import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, RemoveLabelSchema, CreateLabelSchema } from './assignments.js';
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
 import { BulkTools, BulkUpdateTasksSchema, BulkCompleteTasksSchema, BulkAssignTasksSchema, BulkAddLabelsSchema } from './bulk.js';
+import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema } from './relations.js';
 import { VikunjaClient } from '../vikunja/client.js';
 import { RateLimiter } from '../ratelimit/limiter.js';
 import { UserContext } from '../auth/types.js';
@@ -33,6 +34,7 @@ export type ToolExecutor = (
  * Tool registry for MCP server
  */
 export class ToolRegistry {
+  private readonly client: VikunjaClient;
   private readonly projectTools: ProjectTools;
   private readonly taskTools: TaskTools;
   private readonly assignmentTools: AssignmentTools;
@@ -43,6 +45,7 @@ export class ToolRegistry {
   private readonly executors: Map<string, ToolExecutor>;
 
   constructor(client: VikunjaClient, rateLimiter: RateLimiter) {
+    this.client = client;
     this.projectTools = new ProjectTools(client, rateLimiter);
     this.taskTools = new TaskTools(client, rateLimiter);
     this.assignmentTools = new AssignmentTools(client, rateLimiter);
@@ -216,6 +219,37 @@ export class ToolRegistry {
       'Add a label to multiple tasks at once (max 100 tasks). Use this for batch categorization. Example: Tag all Q4 tasks with "urgent" label. More efficient than calling add_label multiple times. Returns success confirmation with count.',
       BulkAddLabelsSchema,
       async (args, ctx) => this.bulkTools.bulkAddLabels(args as z.infer<typeof BulkAddLabelsSchema>, ctx)
+    );
+
+    // Task Relation Tools
+    this.registerTool(
+      'create_task_relation',
+      'Create a relationship between two tasks (subtask, blocker, related, etc.). Bidirectional relations created automatically. Hierarchical relations (subtask/parenttask) prevent cycles. Use this for task dependencies, hierarchies, or associations.',
+      CreateTaskRelationSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof CreateTaskRelationSchema>;
+        return createTaskRelation(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'get_task_relations',
+      'Retrieve all relationships for a task, grouped by relation type (subtasks, parenttasks, blocking, etc.). Returns total count and metadata. Use this to understand task context, dependencies, and hierarchy.',
+      GetTaskRelationsSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetTaskRelationsSchema>;
+        return getTaskRelations(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'delete_task_relation',
+      'Remove a relationship between two tasks. Bidirectional inverse relation also removed automatically. Must specify exact relation_kind. Use this to remove dependencies, unlink tasks, or clean up incorrect relations.',
+      DeleteTaskRelationSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof DeleteTaskRelationSchema>;
+        return deleteTaskRelation(validatedArgs, this.client, ctx.token);
+      }
     );
   }
 

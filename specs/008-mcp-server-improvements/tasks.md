@@ -96,25 +96,25 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 2
 
-- [ ] T036 [P] [US2] Create relation tool contract tests in `mcp-server/tests/tools/relations.test.ts` - test create_task_relation success case with bidirectional creation
-- [ ] T037 [P] [US2] Add cycle prevention test in `mcp-server/tests/tools/relations.test.ts` - test hierarchical relation (subtask/parenttask) rejects cycles
-- [ ] T038 [P] [US2] Add relation retrieval test in `mcp-server/tests/tools/relations.test.ts` - test get_task_relations returns grouped relations by kind
-- [ ] T039 [P] [US2] Add relation deletion test in `mcp-server/tests/tools/relations.test.ts` - test delete_task_relation removes both directions
-- [ ] T040 [P] [US2] Add permission error test in `mcp-server/tests/tools/relations.test.ts` - test permission denied includes resource type context
-- [ ] T041 [P] [US2] Add validation error test in `mcp-server/tests/tools/relations.test.ts` - test invalid relation_kind returns clear error
+- [X] T036 [P] [US2] Create relation tool contract tests in `mcp-server/tests/tools/relations.test.ts` - test create_task_relation success case with bidirectional creation
+- [X] T037 [P] [US2] Add cycle prevention test in `mcp-server/tests/tools/relations.test.ts` - test hierarchical relation (subtask/parenttask) rejects cycles
+- [X] T038 [P] [US2] Add relation retrieval test in `mcp-server/tests/tools/relations.test.ts` - test get_task_relations returns grouped relations by kind
+- [X] T039 [P] [US2] Add relation deletion test in `mcp-server/tests/tools/relations.test.ts` - test delete_task_relation removes both directions
+- [X] T040 [P] [US2] Add permission error test in `mcp-server/tests/tools/relations.test.ts` - test permission denied includes resource type context
+- [X] T041 [P] [US2] Add validation error test in `mcp-server/tests/tools/relations.test.ts` - test invalid relation_kind returns clear error
 
 ### Implementation for User Story 2
 
-- [ ] T042 [US2] Add TaskRelation interface to `mcp-server/src/vikunja/types.ts` (task_id, other_task_id, relation_kind, created_by, created_at)
-- [ ] T043 [US2] Add RelationsGrouped interface to `mcp-server/src/vikunja/types.ts` (subtasks[], parenttasks[], related[], etc.)
-- [ ] T044 [US2] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - createTaskRelation, getTaskRelations, deleteTaskRelation
-- [ ] T045 [US2] Create relations tool file at `mcp-server/src/tools/relations.ts` with Zod schemas (CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema)
-- [ ] T046 [US2] Implement create_task_relation tool in `mcp-server/src/tools/relations.ts` - comprehensive description with all 10 relation kinds explained, bidirectional creation note, cycle prevention note
-- [ ] T047 [US2] Implement get_task_relations tool in `mcp-server/src/tools/relations.ts` - description includes grouped output format, all relation types listed
-- [ ] T048 [US2] Implement delete_task_relation tool in `mcp-server/src/tools/relations.ts` - description includes bidirectional deletion note
-- [ ] T049 [US2] Add error handling with resource context to relation tools in `mcp-server/src/tools/relations.ts` - use formatPermissionError utility
-- [ ] T050 [US2] Register relation tools in `mcp-server/src/tools/index.ts` - add create_task_relation, get_task_relations, delete_task_relation to tools array
-- [ ] T051 [US2] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test complete workflow: create tasks, add subtask relations, query hierarchy
+- [X] T042 [US2] Add TaskRelation interface to `mcp-server/src/vikunja/types.ts` (task_id, other_task_id, relation_kind, created_by, created_at)
+- [X] T043 [US2] Add RelationsGrouped interface to `mcp-server/src/vikunja/types.ts` (subtasks[], parenttasks[], related[], etc.)
+- [X] T044 [US2] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - createTaskRelation, getTaskRelations, deleteTaskRelation
+- [X] T045 [US2] Create relations tool file at `mcp-server/src/tools/relations.ts` with Zod schemas (CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema)
+- [X] T046 [US2] Implement create_task_relation tool in `mcp-server/src/tools/relations.ts` - comprehensive description with all 10 relation kinds explained, bidirectional creation note, cycle prevention note
+- [X] T047 [US2] Implement get_task_relations tool in `mcp-server/src/tools/relations.ts` - description includes grouped output format, all relation types listed
+- [X] T048 [US2] Implement delete_task_relation tool in `mcp-server/src/tools/relations.ts` - description includes bidirectional deletion note
+- [X] T049 [US2] Add error handling with resource context to relation tools in `mcp-server/src/tools/relations.ts` - use formatPermissionError utility
+- [X] T050 [US2] Register relation tools in `mcp-server/src/tools/index.ts` - add create_task_relation, get_task_relations, delete_task_relation to tools array
+- [X] T051 [US2] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test complete workflow: create tasks, add subtask relations, query hierarchy
 
 **Checkpoint**: Task relations fully functional. Agent can create hierarchies, dependencies, and associations. Bidirectional relations work automatically.
 

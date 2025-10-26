@@ -201,4 +201,104 @@ export class VikunjaClient {
       // Continue anyway - version check is best-effort
     }
   }
+
+  /**
+   * Create task relation
+   * 
+   * Creates a relationship between two tasks.
+   * Vikunja automatically creates the bidirectional inverse relation.
+   * Hierarchical relations (subtask/parenttask) are validated for cycles on the server.
+   * 
+   * @param taskId - ID of the first task
+   * @param otherTaskId - ID of the second task
+   * @param relationKind - Type of relationship
+   * @param token - Authentication token
+   */
+  async createTaskRelation(
+    taskId: number,
+    otherTaskId: number,
+    relationKind: string,
+    token?: string
+  ): Promise<import('./types.js').RelationOperationResult> {
+    const result = await this.put<{ message: string }>(
+      `/api/v1/tasks/${taskId}/relations`,
+      {
+        other_task_id: otherTaskId,
+        relation_kind: relationKind,
+      },
+      token
+    );
+
+    return {
+      success: true,
+      task_id: taskId,
+      other_task_id: otherTaskId,
+      relation_kind: relationKind as import('./types.js').RelationKind,
+      message: result.message || 'Task relation created successfully. Bidirectional relation also created automatically.',
+    };
+  }
+
+  /**
+   * Get task relations
+   * 
+   * Retrieves all relations for a task, grouped by relation kind.
+   * Returns both outgoing and incoming relations.
+   * 
+   * @param taskId - ID of the task
+   * @param token - Authentication token
+   */
+  async getTaskRelations(
+    taskId: number,
+    token?: string
+  ): Promise<import('./types.js').GetRelationsResponse> {
+    const relations = await this.get<import('./types.js').RelationsGrouped>(
+      `/api/v1/tasks/${taskId}/relations`,
+      undefined,
+      token
+    );
+
+    // Count total relations across all groups
+    const total_count = Object.values(relations).reduce(
+      (sum, group) => sum + (Array.isArray(group) ? group.length : 0),
+      0
+    );
+
+    return {
+      task_id: taskId,
+      relations,
+      total_count,
+    };
+  }
+
+  /**
+   * Delete task relation
+   * 
+   * Removes a relationship between two tasks.
+   * Vikunja automatically removes the bidirectional inverse relation.
+   * 
+   * @param taskId - ID of the first task
+   * @param otherTaskId - ID of the second task
+   * @param relationKind - Type of relationship to delete
+   * @param token - Authentication token
+   */
+  async deleteTaskRelation(
+    taskId: number,
+    otherTaskId: number,
+    relationKind: string,
+    token?: string
+  ): Promise<import('./types.js').RelationOperationResult> {
+    const result = await this.delete<{ message: string }>(
+      `/api/v1/tasks/${taskId}/relations/${otherTaskId}/${relationKind}`,
+      token
+    );
+
+    return {
+      success: true,
+      task_id: taskId,
+      other_task_id: otherTaskId,
+      relation_kind: relationKind as import('./types.js').RelationKind,
+      message: result.message || 'Task relation deleted successfully. Bidirectional relation also removed automatically.',
+    };
+  }
 }
+
