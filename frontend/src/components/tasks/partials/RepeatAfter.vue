@@ -3,24 +3,45 @@
 		<div class="buttons has-addons is-centered mbs-2">
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 1 && task.repeatAfter.type === 'days'}"
 				class="is-small"
-				@click="() => setRepeatAfter(1, 'days')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.everyDay') }}
 			</XButton>
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 1 && task.repeatAfter.type === 'weeks'}"
 				class="is-small"
-				@click="() => setRepeatAfter(1, 'weeks')"
+				@click="() => setRepeatAfter(1, 'weeks', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.everyWeek') }}
 			</XButton>
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 30 && task.repeatAfter.type === 'days'}"
 				class="is-small"
-				@click="() => setRepeatAfter(30, 'days')"
+				@click="() => setRepeatAfter(30, 'days', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.every30d') }}
+			</XButton>
+			<XButton
+				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS}"
+				class="is-small"
+				:aria-label="$t('task.repeat.weekdaysDescription')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS)"
+			>
+				{{ $t('task.repeat.weekdays') }}
+			</XButton>
+			<XButton
+				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS}"
+				class="is-small"
+				:aria-label="$t('task.repeat.weekendsDescription')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)"
+			>
+				{{ $t('task.repeat.weekends') }}
 			</XButton>
 		</div>
 		<div class="is-flex is-align-items-center mbe-2">
@@ -100,6 +121,7 @@ import {useI18n} from 'vue-i18n'
 import {error} from '@/message'
 
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
+import type {IRepeatMode} from '@/types/IRepeatMode'
 import type {IRepeatAfter} from '@/types/IRepeatAfter'
 import type {ITask} from '@/modelTypes/ITask'
 import TaskModel from '@/models/task'
@@ -154,8 +176,14 @@ function updateData() {
 	emit('update:modelValue', task.value)
 }
 
-function setRepeatAfter(amount: number, type: IRepeatAfter['type']) {
+function setRepeatAfter(amount: number, type: IRepeatAfter['type'], repeatMode?: IRepeatMode) {
 	Object.assign(repeatAfter, { amount, type})
+	if (repeatMode !== undefined) {
+		task.value.repeatMode = repeatMode
+	} else {
+		// Default to REPEAT_MODE_DEFAULT if not specified
+		task.value.repeatMode = TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
+	}
 	updateData()
 }
 </script>
@@ -167,5 +195,11 @@ p {
 
 .input {
 	min-inline-size: 2rem;
+}
+
+.button.is-active {
+	background-color: var(--primary);
+	color: var(--white);
+	border-color: var(--primary);
 }
 </style>

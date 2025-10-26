@@ -350,6 +350,14 @@ async function toggleFavorite() {
 const taskRoot = ref<HTMLElement | null>(null)
 const taskLinkRef = ref<HTMLElement | null>(null)
 
+async function deferTaskUpdate(updatedTask: ITask) {
+	// Update the task with the new due date from DeferTask component
+	const newTask = await taskStore.update(updatedTask)
+	task.value = newTask
+	updateDueDate()
+	emit('taskUpdated', newTask)
+}
+
 function hasTextSelected() {
 	const isTextSelected = window.getSelection().toString()
 	return !(typeof isTextSelected === 'undefined' || isTextSelected === '' || isTextSelected === '\n')

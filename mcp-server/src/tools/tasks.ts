@@ -25,8 +25,8 @@ export const CreateTaskSchema = z.object({
     .describe('Array of user IDs to assign to the task (optional). Get user IDs from project members or team listings.'),
   repeat_after: z.number().int().min(0).optional()
     .describe('Recurring task interval in SECONDS (optional). Common intervals: 3600=hourly, 86400=daily, 604800=weekly, 1209600=bi-weekly, 2592000=30-day month. IMPORTANT: Set to 0 when using repeat_mode=1 (monthly) - the mode handles the calendar month logic. Cannot be negative.'),
-  repeat_mode: z.number().int().min(0).max(2).optional()
-    .describe('Recurring task repeat mode (optional, 0-2). RepeatMode enum: 0=DEFAULT (repeat from due date, best for scheduled tasks like meetings), 1=MONTHLY (repeat on same calendar date each month, use repeat_after=0, best for bills/reports on specific dates), 2=FROM_CURRENT (repeat from completion date, best for flexible tasks like "water plants every 3 days"). Default behavior (if omitted): non-recurring task.'),
+  repeat_mode: z.number().int().min(0).max(4).optional()
+    .describe('Recurring task repeat mode (optional, 0-4). RepeatMode enum: 0=DEFAULT (repeat from due date, best for scheduled tasks like meetings), 1=MONTHLY (repeat on same calendar date each month, use repeat_after=0, best for bills/reports on specific dates), 2=FROM_CURRENT (repeat from completion date, best for flexible tasks like "water plants every 3 days"), 3=WEEKDAYS (repeat Monday-Friday only, skips weekends automatically), 4=WEEKENDS (repeat Saturday-Sunday only, skips weekdays automatically). Default behavior (if omitted): non-recurring task.'),
 });
 
 export const UpdateTaskSchema = z.object({
@@ -48,8 +48,8 @@ export const UpdateTaskSchema = z.object({
     .describe('New array of user IDs (optional). REPLACES existing assignees. To add/remove single assignees, use assign_task or unassign_task tools.'),
   repeat_after: z.number().int().min(0).optional()
     .describe('Update recurring interval in SECONDS (optional). Common: 3600=hourly, 86400=daily, 604800=weekly. Set to 0 for monthly mode (repeat_mode=1). To remove recurrence, set both repeat_after and repeat_mode to appropriate values or use API to clear. Cannot be negative.'),
-  repeat_mode: z.number().int().min(0).max(2).optional()
-    .describe('Update repeat mode (optional, 0-2). 0=repeat from due date (scheduled tasks), 1=monthly on same calendar date (must use repeat_after=0), 2=repeat from completion (flexible tasks). Changing mode affects next recurrence calculation. See create_task description for detailed examples.'),
+  repeat_mode: z.number().int().min(0).max(4).optional()
+    .describe('Update repeat mode (optional, 0-4). 0=repeat from due date (scheduled tasks), 1=monthly on same calendar date (must use repeat_after=0), 2=repeat from completion (flexible tasks), 3=weekdays only (Monday-Friday, skips weekends), 4=weekends only (Saturday-Sunday, skips weekdays). Changing mode affects next recurrence calculation. See create_task description for detailed examples.'),
 });
 
 export const CompleteTaskSchema = z.object({
