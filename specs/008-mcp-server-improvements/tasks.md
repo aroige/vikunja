@@ -253,20 +253,43 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 7
 
-- [ ] T111 [P] [US7] Create JSON mode test in `mcp-server/tests/transports/http.test.ts` - test with MCP_HTTP_JSON_RESPONSE=true returns valid JSON
-- [ ] T112 [P] [US7] Add stdio isolation test in `mcp-server/tests/transports/stdio.test.ts` - test JSON mode env var doesn't affect stdio transport
-- [ ] T113 [P] [US7] Add error format test in `mcp-server/tests/transports/http.test.ts` - test errors maintain JSON format in JSON mode
+- [X] T111 [P] [US7] Create JSON mode test in `mcp-server/tests/transports/http.test.ts` - test with MCP_HTTP_JSON_RESPONSE=true returns valid JSON
+- [X] T112 [P] [US7] Add stdio isolation test in `mcp-server/tests/transports/stdio.test.ts` - test JSON mode env var doesn't affect stdio transport
+- [X] T113 [P] [US7] Add error format test in `mcp-server/tests/transports/http.test.ts` - test errors maintain JSON format in JSON mode
 
 ### Implementation for User Story 7
 
-- [ ] T114 [US7] Verify JSON mode implementation in `mcp-server/src/transports/http.ts` - confirm MCP_HTTP_JSON_RESPONSE env var handling exists
-- [ ] T115 [US7] Add JSON mode documentation to `mcp-server/README.md` - n8n integration section with MCP_HTTP_JSON_RESPONSE=true setup
-- [ ] T116 [US7] Add n8n workflow example to `mcp-server/docs/` - create n8n-integration.md with sample workflow
-- [ ] T117 [US7] Verify error responses maintain JSON format in `mcp-server/src/transports/http.ts` - consistent error structure regardless of JSON mode
-- [ ] T118 [US7] Add integration test in `mcp-server/tests/integration/n8n-workflow.test.ts` - simulate n8n workflow: create task, retrieve, parse JSON
-- [ ] T118a [US7] Checkpoint: Validate US7 documentation completeness in README.md - verify MCP_HTTP_JSON_RESPONSE environment variable documented with n8n integration examples and JSON mode effects explained
+- [X] T114 [US7] Verify JSON mode implementation in `mcp-server/src/transports/http/http-streamable.ts` - confirm MCP_HTTP_JSON_RESPONSE env var handling exists
+- [X] T115 [US7] Add JSON mode documentation to `mcp-server/README.md` - n8n integration section with MCP_HTTP_JSON_RESPONSE=true setup
+- [X] T116 [US7] Add n8n workflow example to `mcp-server/docs/` - create n8n-integration.md with sample workflow
+- [X] T117 [US7] Verify error responses maintain JSON format in `mcp-server/src/transports/http/http-streamable.ts` - consistent error structure regardless of JSON mode
+- [X] T118 [US7] Add integration test in `mcp-server/tests/integration/n8n-workflow.test.ts` - simulate n8n workflow: create task, retrieve, parse JSON
+- [X] T118a [US7] Checkpoint: Validate US7 documentation completeness in README.md - verify MCP_HTTP_JSON_RESPONSE environment variable documented with n8n integration examples and JSON mode effects explained
 
 **Checkpoint**: n8n JSON mode validated and documented. n8n workflows can reliably use MCP server.
+
+---
+
+## Phase 9.5: Regression Fixes (BLOCKING Phase 10)
+
+**Goal**: Fix failing tests before proceeding to Phase 10 polish tasks
+
+**Issue**: T111 HTTP transport tests have 5 failing tests out of 10. Error handling tests pass, but successful response tests fail due to MCP SDK StreamableHTTPServerTransport response format issues.
+
+### Regression Tasks
+
+- [ ] T118b [US7-REGRESSION] Fix HTTP transport test failures in `mcp-server/tests/transports/http.test.ts`:
+  - Issue: Tests expecting JSON responses receive empty content-type or 400 errors
+  - Root cause: MCP SDK's StreamableHTTPServerTransport may not return standard HTTP responses for successful tool calls
+  - Investigation needed: Review MCP SDK documentation for correct test patterns
+  - Options:
+    1. Update test expectations to match SDK's actual response format
+    2. Use SDK's test utilities if available
+    3. Test via integration tests instead of unit tests for transport layer
+  - Success criteria: All 10 tests passing or move transport-level tests to integration suite
+  - Note: Error handling tests (5/10) already pass - authentication, rate limiting, validation all work correctly
+
+**Checkpoint**: All tests passing before Phase 10. Test suite at 90%+ coverage maintained.
 
 ---
 

@@ -271,6 +271,7 @@ VIKUNJA_API_TOKEN=your-token-here  # Or pass per-request
 
 # Optional
 MCP_PORT=3457                      # Default: 3457
+MCP_HTTP_JSON_RESPONSE=false       # Enable JSON mode for n8n (default: false)
 REDIS_HOST=localhost               # Default: localhost
 REDIS_PORT=6379                    # Default: 6379
 REDIS_PASSWORD=                    # Optional
@@ -280,6 +281,25 @@ RATE_LIMIT_ADMIN_BYPASS=false      # Bypass for admin tokens
 LOG_LEVEL=info                     # error|warn|info|debug
 LOG_FORMAT=json                    # json|simple
 ```
+
+### JSON Response Mode for n8n
+
+The MCP SDK normally requires clients to set `Accept: application/json, text/event-stream` header. However, some clients like n8n cannot customize this header.
+
+Enable JSON response mode to work around this limitation:
+
+```bash
+# In .env file or environment
+MCP_HTTP_JSON_RESPONSE=true
+```
+
+When enabled:
+- The server automatically injects the required Accept header
+- All responses use `application/json` content type
+- Error responses maintain consistent JSON-RPC format
+- No effect on stdio transport (Claude Desktop)
+
+**Note**: This only affects HTTP transport. Stdio transport (used by Claude Desktop) is unaffected by this setting.
 
 ## Development
 
