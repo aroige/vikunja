@@ -11,6 +11,7 @@ Auto-generated from all feature plans. Last updated: 2025-10-19
 - MySQL, PostgreSQL, or SQLite (multi-database support via XORM) (007-fix-saved-filters)
 - TypeScript 5.3+, Node.js 22+ + @modelcontextprotocol/sdk ^1.0.0, Express 4.x, Zod 3.22+, ioredis 5.3+, winston 3.11+, axios 1.6+ (008-mcp-server-improvements)
 - Redis (optional, for token caching & rate limiting), in-memory fallback (008-mcp-server-improvements)
+- Go 1.21+ (backend), TypeScript 5.x with Node.js 22+ (frontend, MCP server) (009-weekday-weekend-repeats)
 
 ## Project Structure
 ```
@@ -25,9 +26,9 @@ tests/
 Bash 4.0+ (deployment scripts), Go 1.21+ (Vikunja backend), Node.js 22+ (frontend build, MCP server): Follow standard conventions
 
 ## Recent Changes
+- 009-weekday-weekend-repeats: Added Go 1.21+ (backend), TypeScript 5.x with Node.js 22+ (frontend, MCP server)
 - 008-mcp-server-improvements: Added TypeScript 5.3+, Node.js 22+ + @modelcontextprotocol/sdk ^1.0.0, Express 4.x, Zod 3.22+, ioredis 5.3+, winston 3.11+, axios 1.6+
 - 007-fix-saved-filters: Added Go 1.21+
-- 006-mcp-http-transport: Added TypeScript 5.x, Node.js 22+ + @modelcontextprotocol/sdk (SSE & HTTP Streamable transports), Express 4.x (HTTP server), Zod (config validation), ioredis (token caching), rate-limiter-flexible (abuse prevention), uuid (session IDs), winston (logging)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
