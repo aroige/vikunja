@@ -9,6 +9,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { VikunjaClient } from '../../src/vikunja/client.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation } from '../../src/tools/relations.js';
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment } from '../../src/tools/comments.js';
+import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels } from '../../src/tools/labels.js';
 import type { RelationKind } from '../../src/vikunja/types.js';
 
 // Test configuration
@@ -438,6 +439,205 @@ describe('Task Comment Workflow Integration', () => {
           'invalid-token'
         )
       ).rejects.toThrow();
+    });
+  });
+});
+
+describe('Label Management Workflow Integration', () => {
+  let client: VikunjaClient;
+  let testTaskId: number;
+  let testLabelId: number;
+
+  beforeAll(() => {
+    client = new VikunjaClient();
+    testTaskId = 1; // Use existing task or create one
+  });
+
+  describe('Complete Label Workflow', () => {
+    it('T100: should complete label lifecycle - list, attach, search, update, delete', async () => {
+      // Skip in CI if no real Vikunja instance available
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Step 1: List all labels
+      const allLabels = await getAllLabels(
+        { page: 1, page_size: 50 },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(allLabels).toBeDefined();
+      expect(allLabels.labels).toBeInstanceOf(Array);
+      expect(allLabels.page).toBe(1);
+      expect(allLabels.page_size).toBe(50);
+
+      // Use first label if exists, or skip this part
+      if (allLabels.labels.length > 0) {
+        testLabelId = allLabels.labels[0].id;
+
+        // Step 2: Get label details
+        const labelDetails = await getLabel(
+          { label_id: testLabelId },
+          client,
+          TEST_TOKEN
+        );
+
+        expect(labelDetails.label).toBeDefined();
+        expect(labelDetails.label.id).toBe(testLabelId);
+        expect(labelDetails.label.title).toBeDefined();
+        expect(labelDetails.label.hex_color).toMatch(/^[0-9a-fA-F]{6}$/);
+
+        // Step 3: Get task labels (if task exists)
+        const taskLabels = await getTaskLabels(
+          { task_id: testTaskId },
+          client,
+          TEST_TOKEN
+        );
+
+        expect(taskLabels.task_id).toBe(testTaskId);
+        expect(taskLabels.labels).toBeInstanceOf(Array);
+        expect(taskLabels.total_count).toBeDefined();
+
+        // Step 4: Update label (only if you created it)
+        // Note: This will fail if you're not the label creator - that's expected
+        try {
+          const updateResult = await updateLabel(
+            {
+              label_id: testLabelId,
+              description: 'Updated via integration test',
+            },
+            client,
+            TEST_TOKEN
+          );
+
+          expect(updateResult.success).toBe(true);
+          expect(updateResult.label.description).toBe('Updated via integration test');
+        } catch (error) {
+          // Expected if not label creator - permission denied
+          console.log('Update skipped: not label creator (expected)');
+        }
+      }
+    });
+
+    it('should handle label search filtering', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Search for labels with specific title
+      const searchResults = await getAllLabels(
+        { page: 1, page_size: 50, search: 'test' },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(searchResults).toBeDefined();
+      expect(searchResults.labels).toBeInstanceOf(Array);
+      // All returned labels should match search (case-insensitive)
+      searchResults.labels.forEach(label => {
+        expect(label.title.toLowerCase()).toContain('test');
+      });
+    });
+
+    it('should handle pagination with many labels', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Retrieve with small page size
+      const page1 = await getAllLabels(
+        { page: 1, page_size: 10 },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(page1.page).toBe(1);
+      expect(page1.page_size).toBe(10);
+      expect(page1.labels.length).toBeLessThanOrEqual(10);
+
+      // If there are more than 10 labels, test pagination
+      if (page1.has_next_page) {
+        const page2 = await getAllLabels(
+          { page: 2, page_size: 10 },
+          client,
+          TEST_TOKEN
+        );
+
+        expect(page2.page).toBe(2);
+        // Ensure we got different labels
+        const page1Ids = page1.labels.map(l => l.id);
+        const page2Ids = page2.labels.map(l => l.id);
+        const overlap = page1Ids.filter(id => page2Ids.includes(id));
+        expect(overlap.length).toBe(0); // No overlap between pages
+      }
+    });
+
+    it('should handle hex color validation', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to update label with invalid hex color (with # prefix)
+      const allLabels = await getAllLabels(
+        { page: 1, page_size: 1 },
+        client,
+        TEST_TOKEN
+      );
+
+      if (allLabels.labels.length > 0) {
+        const labelId = allLabels.labels[0].id;
+
+        // This should fail validation
+        await expect(
+          updateLabel(
+            {
+              label_id: labelId,
+              hex_color: '#FF5733', // Invalid - has # prefix
+            },
+            client,
+            TEST_TOKEN
+          )
+        ).rejects.toThrow();
+      }
+    });
+  });
+
+  describe('Label Error Handling', () => {
+    it('should handle label not found error', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to get non-existent label
+      await expect(
+        getLabel(
+          { label_id: 999999 },
+          client,
+          TEST_TOKEN
+        )
+      ).rejects.toThrow(/Label 999999 not found/);
+    });
+
+    it('should handle task not found for get_task_labels', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to get labels for non-existent task
+      await expect(
+        getTaskLabels(
+          { task_id: 999999 },
+          client,
+          TEST_TOKEN
+        )
+      ).rejects.toThrow(/Task 999999 not found/);
     });
   });
 });

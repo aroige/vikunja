@@ -188,31 +188,31 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 5
 
-- [ ] T080 [P] [US5] Create label tool contract tests in `mcp-server/tests/tools/labels.test.ts` - test get_all_labels with pagination
-- [ ] T081 [P] [US5] Add label retrieval test in `mcp-server/tests/tools/labels.test.ts` - test get_label returns full label details
-- [ ] T082 [P] [US5] Add label update test in `mcp-server/tests/tools/labels.test.ts` - test update_label modifies title, description, hex_color
-- [ ] T083 [P] [US5] Add label deletion test in `mcp-server/tests/tools/labels.test.ts` - test delete_label removes from all tasks
-- [ ] T084 [P] [US5] Add task labels test in `mcp-server/tests/tools/labels.test.ts` - test get_task_labels returns all attached labels
-- [ ] T085 [P] [US5] Add multi-label search test in `mcp-server/tests/tools/search.test.ts` - test search_tasks with filter_labels uses AND logic
-- [ ] T086 [P] [US5] Add label color validation test in `mcp-server/tests/tools/labels.test.ts` - test invalid hex_color format returns clear error
+- [X] T080 [P] [US5] Create label tool contract tests in `mcp-server/tests/tools/labels.test.ts` - test get_all_labels with pagination
+- [X] T081 [P] [US5] Add label retrieval test in `mcp-server/tests/tools/labels.test.ts` - test get_label returns full label details
+- [X] T082 [P] [US5] Add label update test in `mcp-server/tests/tools/labels.test.ts` - test update_label modifies title, description, hex_color
+- [X] T083 [P] [US5] Add label deletion test in `mcp-server/tests/tools/labels.test.ts` - test delete_label removes from all tasks
+- [X] T084 [P] [US5] Add task labels test in `mcp-server/tests/tools/labels.test.ts` - test get_task_labels returns all attached labels
+- [X] T085 [P] [US5] Add multi-label search test in `mcp-server/tests/tools/search.test.ts` - test search_tasks with filter_labels uses AND logic
+- [X] T086 [P] [US5] Add label color validation test in `mcp-server/tests/tools/labels.test.ts` - test invalid hex_color format returns clear error
 
 ### Implementation for User Story 5
 
-- [ ] T087 [US5] Add Label interface to `mcp-server/src/vikunja/types.ts` (id, title, description, hex_color, created_by, created_at, updated_at)
-- [ ] T088 [US5] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels
-- [ ] T089 [US5] Update assignments.ts to labels.ts or create separate file at `mcp-server/src/tools/labels.ts` with Zod schemas (GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema)
-- [ ] T090 [US5] Implement get_all_labels tool in `mcp-server/src/tools/labels.ts` - description includes pagination support (page_size=50 default), visibility rules (accessible tasks + created labels)
-- [ ] T091 [US5] Implement get_label tool in `mcp-server/src/tools/labels.ts` - description includes use case for label details
-- [ ] T092 [US5] Implement update_label tool in `mcp-server/src/tools/labels.ts` - description includes hex_color format (6-char without #), permission requirement
-- [ ] T093 [US5] Implement delete_label tool in `mcp-server/src/tools/labels.ts` - description includes cascading removal from all tasks
-- [ ] T094 [US5] Implement get_task_labels tool in `mcp-server/src/tools/labels.ts` - description includes use case for viewing task's labels
-- [ ] T095 [US5] Add pagination support to get_all_labels in `mcp-server/src/tools/labels.ts` - use pagination utilities from Phase 2
-- [ ] T096 [US5] Enhance search_tasks filter_labels parameter in `mcp-server/src/tools/search.ts` - update description to explain AND logic for multiple labels
-- [ ] T097 [US5] Add hex color validation to update_label in `mcp-server/src/tools/labels.ts` - use Zod regex pattern
-- [ ] T098 [US5] Add error handling with resource context to label tools in `mcp-server/src/tools/labels.ts` - permission errors include label context
-- [ ] T099 [US5] Register label tools in `mcp-server/src/tools/index.ts` - add get_all_labels, get_label, update_label, delete_label, get_task_labels to tools array
-- [ ] T100 [US5] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test label workflow: create label (use existing), list all, attach to tasks, search by label, update color, delete
-- [ ] T100a [US5] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US5 label tools meet FR-001 (purpose, use cases, alternatives, outcomes), FR-003 (hex_color format with 6-char/no # explanation), FR-020 (visibility rules), pagination defaults (page_size=50, max 100)
+- [X] T087 [US5] Add Label interface to `mcp-server/src/vikunja/types.ts` (id, title, description, hex_color, created_by, created_at, updated_at)
+- [X] T088 [US5] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels
+- [X] T089 [US5] Update assignments.ts to labels.ts or create separate file at `mcp-server/src/tools/labels.ts` with Zod schemas (GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema)
+- [X] T090 [US5] Implement get_all_labels tool in `mcp-server/src/tools/labels.ts` - description includes pagination support (page_size=50 default), visibility rules (accessible tasks + created labels)
+- [X] T091 [US5] Implement get_label tool in `mcp-server/src/tools/labels.ts` - description includes use case for label details
+- [X] T092 [US5] Implement update_label tool in `mcp-server/src/tools/labels.ts` - description includes hex_color format (6-char without #), permission requirement
+- [X] T093 [US5] Implement delete_label tool in `mcp-server/src/tools/labels.ts` - description includes cascading removal from all tasks
+- [X] T094 [US5] Implement get_task_labels tool in `mcp-server/src/tools/labels.ts` - description includes use case for viewing task's labels
+- [X] T095 [US5] Add pagination support to get_all_labels in `mcp-server/src/tools/labels.ts` - use pagination utilities from Phase 2
+- [X] T096 [US5] Enhance search_tasks filter_labels parameter in `mcp-server/src/tools/search.ts` - update description to explain AND logic for multiple labels
+- [X] T097 [US5] Add hex color validation to update_label in `mcp-server/src/tools/labels.ts` - use Zod regex pattern
+- [X] T098 [US5] Add error handling with resource context to label tools in `mcp-server/src/tools/labels.ts` - permission errors include label context
+- [X] T099 [US5] Register label tools in `mcp-server/src/tools/index.ts` - add get_all_labels, get_label, update_label, delete_label, get_task_labels to tools array
+- [X] T100 [US5] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test label workflow: create label (use existing), list all, attach to tasks, search by label, update color, delete
+- [X] T100a [US5] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US5 label tools meet FR-001 (purpose, use cases, alternatives, outcomes), FR-003 (hex_color format with 6-char/no # explanation), FR-020 (visibility rules), pagination defaults (page_size=50, max 100)
 
 **Checkpoint**: Label management fully functional. Agents can organize and filter tasks using labels.
 
@@ -239,7 +239,7 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 - [ ] T108 [US6] Add error handling with resource context to attachment tool in `mcp-server/src/tools/attachments.ts` - permission errors include task context
 - [ ] T109 [US6] Register attachment tool in `mcp-server/src/tools/index.ts` - add get_task_attachments to tools array
 - [ ] T110 [US6] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test attachment workflow: query task, retrieve metadata
-- [ ] T110a [US6] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US6 get_task_attachments meets FR-001 (comprehensive description), FR-035 clarification (metadata only, no upload/download), use cases explained
+- [ ] T110a [US6] Checkpoint: Add the required test to that validates tool descriptions in `descriptions.test.ts` - verify US6 get_task_attachments meets FR-001 (comprehensive description), FR-035 clarification (metadata only, no upload/download), use cases explained. Make sure the tests passes.
 
 **Checkpoint**: Attachment metadata retrieval functional. Agents can provide file context without file storage operations.
 

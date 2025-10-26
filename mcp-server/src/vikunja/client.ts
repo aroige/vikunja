@@ -421,5 +421,157 @@ export class VikunjaClient {
       message: 'Comment deleted successfully',
     };
   }
+
+  /**
+   * Get all labels
+   * 
+   * Retrieves all labels visible to the user.
+   * User sees labels on accessible tasks + labels they created.
+   * Labels are project-independent (global scope).
+   * 
+   * @param page - Page number (default: 1)
+   * @param pageSize - Number of labels per page (default: 50, max: 100)
+   * @param search - Optional search filter for label title
+   * @param token - Authentication token
+   */
+  async getAllLabels(
+    page = 1,
+    pageSize = 50,
+    search?: string,
+    token?: string
+  ): Promise<import('./types.js').GetLabelsResponse> {
+    const params: Record<string, string> = {
+      page: page.toString(),
+      per_page: pageSize.toString(),
+    };
+
+    if (search) {
+      params['s'] = search;
+    }
+
+    const labels = await this.get<import('./types.js').Label[]>(
+      '/api/v1/labels',
+      params,
+      token
+    );
+
+    const total = Array.isArray(labels) ? labels.length : 0;
+    const hasNextPage = total === pageSize;
+
+    return {
+      labels: Array.isArray(labels) ? labels : [],
+      total,
+      page,
+      page_size: pageSize,
+      has_next_page: hasNextPage,
+    };
+  }
+
+  /**
+   * Get label details
+   * 
+   * Retrieves full details of a specific label by ID.
+   * 
+   * @param labelId - ID of the label to retrieve
+   * @param token - Authentication token
+   */
+  async getLabel(
+    labelId: number,
+    token?: string
+  ): Promise<import('./types.js').GetLabelResponse> {
+    const label = await this.get<import('./types.js').Label>(
+      `/api/v1/labels/${labelId}`,
+      undefined,
+      token
+    );
+
+    return {
+      label,
+    };
+  }
+
+  /**
+   * Update label
+   * 
+   * Modifies label properties (title, description, hex_color).
+   * Only the label creator can update it.
+   * 
+   * @param labelId - ID of the label to update
+   * @param updates - Fields to update (at least one required)
+   * @param token - Authentication token
+   */
+  async updateLabel(
+    labelId: number,
+    updates: {
+      title?: string;
+      description?: string;
+      hex_color?: string;
+    },
+    token?: string
+  ): Promise<import('./types.js').UpdateLabelResponse> {
+    const label = await this.post<import('./types.js').Label>(
+      `/api/v1/labels/${labelId}`,
+      updates,
+      token
+    );
+
+    return {
+      success: true,
+      label,
+      message: 'Label updated successfully',
+    };
+  }
+
+  /**
+   * Delete label
+   * 
+   * Removes a label and detaches it from all tasks.
+   * Only the label creator can delete it.
+   * 
+   * @param labelId - ID of the label to delete
+   * @param token - Authentication token
+   */
+  async deleteLabel(
+    labelId: number,
+    token?: string
+  ): Promise<import('./types.js').DeleteLabelResponse> {
+    await this.delete<{ message: string }>(
+      `/api/v1/labels/${labelId}`,
+      token
+    );
+
+    return {
+      success: true,
+      label_id: labelId,
+      message: 'Label deleted successfully and removed from all tasks',
+    };
+  }
+
+  /**
+   * Get task labels
+   * 
+   * Retrieves all labels attached to a specific task.
+   * 
+   * @param taskId - ID of the task to retrieve labels for
+   * @param token - Authentication token
+   */
+  async getTaskLabels(
+    taskId: number,
+    token?: string
+  ): Promise<import('./types.js').GetTaskLabelsResponse> {
+    const task = await this.get<import('./types.js').VikunjaTask>(
+      `/api/v1/tasks/${taskId}`,
+      undefined,
+      token
+    );
+
+    const labels = task.labels || [];
+
+    return {
+      task_id: taskId,
+      labels,
+      total_count: labels.length,
+    };
+  }
 }
 

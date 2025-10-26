@@ -6,6 +6,7 @@ import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema,
 import { BulkTools, BulkUpdateTasksSchema, BulkCompleteTasksSchema, BulkAssignTasksSchema, BulkAddLabelsSchema } from './bulk.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema } from './relations.js';
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment, AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema } from './comments.js';
+import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels, GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema } from './labels.js';
 import { VikunjaClient } from '../vikunja/client.js';
 import { RateLimiter } from '../ratelimit/limiter.js';
 import { UserContext } from '../auth/types.js';
@@ -291,6 +292,57 @@ export class ToolRegistry {
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof DeleteTaskCommentSchema>;
         return deleteTaskComment(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    // Label Management Tools
+    this.registerTool(
+      'get_all_labels',
+      'List all labels visible to you with optional search and pagination (default: page_size=50, max=100). Labels are project-independent tags for categorizing tasks. Visibility: labels on accessible tasks + labels you created. Use this to discover available labels or search by title.',
+      GetAllLabelsSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetAllLabelsSchema>;
+        return getAllLabels(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'get_label',
+      'Retrieve full details of a specific label by ID. Use this to check label properties (title, description, hex_color, creator) before using. Returns label object with metadata.',
+      GetLabelSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetLabelSchema>;
+        return getLabel(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'update_label',
+      'Modify label properties (title, description, hex_color). You can ONLY update labels YOU created. Hex color must be 6 characters WITHOUT # prefix (e.g., "FF5733", "3498DB"). Changes affect all tasks using this label. Returns updated label.',
+      UpdateLabelSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof UpdateLabelSchema>;
+        return updateLabel(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'delete_label',
+      'Permanently delete a label and remove from ALL tasks. You can ONLY delete labels YOU created. Deletion is permanent and cannot be undone. Use remove_label to detach from ONE task only. Returns success confirmation.',
+      DeleteLabelSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof DeleteLabelSchema>;
+        return deleteLabel(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'get_task_labels',
+      'Retrieve all labels currently attached to a specific task. Use this to understand task categorization and metadata. Returns array of label objects with full details (title, color, creator).',
+      GetTaskLabelsSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetTaskLabelsSchema>;
+        return getTaskLabels(validatedArgs, this.client, ctx.token);
       }
     );
   }

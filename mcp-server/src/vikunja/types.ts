@@ -73,9 +73,16 @@ export interface VikunjaLabel {
   title: string;
   description: string;
   hex_color: string;
+  created_by: VikunjaUser;
   created: string;
   updated: string;
 }
+
+/**
+ * Label Type Alias
+ * Used for consistency across the codebase
+ */
+export type Label = VikunjaLabel;
 
 export interface VikunjaComment {
   id: number;
@@ -258,4 +265,49 @@ export interface UpdateCommentResponse {
 export interface DeleteCommentResponse {
   success: boolean;
   message: string;
+}
+
+/**
+ * Get Labels Response (with pagination)
+ */
+export interface GetLabelsResponse {
+  labels: Label[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next_page: boolean;
+}
+
+/**
+ * Get Label Response
+ */
+export interface GetLabelResponse {
+  label: Label;
+}
+
+/**
+ * Update Label Response
+ */
+export interface UpdateLabelResponse {
+  success: boolean;
+  label: Label;
+  message: string;
+}
+
+/**
+ * Delete Label Response
+ */
+export interface DeleteLabelResponse {
+  success: boolean;
+  label_id: number;
+  message: string;
+}
+
+/**
+ * Get Task Labels Response
+ */
+export interface GetTaskLabelsResponse {
+  task_id: number;
+  labels: Label[];
+  total_count: number;
 }

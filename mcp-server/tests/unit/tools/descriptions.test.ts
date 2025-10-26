@@ -456,4 +456,142 @@ describe('Tool Description Quality Tests (US1)', () => {
       expect(hasPagination, 'get_task_comments should mention pagination support - NFR-003').toBe(true);
     }
   });
+
+  it('should verify label tools have comprehensive descriptions (US5 - T100a)', () => {
+    const registry = new ToolRegistry(mockClient, mockRateLimiter);
+    const tools = registry.getTools();
+    
+    const labelTools = [
+      'get_all_labels',
+      'get_label',
+      'update_label',
+      'delete_label',
+      'get_task_labels'
+    ];
+
+    labelTools.forEach((toolName) => {
+      const tool = tools.find((t) => t.name === toolName);
+      expect(tool, `${toolName} should exist - US5`).toBeDefined();
+      
+      const desc = tool?.description || '';
+      
+      // FR-001: Comprehensive description (>20 chars, mentions purpose/use cases/outcomes)
+      expect(desc.length, `${toolName} should have description >20 chars - FR-001`).toBeGreaterThan(20);
+      
+      // Should mention labels or categorization
+      expect(
+        desc.toLowerCase().includes('label') ||
+        desc.toLowerCase().includes('categor') ||
+        desc.toLowerCase().includes('tag'),
+        `${toolName} description should mention labels/categorization - FR-001`
+      ).toBe(true);
+    });
+
+    // FR-003: Check hex_color parameter format explanation in update_label
+    const updateLabel = tools.find((t) => t.name === 'update_label');
+    if (updateLabel?.inputSchema?.properties) {
+      const properties = updateLabel.inputSchema.properties as Record<string, { description?: string }>;
+      
+      if (properties.hex_color) {
+        const hexColorDesc = properties.hex_color.description || '';
+        
+        // Should explain 6-character format without # prefix
+        const hasFormatExplanation = 
+          (hexColorDesc.includes('6') && hexColorDesc.toLowerCase().includes('character')) ||
+          hexColorDesc.toLowerCase().includes('without #') ||
+          hexColorDesc.toLowerCase().includes('without the #');
+        
+        expect(hasFormatExplanation, 
+          'update_label hex_color parameter should explain 6-character format without # - FR-003'
+        ).toBe(true);
+        
+        // Should have examples
+        const hasExamples = 
+          hexColorDesc.includes('FF') ||
+          hexColorDesc.includes('example') ||
+          hexColorDesc.toLowerCase().includes('e.g.');
+        
+        expect(hasExamples,
+          'update_label hex_color parameter should include examples - FR-003'
+        ).toBe(true);
+      }
+    }
+
+    // FR-020: Check visibility rules mentioned in get_all_labels description
+    const getAllLabels = tools.find((t) => t.name === 'get_all_labels');
+    if (getAllLabels) {
+      const desc = getAllLabels.description.toLowerCase();
+      
+      // Should mention visibility rules (accessible tasks + created labels)
+      const mentionsVisibility = 
+        desc.includes('visible') ||
+        desc.includes('access') ||
+        desc.includes('created') ||
+        desc.includes('see');
+      
+      expect(mentionsVisibility, 
+        'get_all_labels should mention visibility rules - FR-020'
+      ).toBe(true);
+      
+      // Should mention project-independent (global scope)
+      const mentionsScope = 
+        desc.includes('project-independent') ||
+        desc.includes('global') ||
+        desc.includes('not confined');
+      
+      expect(mentionsScope,
+        'get_all_labels should clarify labels are project-independent - FR-020'
+      ).toBe(true);
+    }
+
+    // Verify pagination support in get_all_labels (page_size=50 default, max 100)
+    const getAllLabelsSchema = getAllLabels?.inputSchema?.properties as Record<string, { description?: string }>;
+    if (getAllLabelsSchema) {
+      // Should have page and page_size parameters
+      expect(getAllLabelsSchema.page, 'get_all_labels should have page parameter').toBeDefined();
+      expect(getAllLabelsSchema.page_size, 'get_all_labels should have page_size parameter').toBeDefined();
+      
+      // page_size description should mention defaults
+      if (getAllLabelsSchema.page_size) {
+        const pageSizeDesc = getAllLabelsSchema.page_size.description || '';
+        expect(
+          pageSizeDesc.includes('50') && pageSizeDesc.includes('100'),
+          'get_all_labels page_size should mention default (50) and max (100)'
+        ).toBe(true);
+      }
+    }
+
+    // Check delete_label mentions cascading consequences
+    const deleteLabel = tools.find((t) => t.name === 'delete_label');
+    if (deleteLabel) {
+      const desc = deleteLabel.description.toLowerCase();
+      
+      // Should mention removal from ALL tasks
+      const mentionsCascading = 
+        desc.includes('all tasks') ||
+        desc.includes('cascading') ||
+        desc.includes('remove') ||
+        desc.includes('detach');
+      
+      expect(mentionsCascading,
+        'delete_label should mention cascading removal from all tasks - FR-001'
+      ).toBe(true);
+    }
+
+    // Check update_label mentions permission requirements
+    if (updateLabel) {
+      const desc = updateLabel.description.toLowerCase();
+      
+      // Should mention permission (only creator can update)
+      const mentionsPermission = 
+        desc.includes('permission') ||
+        desc.includes('only') ||
+        desc.includes('creator') ||
+        desc.includes('created');
+      
+      expect(mentionsPermission,
+        'update_label should mention permission requirement (only creator) - FR-001'
+      ).toBe(true);
+    }
+  });
 });
