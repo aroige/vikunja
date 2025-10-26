@@ -99,6 +99,21 @@ export interface VikunjaComment {
  */
 export type TaskComment = VikunjaComment;
 
+/**
+ * Task Attachment
+ * Represents file metadata attached to a task (no file content)
+ */
+export interface TaskAttachment {
+  id: number;
+  task_id: number;
+  file_id: number;
+  filename: string;
+  size: number;           // File size in bytes
+  mime_type: string;      // MIME type (e.g., 'application/pdf', 'image/png')
+  created_by: VikunjaUser;
+  created: string;        // ISO 8601
+}
+
 export interface VikunjaTeam {
   id: number;
   name: string;
@@ -310,4 +325,13 @@ export interface GetTaskLabelsResponse {
   task_id: number;
   labels: Label[];
   total_count: number;
+}
+
+/**
+ * Get Task Attachments Response
+ */
+export interface GetTaskAttachmentsResponse {
+  success: boolean;
+  attachments: TaskAttachment[];
+  count: number;
 }

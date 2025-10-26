@@ -40,9 +40,9 @@ describe('ToolRegistry', () => {
   });
 
   describe('Tool Registration', () => {
-    it('should register all 34 tools (including 5 label management tools)', () => {
+    it('should register all 35 tools (including 5 label management tools and 1 attachment tool)', () => {
       const tools = registry.getTools();
-      expect(tools).toHaveLength(34);
+      expect(tools).toHaveLength(35);
     });
 
     it('should register project tools', () => {

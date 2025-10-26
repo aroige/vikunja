@@ -7,6 +7,7 @@ import { BulkTools, BulkUpdateTasksSchema, BulkCompleteTasksSchema, BulkAssignTa
 import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema } from './relations.js';
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment, AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema } from './comments.js';
 import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels, GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema } from './labels.js';
+import { getTaskAttachments, GetTaskAttachmentsSchema } from './attachments.js';
 import { VikunjaClient } from '../vikunja/client.js';
 import { RateLimiter } from '../ratelimit/limiter.js';
 import { UserContext } from '../auth/types.js';
@@ -343,6 +344,17 @@ export class ToolRegistry {
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof GetTaskLabelsSchema>;
         return getTaskLabels(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    // Task Attachment Tools
+    this.registerTool(
+      'get_task_attachments',
+      'Retrieve metadata for all files attached to a task (filename, size, MIME type, upload info). Returns attachment details WITHOUT downloading file content. Use this to understand what files are associated with a task for context awareness. Does NOT support file upload/download operations.',
+      GetTaskAttachmentsSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetTaskAttachmentsSchema>;
+        return getTaskAttachments(validatedArgs, this.client, ctx.token);
       }
     );
   }

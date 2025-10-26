@@ -573,5 +573,32 @@ export class VikunjaClient {
       total_count: labels.length,
     };
   }
+
+  /**
+   * Get task attachments
+   * 
+   * Retrieves metadata for all files attached to a task.
+   * Returns attachment details (filename, size, MIME type) without file content.
+   * Used by AI agents to understand task context without downloading files.
+   * 
+   * @param taskId - ID of the task to retrieve attachments for
+   * @param token - Authentication token
+   */
+  async getTaskAttachments(
+    taskId: number,
+    token?: string
+  ): Promise<import('./types.js').GetTaskAttachmentsResponse> {
+    const attachments = await this.get<import('./types.js').TaskAttachment[]>(
+      `/api/v1/tasks/${taskId}/attachments`,
+      undefined,
+      token
+    );
+
+    return {
+      success: true,
+      attachments: Array.isArray(attachments) ? attachments : [],
+      count: Array.isArray(attachments) ? attachments.length : 0,
+    };
+  }
 }
 

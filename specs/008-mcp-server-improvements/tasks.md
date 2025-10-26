@@ -226,20 +226,20 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 6
 
-- [ ] T101 [P] [US6] Create attachment tool contract test in `mcp-server/tests/tools/attachments.test.ts` - test get_task_attachments returns metadata list
-- [ ] T102 [P] [US6] Add attachment metadata test in `mcp-server/tests/tools/attachments.test.ts` - test response includes filename, size, mime_type, created_by, created_at
-- [ ] T103 [P] [US6] Add empty attachments test in `mcp-server/tests/tools/attachments.test.ts` - test task with no attachments returns empty array
+- [X] T101 [P] [US6] Create attachment tool contract test in `mcp-server/tests/tools/attachments.test.ts` - test get_task_attachments returns metadata list
+- [X] T102 [P] [US6] Add attachment metadata test in `mcp-server/tests/tools/attachments.test.ts` - test response includes filename, size, mime_type, created_by, created_at
+- [X] T103 [P] [US6] Add empty attachments test in `mcp-server/tests/tools/attachments.test.ts` - test task with no attachments returns empty array
 
 ### Implementation for User Story 6
 
-- [ ] T104 [US6] Add TaskAttachment interface to `mcp-server/src/vikunja/types.ts` (id, task_id, file_id, filename, size, mime_type, created_by, created_at)
-- [ ] T105 [US6] Add Vikunja API method in `mcp-server/src/vikunja/client.ts` - getTaskAttachments
-- [ ] T106 [US6] Create attachments tool file at `mcp-server/src/tools/attachments.ts` with Zod schema (GetTaskAttachmentsSchema)
-- [ ] T107 [US6] Implement get_task_attachments tool in `mcp-server/src/tools/attachments.ts` - description clarifies metadata only (no file upload/download), use case for context awareness
-- [ ] T108 [US6] Add error handling with resource context to attachment tool in `mcp-server/src/tools/attachments.ts` - permission errors include task context
-- [ ] T109 [US6] Register attachment tool in `mcp-server/src/tools/index.ts` - add get_task_attachments to tools array
-- [ ] T110 [US6] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test attachment workflow: query task, retrieve metadata
-- [ ] T110a [US6] Checkpoint: Add the required test to that validates tool descriptions in `descriptions.test.ts` - verify US6 get_task_attachments meets FR-001 (comprehensive description), FR-035 clarification (metadata only, no upload/download), use cases explained. Make sure the tests passes.
+- [X] T104 [US6] Add TaskAttachment interface to `mcp-server/src/vikunja/types.ts` (id, task_id, file_id, filename, size, mime_type, created_by, created_at)
+- [X] T105 [US6] Add Vikunja API method in `mcp-server/src/vikunja/client.ts` - getTaskAttachments
+- [X] T106 [US6] Create attachments tool file at `mcp-server/src/tools/attachments.ts` with Zod schema (GetTaskAttachmentsSchema)
+- [X] T107 [US6] Implement get_task_attachments tool in `mcp-server/src/tools/attachments.ts` - description clarifies metadata only (no file upload/download), use case for context awareness
+- [X] T108 [US6] Add error handling with resource context to attachment tool in `mcp-server/src/tools/attachments.ts` - permission errors include task context
+- [X] T109 [US6] Register attachment tool in `mcp-server/src/tools/index.ts` - add get_task_attachments to tools array
+- [X] T110 [US6] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test attachment workflow: query task, retrieve metadata
+- [X] T110a [US6] Checkpoint: Add the required test to that validates tool descriptions in `descriptions.test.ts` - verify US6 get_task_attachments meets FR-001 (comprehensive description), FR-035 clarification (metadata only, no upload/download), use cases explained. Make sure the tests passes.
 
 **Checkpoint**: Attachment metadata retrieval functional. Agents can provide file context without file storage operations.
 
