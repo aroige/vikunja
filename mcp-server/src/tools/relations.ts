@@ -67,7 +67,17 @@ export const DeleteTaskRelationSchema = z.object({
   other_task_id: z.number().int().positive()
     .describe('ID of the second task in the relationship to delete.'),
   relation_kind: RelationKindEnum
-    .describe('Type of relationship to delete. Must match the exact relation kind that was created. Deleting relation A→B automatically deletes inverse relation B→A.'),
+    .describe(`Type of relationship to delete. Must match the exact relation kind that was created. Deleting relation A→B automatically deletes inverse relation B→A. 
+
+**Valid relation types:**
+- subtask/parenttask (hierarchical)
+- related (association)
+- duplicateof/duplicates (duplication)
+- blocking/blocked (dependency)
+- precedes/follows (sequence)
+- copiedfrom/copiedto (clone tracking)
+
+Example: To delete "Task 1 is subtask of Task 2", specify task_id=1, other_task_id=2, relation_kind="subtask". The inverse relation (Task 2 is parenttask of Task 1) is automatically deleted.`),
 });
 
 export type CreateTaskRelationInput = z.infer<typeof CreateTaskRelationSchema>;

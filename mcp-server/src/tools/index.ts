@@ -8,4 +8,5 @@ export * from './assignments.js';
 export * from './search.js';
 export * from './bulk.js';
 export * from './relations.js';
+export * from './comments.js';
 export * from './registry.js';

@@ -86,6 +86,12 @@ export interface VikunjaComment {
   updated: string;
 }
 
+/**
+ * Task Comment Type Alias
+ * Used for consistency across the codebase
+ */
+export type TaskComment = VikunjaComment;
+
 export interface VikunjaTeam {
   id: number;
   name: string;
@@ -213,5 +219,43 @@ export interface RelationOperationResult {
   task_id: number;
   other_task_id: number;
   relation_kind: RelationKind;
+  message: string;
+}
+
+/**
+ * Add Comment Response
+ */
+export interface AddCommentResponse {
+  success: boolean;
+  comment: TaskComment;
+  message: string;
+}
+
+/**
+ * Get Comments Response (with pagination)
+ */
+export interface GetCommentsResponse {
+  task_id: number;
+  comments: TaskComment[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+/**
+ * Update Comment Response
+ */
+export interface UpdateCommentResponse {
+  success: boolean;
+  comment: TaskComment;
+  message: string;
+}
+
+/**
+ * Delete Comment Response
+ */
+export interface DeleteCommentResponse {
+  success: boolean;
   message: string;
 }

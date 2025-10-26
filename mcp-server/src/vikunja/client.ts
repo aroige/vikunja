@@ -300,5 +300,126 @@ export class VikunjaClient {
       message: result.message || 'Task relation deleted successfully. Bidirectional relation also removed automatically.',
     };
   }
+
+  /**
+   * Add comment to task
+   * 
+   * Creates a new comment on the specified task.
+   * The comment author is determined by the authentication token.
+   * 
+   * @param taskId - ID of the task to comment on
+   * @param commentText - Comment text content
+   * @param token - Authentication token
+   */
+  async addTaskComment(
+    taskId: number,
+    commentText: string,
+    token?: string
+  ): Promise<import('./types.js').AddCommentResponse> {
+    const comment = await this.put<import('./types.js').TaskComment>(
+      `/api/v1/tasks/${taskId}/comments`,
+      { comment: commentText },
+      token
+    );
+
+    return {
+      success: true,
+      comment,
+      message: 'Comment added successfully',
+    };
+  }
+
+  /**
+   * Get task comments
+   * 
+   * Retrieves all comments for a task with pagination support.
+   * Comments are returned in chronological order.
+   * 
+   * @param taskId - ID of the task
+   * @param page - Page number (default: 1)
+   * @param pageSize - Number of comments per page (default: 50, max: 100)
+   * @param token - Authentication token
+   */
+  async getTaskComments(
+    taskId: number,
+    page: number = 1,
+    pageSize: number = 50,
+    token?: string
+  ): Promise<import('./types.js').GetCommentsResponse> {
+    const comments = await this.get<import('./types.js').TaskComment[]>(
+      `/api/v1/tasks/${taskId}/comments`,
+      { page: page.toString(), per_page: pageSize.toString() },
+      token
+    );
+
+    // Calculate pagination metadata
+    const total = comments.length; // Note: Vikunja API may return total in headers or separate field
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      task_id: taskId,
+      comments: Array.isArray(comments) ? comments : [],
+      total,
+      page,
+      page_size: pageSize,
+      total_pages: totalPages,
+    };
+  }
+
+  /**
+   * Update task comment
+   * 
+   * Modifies the text of an existing comment.
+   * Users can only update their own comments unless they have admin permissions.
+   * 
+   * @param taskId - ID of the task containing the comment
+   * @param commentId - ID of the comment to update
+   * @param commentText - New comment text
+   * @param token - Authentication token
+   */
+  async updateTaskComment(
+    taskId: number,
+    commentId: number,
+    commentText: string,
+    token?: string
+  ): Promise<import('./types.js').UpdateCommentResponse> {
+    const comment = await this.post<import('./types.js').TaskComment>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}`,
+      { comment: commentText },
+      token
+    );
+
+    return {
+      success: true,
+      comment,
+      message: 'Comment updated successfully',
+    };
+  }
+
+  /**
+   * Delete task comment
+   * 
+   * Removes a comment from a task.
+   * Users can only delete their own comments unless they have admin permissions.
+   * 
+   * @param taskId - ID of the task containing the comment
+   * @param commentId - ID of the comment to delete
+   * @param token - Authentication token
+   */
+  async deleteTaskComment(
+    taskId: number,
+    commentId: number,
+    token?: string
+  ): Promise<import('./types.js').DeleteCommentResponse> {
+    await this.delete<{ message: string }>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}`,
+      token
+    );
+
+    return {
+      success: true,
+      message: 'Comment deleted successfully',
+    };
+  }
 }
 

@@ -155,27 +155,27 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 4
 
-- [ ] T063 [P] [US4] Create comment tool contract tests in `mcp-server/tests/tools/comments.test.ts` - test add_task_comment success case
-- [ ] T064 [P] [US4] Add comment retrieval test in `mcp-server/tests/tools/comments.test.ts` - test get_task_comments with pagination (page_size=50 default)
-- [ ] T065 [P] [US4] Add comment update test in `mcp-server/tests/tools/comments.test.ts` - test update_task_comment modifies text
-- [ ] T066 [P] [US4] Add comment deletion test in `mcp-server/tests/tools/comments.test.ts` - test delete_task_comment removes comment
-- [ ] T067 [P] [US4] Add comment permission test in `mcp-server/tests/tools/comments.test.ts` - test permission denied for modifying other user's comment
-- [ ] T068 [P] [US4] Add pagination validation test in `mcp-server/tests/tools/comments.test.ts` - test page_size max 100 enforced
+- [X] T063 [P] [US4] Create comment tool contract tests in `mcp-server/tests/tools/comments.test.ts` - test add_task_comment success case
+- [X] T064 [P] [US4] Add comment retrieval test in `mcp-server/tests/tools/comments.test.ts` - test get_task_comments with pagination (page_size=50 default)
+- [X] T065 [P] [US4] Add comment update test in `mcp-server/tests/tools/comments.test.ts` - test update_task_comment modifies text
+- [X] T066 [P] [US4] Add comment deletion test in `mcp-server/tests/tools/comments.test.ts` - test delete_task_comment removes comment
+- [X] T067 [P] [US4] Add comment permission test in `mcp-server/tests/tools/comments.test.ts` - test permission denied for modifying other user's comment
+- [X] T068 [P] [US4] Add pagination validation test in `mcp-server/tests/tools/comments.test.ts` - test page_size max 100 enforced
 
 ### Implementation for User Story 4
 
-- [ ] T069 [US4] Add TaskComment interface to `mcp-server/src/vikunja/types.ts` (id, task_id, comment, author, created, updated)
-- [ ] T070 [US4] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment
-- [ ] T071 [US4] Create comments tool file at `mcp-server/src/tools/comments.ts` with Zod schemas (AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema)
-- [ ] T072 [US4] Implement add_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes use case for annotating tasks, agent user context note
-- [ ] T073 [US4] Implement get_task_comments tool in `mcp-server/src/tools/comments.ts` - description includes chronological ordering, pagination support (page=1, page_size=50 default)
-- [ ] T074 [US4] Implement update_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes permission requirement (own comments only unless admin)
-- [ ] T075 [US4] Implement delete_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes permission requirement
-- [ ] T076 [US4] Add pagination support to get_task_comments in `mcp-server/src/tools/comments.ts` - use pagination utilities from Phase 2
-- [ ] T077 [US4] Add error handling with resource context to comment tools in `mcp-server/src/tools/comments.ts` - permission errors include task context
-- [ ] T078 [US4] Register comment tools in `mcp-server/src/tools/index.ts` - add add_task_comment, get_task_comments, update_task_comment, delete_task_comment to tools array
-- [ ] T079 [US4] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test comment workflow: add, retrieve, update, delete
-
+- [X] T069 [US4] Add TaskComment interface to `mcp-server/src/vikunja/types.ts` (id, task_id, comment, author, created, updated)
+- [X] T070 [US4] Add Vikunja API methods in `mcp-server/src/vikunja/client.ts` - addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment
+- [X] T071 [US4] Create comments tool file at `mcp-server/src/tools/comments.ts` with Zod schemas (AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema)
+- [X] T072 [US4] Implement add_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes use case for annotating tasks, agent user context note
+- [X] T073 [US4] Implement get_task_comments tool in `mcp-server/src/tools/comments.ts` - description includes chronological ordering, pagination support (page=1, page_size=50 default)
+- [X] T074 [US4] Implement update_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes permission requirement (own comments only unless admin)
+- [X] T075 [US4] Implement delete_task_comment tool in `mcp-server/src/tools/comments.ts` - description includes permission requirement
+- [X] T076 [US4] Add pagination support to get_task_comments in `mcp-server/src/tools/comments.ts` - use pagination utilities from Phase 2
+- [X] T077 [US4] Add error handling with resource context to comment tools in `mcp-server/src/tools/comments.ts` - permission errors include task context
+- [X] T078 [US4] Register comment tools in `mcp-server/src/tools/index.ts` - add add_task_comment, get_task_comments, update_task_comment, delete_task_comment to tools array
+- [X] T079 [US4] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test comment workflow: add, retrieve, update, delete
+- [X] T079a [US4] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US4 comment tools have comprehensive descriptions (>20 chars, use cases, outcomes), parameter descriptions (>10 chars), and meet FR-001 requirements
 **Checkpoint**: Task comments fully functional. Agents can facilitate team collaboration through annotating tasks.
 
 ---
@@ -212,6 +212,7 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 - [ ] T098 [US5] Add error handling with resource context to label tools in `mcp-server/src/tools/labels.ts` - permission errors include label context
 - [ ] T099 [US5] Register label tools in `mcp-server/src/tools/index.ts` - add get_all_labels, get_label, update_label, delete_label, get_task_labels to tools array
 - [ ] T100 [US5] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test label workflow: create label (use existing), list all, attach to tasks, search by label, update color, delete
+- [ ] T100a [US5] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US5 label tools meet FR-001 (purpose, use cases, alternatives, outcomes), FR-003 (hex_color format with 6-char/no # explanation), FR-020 (visibility rules), pagination defaults (page_size=50, max 100)
 
 **Checkpoint**: Label management fully functional. Agents can organize and filter tasks using labels.
 
@@ -238,6 +239,7 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 - [ ] T108 [US6] Add error handling with resource context to attachment tool in `mcp-server/src/tools/attachments.ts` - permission errors include task context
 - [ ] T109 [US6] Register attachment tool in `mcp-server/src/tools/index.ts` - add get_task_attachments to tools array
 - [ ] T110 [US6] Add integration test in `mcp-server/tests/integration/task-workflow.test.ts` - test attachment workflow: query task, retrieve metadata
+- [ ] T110a [US6] Checkpoint: Validate tool descriptions in `descriptions.test.ts` - verify US6 get_task_attachments meets FR-001 (comprehensive description), FR-035 clarification (metadata only, no upload/download), use cases explained
 
 **Checkpoint**: Attachment metadata retrieval functional. Agents can provide file context without file storage operations.
 
@@ -262,6 +264,7 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 - [ ] T116 [US7] Add n8n workflow example to `mcp-server/docs/` - create n8n-integration.md with sample workflow
 - [ ] T117 [US7] Verify error responses maintain JSON format in `mcp-server/src/transports/http.ts` - consistent error structure regardless of JSON mode
 - [ ] T118 [US7] Add integration test in `mcp-server/tests/integration/n8n-workflow.test.ts` - simulate n8n workflow: create task, retrieve, parse JSON
+- [ ] T118a [US7] Checkpoint: Validate US7 documentation completeness in README.md - verify MCP_HTTP_JSON_RESPONSE environment variable documented with n8n integration examples and JSON mode effects explained
 
 **Checkpoint**: n8n JSON mode validated and documented. n8n workflows can reliably use MCP server.
 

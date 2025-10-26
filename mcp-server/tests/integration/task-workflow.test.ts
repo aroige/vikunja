@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { VikunjaClient } from '../../src/vikunja/client.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation } from '../../src/tools/relations.js';
+import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment } from '../../src/tools/comments.js';
 import type { RelationKind } from '../../src/vikunja/types.js';
 
 // Test configuration
@@ -265,6 +266,178 @@ describe('Task Relation Workflow Integration', () => {
           throw new Error('Cannot create relation between task and itself');
         }
       }).rejects.toThrow('Cannot create relation between task and itself');
+    });
+  });
+});
+
+describe('Task Comment Workflow Integration', () => {
+  let client: VikunjaClient;
+  let testTaskId: number;
+  let commentId: number;
+
+  beforeAll(() => {
+    client = new VikunjaClient();
+  });
+
+  beforeEach(() => {
+    // Note: In a real integration test, you would create test tasks here
+    // For now, we'll use mock task ID
+    testTaskId = 1;
+  });
+
+  describe('Comment Collaboration Workflow', () => {
+    it('T079: should add, retrieve, update, and delete comments on a task', async () => {
+      // Skip in CI if no real Vikunja instance available
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Step 1: Add a comment
+      const addResult = await addTaskComment(
+        {
+          task_id: testTaskId,
+          comment: 'Initial comment for testing workflow',
+        },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(addResult.success).toBe(true);
+      expect(addResult.comment).toBeDefined();
+      expect(addResult.comment.comment).toBe('Initial comment for testing workflow');
+      commentId = addResult.comment.id;
+
+      // Step 2: Retrieve comments
+      const getResult = await getTaskComments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(getResult.task_id).toBe(testTaskId);
+      expect(getResult.comments).toBeDefined();
+      expect(getResult.comments.length).toBeGreaterThan(0);
+      
+      // Find our comment
+      const ourComment = getResult.comments.find(c => c.id === commentId);
+      expect(ourComment).toBeDefined();
+      expect(ourComment?.comment).toBe('Initial comment for testing workflow');
+
+      // Step 3: Update the comment
+      const updateResult = await updateTaskComment(
+        {
+          task_id: testTaskId,
+          comment_id: commentId,
+          comment: 'Updated comment text',
+        },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.comment.comment).toBe('Updated comment text');
+      expect(updateResult.comment.id).toBe(commentId);
+
+      // Step 4: Verify update by retrieving again
+      const getAfterUpdate = await getTaskComments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      const updatedComment = getAfterUpdate.comments.find(c => c.id === commentId);
+      expect(updatedComment?.comment).toBe('Updated comment text');
+
+      // Step 5: Delete the comment
+      const deleteResult = await deleteTaskComment(
+        {
+          task_id: testTaskId,
+          comment_id: commentId,
+        },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(deleteResult.success).toBe(true);
+
+      // Step 6: Verify deletion
+      const getAfterDelete = await getTaskComments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      const deletedComment = getAfterDelete.comments.find(c => c.id === commentId);
+      expect(deletedComment).toBeUndefined();
+    });
+
+    it('should handle pagination with many comments', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Retrieve with small page size
+      const page1 = await getTaskComments(
+        { task_id: testTaskId, page: 1, page_size: 10 },
+        client,
+        TEST_TOKEN
+      );
+
+      expect(page1.page).toBe(1);
+      expect(page1.page_size).toBe(10);
+      expect(page1.comments.length).toBeLessThanOrEqual(10);
+
+      // If there are more than 10 comments, test pagination
+      if (page1.total > 10) {
+        const page2 = await getTaskComments(
+          { task_id: testTaskId, page: 2, page_size: 10 },
+          client,
+          TEST_TOKEN
+        );
+
+        expect(page2.page).toBe(2);
+        // Ensure we got different comments
+        const page1Ids = page1.comments.map(c => c.id);
+        const page2Ids = page2.comments.map(c => c.id);
+        const overlap = page1Ids.filter(id => page2Ids.includes(id));
+        expect(overlap.length).toBe(0); // No overlap between pages
+      }
+    });
+  });
+
+  describe('Error Handling Workflow', () => {
+    it('should handle task not found error', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to add comment to non-existent task
+      await expect(
+        addTaskComment(
+          { task_id: 999999, comment: 'This should fail' },
+          client,
+          TEST_TOKEN
+        )
+      ).rejects.toThrow(/Task 999999 not found/);
+    });
+
+    it('should handle permission errors gracefully', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to add comment with invalid token
+      await expect(
+        addTaskComment(
+          { task_id: testTaskId, comment: 'This should fail' },
+          client,
+          'invalid-token'
+        )
+      ).rejects.toThrow();
     });
   });
 });

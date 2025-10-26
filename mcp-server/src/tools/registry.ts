@@ -5,6 +5,7 @@ import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, 
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
 import { BulkTools, BulkUpdateTasksSchema, BulkCompleteTasksSchema, BulkAssignTasksSchema, BulkAddLabelsSchema } from './bulk.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema } from './relations.js';
+import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment, AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema } from './comments.js';
 import { VikunjaClient } from '../vikunja/client.js';
 import { RateLimiter } from '../ratelimit/limiter.js';
 import { UserContext } from '../auth/types.js';
@@ -249,6 +250,47 @@ export class ToolRegistry {
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof DeleteTaskRelationSchema>;
         return deleteTaskRelation(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    // Task Comment Tools
+    this.registerTool(
+      'add_task_comment',
+      'Add a text comment to a task for team collaboration. Use this for progress notes, questions, decisions, or AI agent annotations. Comment author set from authentication token. Returns created comment with id and timestamp.',
+      AddTaskCommentSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof AddTaskCommentSchema>;
+        return addTaskComment(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'get_task_comments',
+      'Retrieve all comments for a task with pagination (default: page_size=50, max=100). Comments in chronological order with author info. Use this to understand task history and team discussion before taking action.',
+      GetTaskCommentsSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof GetTaskCommentsSchema>;
+        return getTaskComments(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'update_task_comment',
+      'Modify an existing comment text. Use this to correct typos or add information. You can only update YOUR OWN comments unless admin. Returns updated comment with new timestamp.',
+      UpdateTaskCommentSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof UpdateTaskCommentSchema>;
+        return updateTaskComment(validatedArgs, this.client, ctx.token);
+      }
+    );
+
+    this.registerTool(
+      'delete_task_comment',
+      'Permanently remove a comment from a task. Use for outdated info or cleanup. You can only delete YOUR OWN comments unless admin. Cannot be undone. Returns success confirmation.',
+      DeleteTaskCommentSchema,
+      async (args, ctx) => {
+        const validatedArgs = args as z.infer<typeof DeleteTaskCommentSchema>;
+        return deleteTaskComment(validatedArgs, this.client, ctx.token);
       }
     );
   }
