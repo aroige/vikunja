@@ -159,3 +159,46 @@ export function formatErrorForMCP(error: Error): JSONRPCError {
     },
   };
 }
+
+/**
+ * Format permission error with resource context
+ * 
+ * @param resourceType - Type of resource (e.g., "task", "project", "label")
+ * @param resourceId - ID of the resource (optional)
+ * @param action - Action that was denied (e.g., "modify", "delete", "read")
+ * @returns Formatted error message
+ * 
+ * @example
+ * formatPermissionError("task", 123, "modify")
+ * // Returns: "Permission denied: cannot modify task 123"
+ */
+export function formatPermissionError(
+  resourceType: string,
+  resourceId?: number,
+  action?: string,
+): string {
+  const actionText = action ? `${action} ` : '';
+  const idText = resourceId ? ` ${resourceId}` : '';
+  return `Permission denied: cannot ${actionText}${resourceType}${idText}`;
+}
+
+/**
+ * Format validation error with resource context
+ * 
+ * @param resourceType - Type of resource being validated
+ * @param field - Field that failed validation
+ * @param reason - Reason for validation failure
+ * @returns Formatted error message
+ * 
+ * @example
+ * formatValidationError("task", "due_date", "must be in the future")
+ * // Returns: "Validation error for task.due_date: must be in the future"
+ */
+export function formatValidationError(
+  resourceType: string,
+  field: string,
+  reason: string,
+): string {
+  return `Validation error for ${resourceType}.${field}: ${reason}`;
+}
+

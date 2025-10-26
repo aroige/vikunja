@@ -9,29 +9,40 @@ import { logger } from '../utils/logger.js';
  * Input schemas for assignment tools
  */
 export const AssignTaskSchema = z.object({
-  task_id: z.number().int().positive(),
-  user_id: z.number().int().positive(),
+  task_id: z.number().int().positive()
+    .describe('ID of the task to assign a user to.'),
+  user_id: z.number().int().positive()
+    .describe('ID of the user to assign. The user must have access to the parent project.'),
 });
 
 export const UnassignTaskSchema = z.object({
-  task_id: z.number().int().positive(),
-  user_id: z.number().int().positive(),
+  task_id: z.number().int().positive()
+    .describe('ID of the task to remove user assignment from.'),
+  user_id: z.number().int().positive()
+    .describe('ID of the user to unassign.'),
 });
 
 export const AddLabelSchema = z.object({
-  task_id: z.number().int().positive(),
-  label_id: z.number().int().positive(),
+  task_id: z.number().int().positive()
+    .describe('ID of the task to add a label to.'),
+  label_id: z.number().int().positive()
+    .describe('ID of the label to attach. The label must already exist (create with create_label first).'),
 });
 
 export const RemoveLabelSchema = z.object({
-  task_id: z.number().int().positive(),
-  label_id: z.number().int().positive(),
+  task_id: z.number().int().positive()
+    .describe('ID of the task to remove a label from.'),
+  label_id: z.number().int().positive()
+    .describe('ID of the label to detach. The label itself is not deleted, only the task association.'),
 });
 
 export const CreateLabelSchema = z.object({
-  title: z.string().min(1).max(250),
-  description: z.string().optional(),
-  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  title: z.string().min(1).max(250)
+    .describe('Label name (required, 1-250 characters). Labels are used for categorizing and filtering tasks across all projects.'),
+  description: z.string().optional()
+    .describe('Label description (optional). Use this to explain the label\'s purpose or usage guidelines.'),
+  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
+    .describe('Label color as hex code including # (optional, e.g., "#FF5733"). Used for visual identification. Format: 6-character hex code with # prefix.'),
 });
 
 export type AssignTaskInput = z.infer<typeof AssignTaskSchema>;

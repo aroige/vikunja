@@ -40,9 +40,9 @@ describe('ToolRegistry', () => {
   });
 
   describe('Tool Registration', () => {
-    it('should register all 22 tools', () => {
+    it('should register all 25 tools', () => {
       const tools = registry.getTools();
-      expect(tools).toHaveLength(22);
+      expect(tools).toHaveLength(25);
     });
 
     it('should register project tools', () => {
@@ -101,7 +101,8 @@ describe('ToolRegistry', () => {
 
       expect(createProject).toBeDefined();
       expect(createProject?.name).toBe('create_project');
-      expect(createProject?.description).toBe('Create a new project in Vikunja');
+      expect(createProject?.description).toContain('Create a new project');
+      expect(createProject?.description).toContain('Use this when');
       expect(createProject?.inputSchema).toBeDefined();
       expect(createProject?.inputSchema.type).toBe('object');
       expect(createProject?.inputSchema.properties).toBeDefined();
