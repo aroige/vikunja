@@ -164,14 +164,42 @@ describe('HTTP Streamable Transport Tests', () => {
 	describe('T111: JSON Mode with MCP_HTTP_JSON_RESPONSE=true', () => {
 		it('should return valid JSON response when JSON mode is enabled', async () => {
 			// Per FR-041: MCP_HTTP_JSON_RESPONSE=true enables JSON responses for n8n
-			const response = await supertest(app)
+			// Per MCP protocol: First request must be initialize
+			const initResponse = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('Content-Type', 'application/json')
 				.send({
 					jsonrpc: '2.0',
-					method: 'tools/list',
+					method: 'initialize',
+					params: {
+						protocolVersion: '2024-11-05',
+						capabilities: {},
+						clientInfo: {
+							name: 'test-client',
+							version: '1.0.0',
+						},
+					},
 					id: 1,
+				});
+
+			// Initialize should succeed and return session ID
+			expect(initResponse.status).toBe(200);
+			expect(initResponse.type).toBe('application/json');
+			const sessionId = initResponse.headers['mcp-session-id'] || initResponse.headers['Mcp-Session-Id'];
+			expect(sessionId).toBeTruthy();
+
+			// Now make a tools/list request with the session ID
+			const response = await supertest(app)
+				.post('/mcp-json')
+				.set('Authorization', 'Bearer valid-http-token')
+				.set('Content-Type', 'application/json')
+				.set('mcp-session-id', sessionId as string)
+				.set('mcp-protocol-version', '2024-11-05')
+				.send({
+					jsonrpc: '2.0',
+					method: 'tools/list',
+					id: 2,
 				});
 
 			// Response should be valid JSON
@@ -181,17 +209,45 @@ describe('HTTP Streamable Transport Tests', () => {
 			// Should have valid JSON-RPC structure
 			const body = response.body;
 			expect(body).toHaveProperty('jsonrpc', '2.0');
-			expect(body).toHaveProperty('id', 1);
+			expect(body).toHaveProperty('id', 2);
 			expect(body).toHaveProperty('result');
 		});
 
 		it('should handle Accept header injection for n8n compatibility', async () => {
 			// n8n cannot set Accept: text/event-stream
 			// When JSON mode is on, server should accept requests without this header
+			
+			// First, initialize the session
+			const initResponse = await supertest(app)
+				.post('/mcp-json')
+				.set('Authorization', 'Bearer valid-http-token')
+				.set('Content-Type', 'application/json')
+				// Deliberately NOT setting Accept header
+				.send({
+					jsonrpc: '2.0',
+					method: 'initialize',
+					params: {
+						protocolVersion: '2024-11-05',
+						capabilities: {},
+						clientInfo: {
+							name: 'test-client',
+							version: '1.0.0',
+						},
+					},
+					id: 1,
+				});
+
+			expect(initResponse.status).toBe(200);
+			const sessionId = initResponse.headers['mcp-session-id'] || initResponse.headers['Mcp-Session-Id'];
+			expect(sessionId).toBeTruthy();
+
+			// Now make a request without Accept header
 			const response = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('Content-Type', 'application/json')
+				.set('mcp-session-id', sessionId as string)
+				.set('mcp-protocol-version', '2024-11-05')
 				// Deliberately NOT setting Accept header
 				.send({
 					jsonrpc: '2.0',
@@ -205,15 +261,42 @@ describe('HTTP Streamable Transport Tests', () => {
 		});
 
 		it('should work with proper Accept header when provided', async () => {
-			const response = await supertest(app)
+			// First, initialize the session
+			const initResponse = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json, text/event-stream')
 				.send({
 					jsonrpc: '2.0',
+					method: 'initialize',
+					params: {
+						protocolVersion: '2024-11-05',
+						capabilities: {},
+						clientInfo: {
+							name: 'test-client',
+							version: '1.0.0',
+						},
+					},
+					id: 1,
+				});
+
+			expect(initResponse.status).toBe(200);
+			const sessionId = initResponse.headers['mcp-session-id'] || initResponse.headers['Mcp-Session-Id'];
+			expect(sessionId).toBeTruthy();
+
+			// Now make a request with Accept header
+			const response = await supertest(app)
+				.post('/mcp-json')
+				.set('Authorization', 'Bearer valid-http-token')
+				.set('Content-Type', 'application/json')
+				.set('Accept', 'application/json, text/event-stream')
+				.set('mcp-session-id', sessionId as string)
+				.set('mcp-protocol-version', '2024-11-05')
+				.send({
+					jsonrpc: '2.0',
 					method: 'tools/list',
-					id: 3,
+					id: 2,
 				});
 
 			expect(response.status).toBe(200);
@@ -340,17 +423,27 @@ describe('HTTP Streamable Transport Tests', () => {
 
 	describe('Session Management', () => {
 		it('should create new session on first request', async () => {
+			// MCP protocol: First request must be initialize
 			const response = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('Content-Type', 'application/json')
 				.send({
 					jsonrpc: '2.0',
-					method: 'tools/list',
-					id: 9,
+					method: 'initialize',
+					params: {
+						protocolVersion: '2024-11-05',
+						capabilities: {},
+						clientInfo: {
+							name: 'test-client',
+							version: '1.0.0',
+						},
+					},
+					id: 1,
 				});
 
 			expect(response.status).toBe(200);
+			expect(response.type).toBe('application/json');
 			// Note: SDK sets 'Mcp-Session-Id' header (capital M)
 			const sessionId = response.headers['mcp-session-id'] || response.headers['Mcp-Session-Id'];
 			expect(sessionId).toBeTruthy();
@@ -358,33 +451,43 @@ describe('HTTP Streamable Transport Tests', () => {
 		});
 
 		it('should reuse existing session with mcp-session-id header', async () => {
-			// First request to get session ID
+			// First request to get session ID (initialize)
 			const firstResponse = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('Content-Type', 'application/json')
 				.send({
 					jsonrpc: '2.0',
-					method: 'tools/list',
-					id: 10,
+					method: 'initialize',
+					params: {
+						protocolVersion: '2024-11-05',
+						capabilities: {},
+						clientInfo: {
+							name: 'test-client',
+							version: '1.0.0',
+						},
+					},
+					id: 1,
 				});
 
 			const sessionId = firstResponse.headers['mcp-session-id'] || firstResponse.headers['Mcp-Session-Id'];
 			expect(sessionId).toBeTruthy();
 
-			// Second request with same session ID
+			// Second request with same session ID (tools/list)
 			const secondResponse = await supertest(app)
 				.post('/mcp-json')
 				.set('Authorization', 'Bearer valid-http-token')
 				.set('mcp-session-id', sessionId as string)
+				.set('mcp-protocol-version', '2024-11-05')
 				.set('Content-Type', 'application/json')
 				.send({
 					jsonrpc: '2.0',
 					method: 'tools/list',
-					id: 11,
+					id: 2,
 				});
 
 			expect(secondResponse.status).toBe(200);
+			expect(secondResponse.type).toBe('application/json');
 			const secondSessionId = secondResponse.headers['mcp-session-id'] || secondResponse.headers['Mcp-Session-Id'];
 			expect(secondSessionId).toBe(sessionId);
 		});
