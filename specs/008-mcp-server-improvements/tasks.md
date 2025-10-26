@@ -381,14 +381,14 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 **Purpose**: Final improvements affecting multiple user stories
 
-- [ ] T119 [P] Generate TOOLS.md documentation in `mcp-server/docs/` - auto-generate from tool registry with all descriptions
-- [ ] T120 [P] Add Vikunja version check on startup in `mcp-server/src/index.ts` - call checkVersion from vikunja client, log warning on mismatch
-- [ ] T121 [P] Update package.json scripts with test commands - add test:relations, test:comments, test:labels for granular testing
-- [ ] T122 [P] Run full test suite with `pnpm test:coverage` - verify 90%+ coverage maintained (currently 98.5%)
-- [ ] T123 [P] Run linting with `pnpm lint:fix && pnpm format` - ensure code quality standards met
-- [ ] T124 Update CHANGELOG.md with all new features - 14 new tools, 21 enhanced descriptions, pagination support
-- [ ] T125 Update main README.md with capability overview - list all 35+ tools organized by category
-- [ ] T126 [P] Create DEVELOPMENT.md in `mcp-server/docs/` - copy quickstart.md content for developer onboarding
+- [X] T119 [P] Generate TOOLS.md documentation in `mcp-server/docs/` - auto-generate from tool registry with all descriptions
+- [X] T120 [P] Add Vikunja version check on startup in `mcp-server/src/index.ts` - call checkVersion from vikunja client, log warning on mismatch
+- [X] T121 [P] Update package.json scripts with test commands - add test:relations, test:comments, test:labels for granular testing
+- [X] T122 [P] Run full test suite with `pnpm test:coverage` - verify 90%+ coverage maintained (currently 98.5%)
+- [X] T123 [P] Run linting with `pnpm lint:fix && pnpm format` - ensure code quality standards met
+- [X] T124 Update CHANGELOG.md with all new features - 14 new tools, 21 enhanced descriptions, pagination support
+- [X] T125 Update main README.md with capability overview - list all 35+ tools organized by category
+- [X] T126 [P] Create DEVELOPMENT.md in `mcp-server/docs/` - copy quickstart.md content for developer onboarding
 - [ ] T127 Validate quickstart.md instructions - manually test setup, development workflow, adding new tool steps
 - [ ] T128 Performance validation - test typical operations <2s, bulk operations <5s with 100+ items
 - [ ] T129 Security review - verify error messages don't leak sensitive details, Zod validation on all inputs

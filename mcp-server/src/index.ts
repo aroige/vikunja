@@ -56,6 +56,13 @@ async function initializeApp(): Promise<AppState> {
   });
   const vikunjaClient = new VikunjaClient();
 
+  // Check Vikunja API version compatibility
+  try {
+    await vikunjaClient.checkVersion();
+  } catch (error) {
+    logger.warn('Could not verify Vikunja API version, continuing anyway', { error });
+  }
+
   // Create authenticator
   const authenticator = new Authenticator();
 

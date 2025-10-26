@@ -3,7 +3,7 @@
 > Model Context Protocol (MCP) server for Vikunja task management, enabling AI agents to interact with Vikunja through a standardized protocol.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-193%2F196%20passing-brightgreen)](./tests)
+[![Tests](https://img.shields.io/badge/tests-448%2F477%20passing-brightgreen)](./tests)
 [![Coverage](https://img.shields.io/badge/coverage-98.5%25-brightgreen)](./tests)
 
 ## What is This?
@@ -11,7 +11,7 @@
 The Vikunja MCP Server enables AI agents (like Claude Desktop, n8n, custom scripts) to interact with [Vikunja](https://vikunja.io) through the [Model Context Protocol](https://modelcontextprotocol.io).
 
 **Key Features:**
-- 🤖 **21 MCP Tools** - Complete CRUD for projects, tasks, labels, and more
+- 🤖 **35 MCP Tools** - Complete CRUD for projects, tasks, relations, comments, labels, attachments, and more
 - 🔐 **Secure** - Token-based authentication with rate limiting
 - 🚀 **Fast** - <200ms p95 latency, stateless for horizontal scaling
 - 📦 **Easy Deploy** - Docker Compose or standalone
@@ -125,7 +125,7 @@ npm install
 
 ## Available Tools
 
-The MCP server provides **21 comprehensive tools** for AI agents to interact with Vikunja. Each tool includes detailed descriptions, parameter documentation, and usage examples to enable reliable agent decision-making without trial-and-error.
+The MCP server provides **35 comprehensive tools** for AI agents to interact with Vikunja. Each tool includes detailed descriptions, parameter documentation, and usage examples to enable reliable agent decision-making without trial-and-error.
 
 ### Enhanced Tool Discovery
 
@@ -140,37 +140,60 @@ All tools feature:
 
 For complete tool documentation with schemas, see [docs/TOOLS.md](docs/TOOLS.md) (auto-generated).
 
-### Projects (4 tools)
+### Project Management (4 tools)
 - `create_project` - Create a new project
 - `update_project` - Update project details
 - `delete_project` - Delete a project
 - `archive_project` - Archive/unarchive a project
 
-### Tasks (5 tools)
-- `create_task` - Create a task in a project
+### Task Management (7 tools)
+- `create_task` - Create a task in a project (supports recurring tasks with repeat_after/repeat_mode)
 - `update_task` - Update task details
+- `get_task` - Retrieve single task details
 - `complete_task` - Mark a task as complete
 - `delete_task` - Delete a task
 - `move_task` - Move task to another project
+- `uncomplete_task` - Reopen a completed task
 
-### Assignments & Labels (5 tools)
+### Task Relations (3 tools)
+- `create_task_relation` - Create bidirectional relation between tasks (10 kinds: subtask, parenttask, related, duplicateof, duplicates, blocking, blocked, precedes, follows, copiedfrom)
+- `get_task_relations` - Get all relations for a task, grouped by kind
+- `delete_task_relation` - Remove relation between tasks (removes both directions)
+
+### Task Comments (4 tools)
+- `add_task_comment` - Add comment to a task for team collaboration
+- `get_task_comments` - Retrieve all comments for a task with pagination (page_size=50 default, max 100)
+- `update_task_comment` - Modify existing comment text (own comments only unless admin)
+- `delete_task_comment` - Remove comment from task (own comments only unless admin)
+
+### Label Management (9 tools)
+- `create_label` - Create a new label with title, description, and hex color
+- `get_all_labels` - List all accessible labels with pagination (page_size=50 default, max 100)
+- `get_label` - Retrieve single label details
+- `update_label` - Modify label title, description, or hex color (6-char format without #)
+- `delete_label` - Remove label (cascades removal from all tasks)
+- `get_task_labels` - Get all labels attached to a task
+- `add_label` - Attach existing label to a task for categorization
+- `remove_label` - Detach label from a task
+
+### Attachments (1 tool)
+- `get_task_attachments` - Retrieve attachment metadata (filename, size, MIME type, upload date) for context awareness (file upload/download not supported)
+
+### Search & Filtering (4 tools)
+- `search_tasks` - Search tasks with advanced filtering (supports multi-label AND logic via filter_labels parameter)
+- `search_projects` - Search projects by name
+- `get_my_tasks` - Get current user's assigned tasks for personal task list
+- `get_project_tasks` - Get all tasks in a specific project
+
+### Assignments (2 tools)
 - `assign_task` - Assign a user to a task
 - `unassign_task` - Remove a user from a task
-- `add_label` - Add a label to a task
-- `remove_label` - Remove a label from a task
-- `create_label` - Create a new label
-
-### Search (4 tools)
-- `search_tasks` - Search tasks with advanced filtering
-- `search_projects` - Search projects
-- `get_my_tasks` - Get current user's assigned tasks
-- `get_project_tasks` - Get all tasks in a project
 
 ### Bulk Operations (4 tools)
-- `bulk_update_tasks` - Update multiple tasks at once (max 100)
-- `bulk_complete_tasks` - Complete multiple tasks
-- `bulk_assign_tasks` - Assign user to multiple tasks
-- `bulk_add_labels` - Add label to multiple tasks
+- `bulk_create_tasks` - Create multiple tasks at once (max 100) for batch task creation
+- `bulk_update_tasks` - Update multiple tasks at once (max 100) for efficient batch modifications
+- `bulk_complete_tasks` - Complete multiple tasks at once (max 100)
+- `bulk_add_labels` - Add label to multiple tasks for organizing task groups
 
 ## Recurring Tasks
 
