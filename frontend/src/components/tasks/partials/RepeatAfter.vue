@@ -3,22 +3,25 @@
 		<div class="buttons has-addons is-centered mbs-2">
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 1 && task.repeatAfter.type === 'days'}"
 				class="is-small"
-				@click="() => setRepeatAfter(1, 'days')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.everyDay') }}
 			</XButton>
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 1 && task.repeatAfter.type === 'weeks'}"
 				class="is-small"
-				@click="() => setRepeatAfter(1, 'weeks')"
+				@click="() => setRepeatAfter(1, 'weeks', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.everyWeek') }}
 			</XButton>
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT && task.repeatAfter.amount === 30 && task.repeatAfter.type === 'days'}"
 				class="is-small"
-				@click="() => setRepeatAfter(30, 'days')"
+				@click="() => setRepeatAfter(30, 'days', TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)"
 			>
 				{{ $t('task.repeat.every30d') }}
 			</XButton>
@@ -177,6 +180,9 @@ function setRepeatAfter(amount: number, type: IRepeatAfter['type'], repeatMode?:
 	Object.assign(repeatAfter, { amount, type})
 	if (repeatMode !== undefined) {
 		task.value.repeatMode = repeatMode
+	} else {
+		// Default to REPEAT_MODE_DEFAULT if not specified
+		task.value.repeatMode = TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
 	}
 	updateData()
 }

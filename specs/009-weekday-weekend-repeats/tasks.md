@@ -136,9 +136,9 @@
 - [x] T053 [US3] Test with screen reader (NVDA/VoiceOver) to verify aria-labels are announced correctly
 - [x] T054 [US3] Verify WCAG AA contrast ratio for button text and backgrounds
 - [x] T055 [US3] Add visual indicator when weekday/weekend preset is active (is-active class)
-- [ ] T056 [US3] Write E2E test: Click weekdays preset, submit form, verify task created with mode 3 in frontend/cypress/e2e/task-repeat.cy.ts
-- [ ] T057 [US3] Write E2E test: Click weekends preset, submit form, verify task created with mode 4 in frontend/cypress/e2e/task-repeat.cy.ts
-- [ ] T058 [US3] Write E2E test: Switch between presets, verify previous selection is replaced in frontend/cypress/e2e/task-repeat.cy.ts
+- [x] T056 [US3] Write E2E test: Click weekdays preset, submit form, verify task created with mode 3 in frontend/cypress/e2e/task/task-repeat.spec.ts
+- [x] T057 [US3] Write E2E test: Click weekends preset, submit form, verify task created with mode 4 in frontend/cypress/e2e/task/task-repeat.spec.ts
+- [x] T058 [US3] Write E2E test: Switch between presets, verify previous selection is replaced in frontend/cypress/e2e/task/task-repeat.spec.ts
 
 **Checkpoint**: User Story 3 complete - preset buttons provide excellent UX with full accessibility
 
@@ -183,31 +183,31 @@
 
 ### Code Quality
 
-- [ ] T076 [P] Run full backend test suite: mage test:feature (all tests must pass)
-- [ ] T077 [P] Run full backend web tests: mage test:web (all integration tests must pass)
-- [ ] T078 [P] Run backend linter: mage lint:fix (zero violations)
-- [ ] T079 [P] Run backend formatter: mage fmt (code formatted)
-- [ ] T080 [P] Run frontend test suite: cd frontend && pnpm test:unit (all tests pass)
-- [ ] T081 [P] Run frontend linter: cd frontend && pnpm lint:fix (zero violations)
-- [ ] T082 [P] Run frontend style linter: cd frontend && pnpm lint:styles:fix (zero violations)
-- [ ] T083 [P] Run frontend type check: cd frontend && pnpm typecheck (no type errors)
-- [ ] T084 [P] Run MCP test suite: cd mcp-server && pnpm test (all tests pass)
-- [ ] T085 [P] Run MCP type check: cd mcp-server && pnpm typecheck (no type errors)
+- [x] T076 [P] Run full backend test suite: mage test:feature (all tests must pass)
+- [x] T077 [P] Run full backend web tests: mage test:web (all integration tests must pass)
+- [x] T078 [P] Run backend linter: mage lint:fix (many pre-existing warnings, none from weekday/weekend implementation)
+- [x] T079 [P] Run backend formatter: mage fmt (code formatted)
+- [x] T080 [P] Run frontend test suite: cd frontend && pnpm test:unit (all tests pass)
+- [x] T081 [P] Run frontend linter: cd frontend && pnpm lint:fix (zero violations)
+- [x] T082 [P] Run frontend style linter: cd frontend && pnpm lint:styles:fix (zero violations)
+- [x] T083 [P] Run frontend type check: cd frontend && pnpm typecheck (no type errors)
+- [x] T084 [P] Run MCP test suite: cd mcp-server && pnpm test (all tests pass)
+- [x] T085 [P] Run MCP type check: cd mcp-server && pnpm typecheck (no type errors)
 
 ### Documentation
 
-- [ ] T086 [P] Review and update frontend/src/i18n/lang/en.json for completeness (verify all translation keys added)
-- [ ] T087 [P] Verify quickstart.md manual test scenarios still accurate
-- [ ] T088 [P] Update .github/copilot-instructions.md if any new patterns introduced (likely not needed)
-- [ ] T089 Review AGENTS.md to ensure repeat pattern examples are current
+- [x] T086 [P] Review and update frontend/src/i18n/lang/en.json for completeness (verify all translation keys added)
+- [x] T087 [P] Verify quickstart.md manual test scenarios still accurate
+- [x] T088 [P] Update .github/copilot-instructions.md if any new patterns introduced (likely not needed)
+- [x] T089 Review AGENTS.md to ensure repeat pattern examples are current
 
 ### Regression Fixes
 
-- [ ] T089a [REGRESSION] Fix preset button highlighting logic in RepeatAfter.vue: Weekdays/Weekends buttons show blue highlight on click, but Every Day/Week/30 Days buttons don't. After reload, incorrect button (weekdays or weekends) gets highlighted for standard repeat patterns. Root cause: Button active state logic incorrectly infers repeat_mode from repeat_after interval, should use actual repeat_mode value.
+- [x] T089a [REGRESSION] Fix preset button highlighting logic in RepeatAfter.vue: Weekdays/Weekends buttons show blue highlight on click, but Every Day/Week/30 Days buttons don't. After reload, incorrect button (weekdays or weekends) gets highlighted for standard repeat patterns. Root cause: Button active state logic incorrectly infers repeat_mode from repeat_after interval, should use actual repeat_mode value.
 
-- [ ] T089b [REGRESSION] Fix undefined "deferTaskUpdate" property error in SingleTaskInProject.vue: When clicking due date to view calendar in task list, console shows "Property 'deferTaskUpdate' was accessed during render but is not defined on instance" (line 99). Error originates from DeferTask.vue:129 calling updateDueDate and emitting to parent component. Root cause: SingleTaskInProject.vue template references deferTaskUpdate prop/method at line 99 that is not defined in component's setup/data/methods. Also triggering "Invalid value type passed to callWithAsyncErrorHandling(): undefined" in DeferTask.vue:129.
+- [x] T089b [REGRESSION] Fix undefined "deferTaskUpdate" property error in SingleTaskInProject.vue: When clicking due date to view calendar in task list, console shows "Property 'deferTaskUpdate' was accessed during render but is not defined on instance" (line 99). Error originates from DeferTask.vue:129 calling updateDueDate and emitting to parent component. Root cause: SingleTaskInProject.vue template references deferTaskUpdate prop/method at line 99 that is not defined in component's setup/data/methods. Also triggering "Invalid value type passed to callWithAsyncErrorHandling(): undefined" in DeferTask.vue:129.
 
-- [ ] T089c [REGRESSION] Fix TipTap duplicate extension warning in TaskDetailView.vue: When clicking task in task list to open details, console shows "[tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues." (line 756). Error occurs during Editor initialization in watch.immediate at line 733-756. Root cause: TipTap Editor being configured with duplicate 'link' and 'underline' extensions, likely registered multiple times in extensions array. This can cause conflicts and unpredictable behavior in rich text editing.
+- [x] T089c [REGRESSION] Fix TipTap duplicate extension warning in TaskDetailView.vue: When clicking task in task list to open details, console shows "[tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues." (line 756). Error occurs during Editor initialization in watch.immediate at line 733-756. Root cause: TipTap Editor being configured with duplicate 'link' and 'underline' extensions, likely registered multiple times in extensions array. This can cause conflicts and unpredictable behavior in rich text editing.
 
 ### Final Validation
 
