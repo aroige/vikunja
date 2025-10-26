@@ -94,14 +94,14 @@ export class ToolRegistry {
     // Task Tools
     this.registerTool(
       'create_task',
-      'Create a new task in a project. Use this for single task creation (for multiple tasks, use bulk_create_tasks for better performance). Supports recurring tasks via repeat_after (seconds) and repeat_mode. Returns the created task with its ID.',
+      'Create a new task in a project. Use this for single task creation (for multiple tasks, use bulk_create_tasks for better performance). Supports recurring tasks via repeat_after (seconds) and repeat_mode (0=from due date, 1=monthly same date, 2=from completion). Examples: Weekly meeting (repeat_after=604800, repeat_mode=0), Monthly report on 1st (repeat_after=0, repeat_mode=1), Water plants every 3 days after completion (repeat_after=259200, repeat_mode=2). Returns the created task with its ID.',
       CreateTaskSchema,
       async (args, ctx) => this.taskTools.createTask(args as z.infer<typeof CreateTaskSchema>, ctx)
     );
 
     this.registerTool(
       'update_task',
-      'Update an existing task\'s properties. Use this to modify any task field (title, description, priority, due date, etc.). For completing only, consider complete_task. For moving projects, consider move_task. Returns the updated task.',
+      'Update an existing task\'s properties. Use this to modify any task field (title, description, priority, due date, etc.). For completing only, consider complete_task. For moving projects, consider move_task. Supports updating recurrence settings: change repeat_after interval or repeat_mode behavior. Changing repeat_mode affects how the next occurrence is calculated. Returns the updated task.',
       UpdateTaskSchema,
       async (args, ctx) => this.taskTools.updateTask(args as z.infer<typeof UpdateTaskSchema>, ctx)
     );

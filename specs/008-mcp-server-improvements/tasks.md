@@ -128,20 +128,20 @@ All paths relative to `mcp-server/` directory (TypeScript project at repository 
 
 ### Tests for User Story 3
 
-- [ ] T052 [P] [US3] Create recurring task test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=604800 and repeat_mode=0 (weekly)
-- [ ] T053 [P] [US3] Create monthly recurring test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=0 and repeat_mode=1 (monthly on same date)
-- [ ] T054 [P] [US3] Create from-completion recurring test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=259200 and repeat_mode=2 (3 days from completion)
-- [ ] T055 [P] [US3] Create recurring validation test in `mcp-server/tests/tools/tasks.test.ts` - test invalid repeat_mode returns clear error
+- [X] T052 [P] [US3] Create recurring task test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=604800 and repeat_mode=0 (weekly)
+- [X] T053 [P] [US3] Create monthly recurring test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=0 and repeat_mode=1 (monthly on same date)
+- [X] T054 [P] [US3] Create from-completion recurring test in `mcp-server/tests/tools/tasks.test.ts` - test create task with repeat_after=259200 and repeat_mode=2 (3 days from completion)
+- [X] T055 [P] [US3] Create recurring validation test in `mcp-server/tests/tools/tasks.test.ts` - test invalid repeat_mode returns clear error
 
 ### Implementation for User Story 3
 
-- [ ] T056 [US3] Add RepeatMode enum documentation to `mcp-server/src/vikunja/types.ts` - enum RepeatMode { DEFAULT = 0, MONTHLY = 1, FROM_CURRENT = 2 } with JSDoc comments
-- [ ] T057 [US3] Enhance repeat_after parameter description in `mcp-server/src/tools/tasks.ts` create_task schema - add examples (daily=86400, weekly=604800, biweekly=1209600), emphasize SECONDS not minutes
-- [ ] T058 [US3] Enhance repeat_mode parameter description in `mcp-server/src/tools/tasks.ts` create_task schema - add mode 0/1/2 explanations with use cases
-- [ ] T059 [US3] Add repeat_after parameter description in `mcp-server/src/tools/tasks.ts` update_task schema - reference create_task examples
-- [ ] T060 [US3] Add repeat_mode parameter description in `mcp-server/src/tools/tasks.ts` update_task schema - reference create_task mode explanations
-- [ ] T061 [US3] Add recurring task examples to tool descriptions in `mcp-server/src/tools/tasks.ts` - "Example: Weekly meeting (repeat_after=604800, mode=0), Monthly report on 1st (repeat_after=0, mode=1)"
-- [ ] T062 [US3] Update README.md with recurring task documentation section - explain 3 modes with concrete examples
+- [X] T056 [US3] Add RepeatMode enum documentation to `mcp-server/src/vikunja/types.ts` - enum RepeatMode { DEFAULT = 0, MONTHLY = 1, FROM_CURRENT = 2 } with JSDoc comments
+- [X] T057 [US3] Enhance repeat_after parameter description in `mcp-server/src/tools/tasks.ts` create_task schema - add examples (daily=86400, weekly=604800, biweekly=1209600), emphasize SECONDS not minutes
+- [X] T058 [US3] Enhance repeat_mode parameter description in `mcp-server/src/tools/tasks.ts` create_task schema - add mode 0/1/2 explanations with use cases
+- [X] T059 [US3] Add repeat_after parameter description in `mcp-server/src/tools/tasks.ts` update_task schema - reference create_task examples
+- [X] T060 [US3] Add repeat_mode parameter description in `mcp-server/src/tools/tasks.ts` update_task schema - reference create_task mode explanations
+- [X] T061 [US3] Add recurring task examples to tool descriptions in `mcp-server/src/tools/tasks.ts` - "Example: Weekly meeting (repeat_after=604800, mode=0), Monthly report on 1st (repeat_after=0, mode=1)"
+- [X] T062 [US3] Update README.md with recurring task documentation section - explain 3 modes with concrete examples
 
 **Checkpoint**: Recurring task documentation complete. Agents understand repeat_after seconds and repeat_mode selection.
 

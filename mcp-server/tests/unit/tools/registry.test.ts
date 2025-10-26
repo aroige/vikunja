@@ -40,9 +40,9 @@ describe('ToolRegistry', () => {
   });
 
   describe('Tool Registration', () => {
-    it('should register all 22 tools', () => {
+    it('should register all 25 tools', () => {
       const tools = registry.getTools();
-      expect(tools).toHaveLength(22);
+      expect(tools).toHaveLength(25);
     });
 
     it('should register project tools', () => {

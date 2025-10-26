@@ -39,6 +39,35 @@ export interface VikunjaTask {
   created_by: VikunjaUser;
 }
 
+/**
+ * Recurring task repeat modes (used with repeat_after parameter).
+ * 
+ * @enum {number}
+ */
+export enum RepeatMode {
+  /**
+   * DEFAULT mode (0): Repeat from the task's due date.
+   * Best for: Regular scheduled tasks like weekly meetings, daily standups.
+   * Example: Weekly meeting due Monday 10am repeats every Monday at 10am.
+   */
+  DEFAULT = 0,
+
+  /**
+   * MONTHLY mode (1): Repeat on the same calendar date each month.
+   * Best for: Monthly bills, reports due on specific dates (1st, 15th, etc.).
+   * Note: Use repeat_after=0 with this mode.
+   * Example: Bill due on 1st of each month always repeats on the 1st.
+   */
+  MONTHLY = 1,
+
+  /**
+   * FROM_CURRENT mode (2): Repeat from the completion date.
+   * Best for: Flexible recurring tasks that depend on when the previous one finished.
+   * Example: "Water plants every 3 days" - creates new task 3 days after you complete it.
+   */
+  FROM_CURRENT = 2,
+}
+
 export interface VikunjaLabel {
   id: number;
   title: string;

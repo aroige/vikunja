@@ -172,6 +172,74 @@ For complete tool documentation with schemas, see [docs/TOOLS.md](docs/TOOLS.md)
 - `bulk_assign_tasks` - Assign user to multiple tasks
 - `bulk_add_labels` - Add label to multiple tasks
 
+## Recurring Tasks
+
+Vikunja supports recurring tasks through the `repeat_after` and `repeat_mode` parameters available in `create_task` and `update_task`.
+
+### Repeat Modes
+
+There are three repeat modes (`repeat_mode`):
+
+**Mode 0: DEFAULT** - Repeat from Due Date
+- Best for: Scheduled tasks like meetings, standups, or deadlines
+- Behavior: Next occurrence is scheduled from the original due date
+- Example: Weekly team meeting every Monday at 10am
+  ```typescript
+  {
+    title: "Weekly team meeting",
+    due_date: "2024-01-08T10:00:00Z",  // Monday 10am
+    repeat_after: 604800,  // 7 days in seconds
+    repeat_mode: 0
+  }
+  ```
+
+**Mode 1: MONTHLY** - Repeat on Same Calendar Date
+- Best for: Monthly bills, reports due on specific dates (1st, 15th, etc.)
+- Behavior: Repeats on the same date each month (handles month lengths automatically)
+- **Important**: Set `repeat_after: 0` when using this mode
+- Example: Monthly expense report due on the 1st
+  ```typescript
+  {
+    title: "Submit expense report",
+    due_date: "2024-02-01T00:00:00Z",  // February 1st
+    repeat_after: 0,  // Special: 0 for monthly mode
+    repeat_mode: 1
+  }
+  ```
+
+**Mode 2: FROM_CURRENT** - Repeat from Completion Date
+- Best for: Flexible recurring tasks that depend on completion time
+- Behavior: Next occurrence is created based on when you complete the current one
+- Example: Water plants every 3 days after completion
+  ```typescript
+  {
+    title: "Water office plants",
+    repeat_after: 259200,  // 3 days in seconds
+    repeat_mode: 2
+  }
+  // If completed on Jan 10, next task due Jan 13
+  // If completed on Jan 12, next task due Jan 15
+  ```
+
+### Common Intervals
+
+Useful `repeat_after` values (in seconds):
+
+| Interval | Seconds | Example Use Case |
+|----------|---------|------------------|
+| Hourly | 3600 | Server health checks |
+| Daily | 86400 | Daily standup |
+| Weekly | 604800 | Weekly team meeting |
+| Bi-weekly | 1209600 | Sprint planning |
+| Monthly (30 days) | 2592000 | Use with mode 0 only |
+
+### Tips
+
+- **Monthly tasks**: Always use `repeat_after: 0` with `repeat_mode: 1`
+- **Completion-based**: Use mode 2 for habits, maintenance, or flexible recurring work
+- **Scheduled events**: Use mode 0 with appropriate `repeat_after` for fixed schedules
+- **Updating recurrence**: Change `repeat_mode` to modify how future occurrences are calculated
+
 ## Documentation
 
 - **[API Reference](docs/API.md)** - Complete tool documentation with schemas
