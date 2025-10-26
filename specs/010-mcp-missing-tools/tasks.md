@@ -54,19 +54,19 @@
 
 **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Create test file mcp-server/tests/tools/projects.test.ts (if not exists) with test setup
-- [ ] T009 [P] [US1] Write unit test for getProject success case in mcp-server/tests/tools/projects.test.ts
-- [ ] T010 [P] [US1] Write unit test for getProject 404 NOT_FOUND error in mcp-server/tests/tools/projects.test.ts
-- [ ] T011 [P] [US1] Write unit test for getProject 403 FORBIDDEN error in mcp-server/tests/tools/projects.test.ts
-- [ ] T012 [P] [US1] Write unit test for getProject validation error (invalid ID) in mcp-server/tests/tools/projects.test.ts
+- [X] T008 [P] [US1] Create test file mcp-server/tests/tools/projects.test.ts (if not exists) with test setup
+- [X] T009 [P] [US1] Write unit test for getProject success case in mcp-server/tests/tools/projects.test.ts
+- [X] T010 [P] [US1] Write unit test for getProject 404 NOT_FOUND error in mcp-server/tests/tools/projects.test.ts
+- [X] T011 [P] [US1] Write unit test for getProject 403 FORBIDDEN error in mcp-server/tests/tools/projects.test.ts
+- [X] T012 [P] [US1] Write unit test for getProject validation error (invalid ID) in mcp-server/tests/tools/projects.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Define GetProjectSchema with Zod in mcp-server/src/tools/projects.ts (id: positive int with description)
-- [ ] T014 [US1] Implement getProject method in ProjectTools class in mcp-server/src/tools/projects.ts following research.md error handling pattern
-- [ ] T015 [US1] Register get_project tool in ToolRegistry in mcp-server/src/tools/registry.ts after existing project tools
-- [ ] T016 [US1] Run tests and verify all 4+ test cases pass: npm run test tests/tools/projects.test.ts
-- [ ] T017 [US1] Manual integration test: Use test-sse-client.js or MCP client to call get_project with real project ID
+- [X] T013 [US1] Define GetProjectSchema with Zod in mcp-server/src/tools/projects.ts (id: positive int with description)
+- [X] T014 [US1] Implement getProject method in ProjectTools class in mcp-server/src/tools/projects.ts following research.md error handling pattern
+- [X] T015 [US1] Register get_project tool in ToolRegistry in mcp-server/src/tools/registry.ts after existing project tools
+- [X] T016 [US1] Run tests and verify all 4+ test cases pass: npm run test tests/tools/projects.test.ts
+- [X] T017 [US1] Manual integration test: Use test-sse-client.js or MCP client to call get_project with real project ID
 
 **Checkpoint**: At this point, User Story 1 (get_project) should be fully functional and testable independently
 
@@ -93,6 +93,7 @@
 - [ ] T025 [US2] Register get_all_projects tool in ToolRegistry in mcp-server/src/tools/registry.ts after get_project
 - [ ] T026 [US2] Run tests and verify all 5+ test cases pass: npm run test tests/tools/projects.test.ts
 - [ ] T027 [US2] Manual integration test: Call get_all_projects and verify hasMore pagination heuristic
+- [ ] T027a [US2] Add description quality test for get_all_projects in mcp-server/tests/unit/tools/descriptions.test.ts (verify FR-001: comprehensive descriptions, FR-002: differentiation from search_projects, FR-003: parameter descriptions with examples)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 (project tools) should both work independently
 
@@ -119,6 +120,7 @@
 - [ ] T035 [US3] Register get_task tool in ToolRegistry in mcp-server/src/tools/registry.ts after existing task tools
 - [ ] T036 [US3] Run tests and verify all 4+ test cases pass: npm run test tests/tools/tasks.test.ts
 - [ ] T037 [US3] Manual integration test: Call get_task with real task ID and verify relations/labels are included
+- [ ] T037a [US3] Add description quality test for get_task in mcp-server/tests/unit/tools/descriptions.test.ts (verify FR-001: comprehensive descriptions with purpose/use case/outcome, FR-002: differentiation from search_tasks, FR-003: parameter descriptions, mentions relations/labels/assignees returned)
 
 **Checkpoint**: All project and task lookup tools should now be independently functional
 
@@ -146,6 +148,7 @@
 - [ ] T046 [US4] Register get_user_info tool in ToolRegistry in mcp-server/src/tools/registry.ts at end of user tools section
 - [ ] T047 [US4] Run tests and verify all 4+ test cases pass: npm run test tests/tools/user.test.ts
 - [ ] T048 [US4] Manual integration test: Call get_user_info and verify no sensitive fields in response
+- [ ] T048a [US4] Add description quality test for get_user_info in mcp-server/tests/unit/tools/descriptions.test.ts (verify FR-001: comprehensive descriptions with purpose/use case/outcome, FR-011: explicitly mentions sensitive field filtering, FR-003: mentions returned safe fields like id/username/email/name, explains AI agent context awareness value)
 
 **Checkpoint**: All four user stories should now be independently functional
 
@@ -169,10 +172,11 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T055 [P] Review and enhance tool descriptions in registry.ts for clarity per contracts/
+- [ ] T055a Run description quality tests and verify all new tools pass: npm run test tests/unit/tools/descriptions.test.ts
 - [ ] T056 [P] Add usage examples to quickstart.md from manual testing
 - [ ] T057 [P] Update mcp-server/README.md with new tools section
 - [ ] T058 Code review: Check all tools follow consistent error handling pattern from research.md
-- [ ] T059 Code review: Verify all Zod schemas have comprehensive descriptions
+- [ ] T059 Code review: Verify all Zod schemas have comprehensive descriptions per FR-003 (>10 chars, examples, constraints)
 - [ ] T060 Code review: Confirm Winston logging on all tool invocations
 - [ ] T061 Run linting: npm run lint:fix
 - [ ] T062 Run formatting: npm run format

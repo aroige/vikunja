@@ -11,4 +11,5 @@ export * from './relations.js';
 export * from './comments.js';
 export * from './labels.js';
 export * from './attachments.js';
+export * from './user.js';
 export * from './registry.js';

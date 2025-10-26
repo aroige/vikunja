@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema } from './projects.js';
+import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema } from './projects.js';
 import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, DeleteTaskSchema, MoveTaskSchema } from './tasks.js';
 import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, RemoveLabelSchema, CreateLabelSchema } from './assignments.js';
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
@@ -92,6 +92,20 @@ export class ToolRegistry {
       'Archive or unarchive a project to hide/show it without deleting. Use this when a project is complete or temporarily inactive. Archived projects don\'t show in default lists but can be restored. Returns the updated project.',
       ArchiveProjectSchema,
       async (args, ctx) => this.projectTools.archiveProject(args as z.infer<typeof ArchiveProjectSchema>, ctx)
+    );
+
+    this.registerTool(
+      'get_project',
+      'Retrieve a single project by its ID. Use this when you need complete project details (title, description, color, parent, archived status) for a known project ID. This is more efficient than searching when you already have the ID. Returns the full project entity with metadata.',
+      GetProjectSchema,
+      async (args, ctx) => this.projectTools.getProject(args as z.infer<typeof GetProjectSchema>, ctx)
+    );
+
+    this.registerTool(
+      'get_all_projects',
+      'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter) and filtering by archived status (filter_archived). Returns an array of projects with pagination metadata.',
+      GetAllProjectsSchema,
+      async (args, ctx) => this.projectTools.getAllProjects(args as z.infer<typeof GetAllProjectsSchema>, ctx)
     );
 
     // Task Tools
