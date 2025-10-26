@@ -9,31 +9,47 @@ import { logger } from '../utils/logger.js';
  * Input schemas for search tools
  */
 export const SearchTasksSchema = z.object({
-  query: z.string().min(1),
-  page: z.number().int().positive().optional().default(1),
-  filter_done: z.boolean().optional(),
-  filter_priority: z.number().int().min(0).max(5).optional(),
-  filter_labels: z.array(z.number().int().positive()).optional(),
-  filter_assignees: z.array(z.number().int().positive()).optional(),
+  query: z.string().min(1)
+    .describe('Search query string (required). Searches task titles and descriptions. Use this for flexible text-based search.'),
+  page: z.number().int().positive().optional().default(1)
+    .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 tasks.'),
+  filter_done: z.boolean().optional()
+    .describe('Filter by completion status (optional). Set true for completed tasks only, false for incomplete only, omit for all.'),
+  filter_priority: z.number().int().min(0).max(5).optional()
+    .describe('Filter by priority level (optional, 0-5). Only tasks with this exact priority are returned.'),
+  filter_labels: z.array(z.number().int().positive()).optional()
+    .describe('Filter by label IDs (optional). Uses AND logic: tasks must have ALL specified labels. Example: [1, 2] returns tasks with both label 1 AND label 2.'),
+  filter_assignees: z.array(z.number().int().positive()).optional()
+    .describe('Filter by assignee user IDs (optional). Returns tasks assigned to any of the specified users.'),
 });
 
 export const SearchProjectsSchema = z.object({
-  query: z.string().min(1),
-  page: z.number().int().positive().optional().default(1),
-  filter_archived: z.boolean().optional(),
+  query: z.string().min(1)
+    .describe('Search query string (required). Searches project titles and descriptions.'),
+  page: z.number().int().positive().optional().default(1)
+    .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 projects.'),
+  filter_archived: z.boolean().optional()
+    .describe('Filter by archive status (optional). Set true for archived only, false for active only, omit for all.'),
 });
 
 export const GetMyTasksSchema = z.object({
-  page: z.number().int().positive().optional().default(1),
-  filter_done: z.boolean().optional(),
-  filter_priority: z.number().int().min(0).max(5).optional(),
+  page: z.number().int().positive().optional().default(1)
+    .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 tasks.'),
+  filter_done: z.boolean().optional()
+    .describe('Filter by completion status (optional). Set true for completed tasks only, false for incomplete only, omit for all.'),
+  filter_priority: z.number().int().min(0).max(5).optional()
+    .describe('Filter by priority level (optional, 0-5). Only tasks with this exact priority are returned.'),
 });
 
 export const GetProjectTasksSchema = z.object({
-  project_id: z.number().int().positive(),
-  page: z.number().int().positive().optional().default(1),
-  filter_done: z.boolean().optional(),
-  filter_priority: z.number().int().min(0).max(5).optional(),
+  project_id: z.number().int().positive()
+    .describe('ID of the project to get tasks from (required).'),
+  page: z.number().int().positive().optional().default(1)
+    .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 tasks.'),
+  filter_done: z.boolean().optional()
+    .describe('Filter by completion status (optional). Set true for completed tasks only, false for incomplete only, omit for all.'),
+  filter_priority: z.number().int().min(0).max(5).optional()
+    .describe('Filter by priority level (optional, 0-5). Only tasks with this exact priority are returned.'),
 });
 
 export type SearchTasksInput = z.infer<typeof SearchTasksSchema>;

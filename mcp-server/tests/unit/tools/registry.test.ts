@@ -101,7 +101,8 @@ describe('ToolRegistry', () => {
 
       expect(createProject).toBeDefined();
       expect(createProject?.name).toBe('create_project');
-      expect(createProject?.description).toBe('Create a new project in Vikunja');
+      expect(createProject?.description).toContain('Create a new project');
+      expect(createProject?.description).toContain('Use this when');
       expect(createProject?.inputSchema).toBeDefined();
       expect(createProject?.inputSchema.type).toBe('object');
       expect(createProject?.inputSchema.properties).toBeDefined();

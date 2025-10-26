@@ -125,6 +125,21 @@ npm install
 
 ## Available Tools
 
+The MCP server provides **21 comprehensive tools** for AI agents to interact with Vikunja. Each tool includes detailed descriptions, parameter documentation, and usage examples to enable reliable agent decision-making without trial-and-error.
+
+### Enhanced Tool Discovery
+
+All tools feature:
+- **Purpose Statement**: What the tool does (one sentence)
+- **Use Case Guidance**: When to use this tool vs. alternatives
+- **Expected Outcomes**: What the agent should expect back
+- **Parameter Descriptions**: Includes examples, valid values, constraints, and units
+- **Vikunja Terminology**: Domain-specific terms explained inline
+
+**Example**: The `create_task` tool explains that `repeat_after` uses seconds (not minutes), provides examples (86400=daily, 604800=weekly), and clarifies that Vikunja's "Project" is equivalent to "workspace" or "list" in other tools.
+
+For complete tool documentation with schemas, see [docs/TOOLS.md](docs/TOOLS.md) (auto-generated).
+
 ### Projects (4 tools)
 - `create_project` - Create a new project
 - `update_project` - Update project details

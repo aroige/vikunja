@@ -171,4 +171,34 @@ export class VikunjaClient {
       this.axios.delete<T>(path, this.getConfig(token))
     );
   }
+
+  /**
+   * Check Vikunja API version compatibility
+   * Logs warning if version mismatch detected, continues with best-effort compatibility
+   * 
+   * @param token - Authentication token (optional for public /info endpoint)
+   */
+  async checkVersion(token?: string): Promise<void> {
+    try {
+      interface VikunjaInfo {
+        version: string;
+        [key: string]: unknown;
+      }
+      
+      const info = await this.get<VikunjaInfo>('/api/v1/info', undefined, token);
+      const expectedVersion = '0.24'; // Update as needed
+      
+      if (!info.version.startsWith(expectedVersion)) {
+        logger.warn(
+          `Vikunja API version mismatch: expected ${expectedVersion}.x, got ${info.version}. ` +
+          `Some features may not work correctly.`
+        );
+      } else {
+        logger.info(`Connected to Vikunja API ${info.version}`);
+      }
+    } catch (error) {
+      logger.error('Failed to check Vikunja version', { error });
+      // Continue anyway - version check is best-effort
+    }
+  }
 }

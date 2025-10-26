@@ -9,37 +9,64 @@ import { logger } from '../utils/logger.js';
  * Input schemas for task tools
  */
 export const CreateTaskSchema = z.object({
-  project_id: z.number().int().positive(),
-  title: z.string().min(1).max(500),
-  description: z.string().optional(),
-  due_date: z.string().optional(),
-  priority: z.number().int().min(0).max(5).optional(),
-  labels: z.array(z.number().int().positive()).optional(),
-  assignees: z.array(z.number().int().positive()).optional(),
+  project_id: z.number().int().positive()
+    .describe('ID of the project (workspace/list) where the task will be created. Get project IDs using get_projects or search_projects.'),
+  title: z.string().min(1).max(500)
+    .describe('Task title/name (required, 1-500 characters). This is the main task description shown in lists.'),
+  description: z.string().optional()
+    .describe('Detailed task description (optional, supports Markdown formatting). Use this for longer explanations, requirements, or context.'),
+  due_date: z.string().optional()
+    .describe('Task due date in ISO 8601 format (optional). Example: "2024-12-31T23:59:59Z" or "2024-12-31" for date only.'),
+  priority: z.number().int().min(0).max(5).optional()
+    .describe('Task priority level (optional, 0-5 where 0=none, 1=low, 2=medium, 3=high, 4=urgent, 5=critical). Default: 0.'),
+  labels: z.array(z.number().int().positive()).optional()
+    .describe('Array of label IDs to attach to the task (optional). Create labels first with create_label, then attach them here.'),
+  assignees: z.array(z.number().int().positive()).optional()
+    .describe('Array of user IDs to assign to the task (optional). Get user IDs from project members or team listings.'),
+  repeat_after: z.number().int().positive().optional()
+    .describe('Recurring task interval in SECONDS (not minutes/hours). Examples: 86400=daily, 604800=weekly, 1209600=bi-weekly, 2592000=monthly (30 days). Set to 0 with repeat_mode=1 for monthly-on-date recurrence.'),
+  repeat_mode: z.number().int().min(0).max(2).optional()
+    .describe('Recurring task mode (optional, 0-2). 0=default (repeat from due date), 1=monthly (repeat on same calendar date each month, use repeat_after=0), 2=from-current (repeat from completion date). Example: Monthly bill (repeat_after=0, mode=1), Weekly meeting (repeat_after=604800, mode=0).'),
 });
 
 export const UpdateTaskSchema = z.object({
-  id: z.number().int().positive(),
-  title: z.string().min(1).max(500).optional(),
-  description: z.string().optional(),
-  done: z.boolean().optional(),
-  due_date: z.string().nullable().optional(),
-  priority: z.number().int().min(0).max(5).optional(),
-  labels: z.array(z.number().int().positive()).optional(),
-  assignees: z.array(z.number().int().positive()).optional(),
+  id: z.number().int().positive()
+    .describe('ID of the task to update. Get task IDs from search_tasks, get_my_tasks, or get_project_tasks.'),
+  title: z.string().min(1).max(500).optional()
+    .describe('New task title (optional, 1-500 characters). Only provide if changing the title.'),
+  description: z.string().optional()
+    .describe('New task description (optional, supports Markdown). Only provide if changing the description.'),
+  done: z.boolean().optional()
+    .describe('Mark task as done/undone (optional). Set true to complete, false to reopen. For completing only, consider using complete_task tool instead.'),
+  due_date: z.string().nullable().optional()
+    .describe('New due date in ISO 8601 format (optional). Set to null to clear existing due date. Example: "2024-12-31T23:59:59Z".'),
+  priority: z.number().int().min(0).max(5).optional()
+    .describe('New priority level (optional, 0-5 where 0=none, 1=low, 2=medium, 3=high, 4=urgent, 5=critical).'),
+  labels: z.array(z.number().int().positive()).optional()
+    .describe('New array of label IDs (optional). REPLACES existing labels. To add/remove single labels, use add_label or remove_label tools.'),
+  assignees: z.array(z.number().int().positive()).optional()
+    .describe('New array of user IDs (optional). REPLACES existing assignees. To add/remove single assignees, use assign_task or unassign_task tools.'),
+  repeat_after: z.number().int().positive().optional()
+    .describe('Recurring interval in SECONDS (optional). Examples: 86400=daily, 604800=weekly. Set to 0 with repeat_mode=1 for monthly recurrence. See create_task for more examples.'),
+  repeat_mode: z.number().int().min(0).max(2).optional()
+    .describe('Recurring mode (optional, 0-2). 0=repeat from due date, 1=monthly on same date (use repeat_after=0), 2=repeat from completion. See create_task for detailed examples.'),
 });
 
 export const CompleteTaskSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.number().int().positive()
+    .describe('ID of the task to mark as complete. Use this instead of update_task when you only want to complete a task without other changes.'),
 });
 
 export const DeleteTaskSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.number().int().positive()
+    .describe('ID of the task to permanently delete. This action cannot be undone. Requires write permission on the parent project.'),
 });
 
 export const MoveTaskSchema = z.object({
-  id: z.number().int().positive(),
-  project_id: z.number().int().positive(),
+  id: z.number().int().positive()
+    .describe('ID of the task to move to a different project.'),
+  project_id: z.number().int().positive()
+    .describe('ID of the destination project. The task will be moved from its current project to this one. Requires write permission on both projects.'),
 });
 
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;

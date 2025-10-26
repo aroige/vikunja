@@ -14,28 +14,39 @@ const MAX_BATCH_SIZE = 100;
  * Input schemas for bulk operation tools
  */
 export const BulkUpdateTasksSchema = z.object({
-  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE),
+  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE)
+    .describe('Array of task IDs to update (required, 1-100 tasks). All tasks will receive the same updates specified in update_data.'),
   update_data: z.object({
-    title: z.string().min(1).max(500).optional(),
-    description: z.string().optional(),
-    done: z.boolean().optional(),
-    due_date: z.string().nullable().optional(),
-    priority: z.number().int().min(0).max(5).optional(),
-  }),
+    title: z.string().min(1).max(500).optional()
+      .describe('New title to apply to all tasks (optional).'),
+    description: z.string().optional()
+      .describe('New description to apply to all tasks (optional).'),
+    done: z.boolean().optional()
+      .describe('Completion status to apply to all tasks (optional). Set true to complete, false to reopen.'),
+    due_date: z.string().nullable().optional()
+      .describe('New due date to apply to all tasks (optional, ISO 8601 format). Set null to clear due dates.'),
+    priority: z.number().int().min(0).max(5).optional()
+      .describe('New priority to apply to all tasks (optional, 0-5).'),
+  }).describe('Update data to apply to all specified tasks. Only include fields you want to change.'),
 });
 
 export const BulkCompleteTasksSchema = z.object({
-  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE),
+  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE)
+    .describe('Array of task IDs to mark as complete (required, 1-100 tasks). More efficient than individual complete_task calls.'),
 });
 
 export const BulkAssignTasksSchema = z.object({
-  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE),
-  user_id: z.number().int().positive(),
+  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE)
+    .describe('Array of task IDs to assign to a user (required, 1-100 tasks).'),
+  user_id: z.number().int().positive()
+    .describe('ID of the user to assign to all specified tasks (required).'),
 });
 
 export const BulkAddLabelsSchema = z.object({
-  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE),
-  label_id: z.number().int().positive(),
+  task_ids: z.array(z.number().int().positive()).min(1).max(MAX_BATCH_SIZE)
+    .describe('Array of task IDs to add a label to (required, 1-100 tasks). Example: Tag all Q4 tasks with "urgent" label.'),
+  label_id: z.number().int().positive()
+    .describe('ID of the label to add to all specified tasks (required). The label must already exist.'),
 });
 
 export type BulkUpdateTasksInput = z.infer<typeof BulkUpdateTasksSchema>;

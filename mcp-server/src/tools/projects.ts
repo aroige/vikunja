@@ -9,28 +9,41 @@ import { logger } from '../utils/logger.js';
  * Input schemas for project tools
  */
 export const CreateProjectSchema = z.object({
-  title: z.string().min(1).max(250),
-  description: z.string().optional(),
-  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  parent_project_id: z.number().int().positive().optional(),
+  title: z.string().min(1).max(250)
+    .describe('Project name (required, 1-250 characters). In Vikunja, "Project" is equivalent to what other tools call "workspace" or "list".'),
+  description: z.string().optional()
+    .describe('Project description (optional, supports Markdown). Use this to explain the project\'s purpose or goals.'),
+  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
+    .describe('Project color as hex code including # (optional, e.g., "#FF5733"). Used for visual identification in the UI.'),
+  parent_project_id: z.number().int().positive().optional()
+    .describe('ID of parent project for nested organization (optional). Creates a sub-project hierarchy.'),
 });
 
 export const UpdateProjectSchema = z.object({
-  id: z.number().int().positive(),
-  title: z.string().min(1).max(250).optional(),
-  description: z.string().optional(),
-  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  is_archived: z.boolean().optional(),
-  parent_project_id: z.number().int().positive().optional(),
+  id: z.number().int().positive()
+    .describe('ID of the project to update.'),
+  title: z.string().min(1).max(250).optional()
+    .describe('New project name (optional, 1-250 characters).'),
+  description: z.string().optional()
+    .describe('New project description (optional, supports Markdown).'),
+  hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
+    .describe('New project color as hex code including # (optional, e.g., "#FF5733").'),
+  is_archived: z.boolean().optional()
+    .describe('Archive status (optional). Set true to archive, false to unarchive. Consider using archive_project tool instead.'),
+  parent_project_id: z.number().int().positive().optional()
+    .describe('New parent project ID for reorganization (optional). Set to change project hierarchy.'),
 });
 
 export const DeleteProjectSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.number().int().positive()
+    .describe('ID of the project to permanently delete. All tasks in the project will also be deleted.'),
 });
 
 export const ArchiveProjectSchema = z.object({
-  id: z.number().int().positive(),
-  archived: z.boolean(),
+  id: z.number().int().positive()
+    .describe('ID of the project to archive or unarchive.'),
+  archived: z.boolean()
+    .describe('Archive status (required). Set true to archive (hide), false to unarchive (restore).'),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;

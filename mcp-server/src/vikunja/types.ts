@@ -75,3 +75,64 @@ export interface VikunjaBucket {
   created: string;
   updated: string;
 }
+
+/**
+ * Pagination Parameters
+ * Optional pagination with sensible defaults
+ */
+export interface PaginationParams {
+  page?: number;      // Page number (default: 1, minimum: 1)
+  page_size?: number; // Items per page (default: 50, minimum: 1, maximum: 100)
+}
+
+/**
+ * Paginated Response Wrapper
+ * Generic type for paginated collections
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next_page: boolean;
+}
+
+/**
+ * Relation Kind Enum
+ * All possible relationship types between tasks
+ */
+export type RelationKind =
+  | 'subtask'      // Task A is a subtask of task B (hierarchical)
+  | 'parenttask'   // Task A is parent of task B (inverse of subtask)
+  | 'related'      // Tasks are loosely associated (symmetric)
+  | 'duplicateof'  // Task A duplicates task B
+  | 'duplicates'   // Task A is duplicated by task B (inverse of duplicateof)
+  | 'blocking'     // Task A blocks task B
+  | 'blocked'      // Task A is blocked by task B (inverse of blocking)
+  | 'precedes'     // Task A must happen before task B
+  | 'follows'      // Task A follows task B (inverse of precedes)
+  | 'copiedfrom'   // Task A was copied from task B
+  | 'copiedto';    // Task A was copied to task B (inverse of copiedfrom)
+
+/**
+ * Bidirectional relation mapping
+ * When creating A→B with kind X, system automatically creates B→A with inverse kind
+ */
+export const RELATION_INVERSES: Record<RelationKind, RelationKind> = {
+  subtask: 'parenttask',
+  parenttask: 'subtask',
+  related: 'related',        // Symmetric relation
+  duplicateof: 'duplicates',
+  duplicates: 'duplicateof',
+  blocking: 'blocked',
+  blocked: 'blocking',
+  precedes: 'follows',
+  follows: 'precedes',
+  copiedfrom: 'copiedto',
+  copiedto: 'copiedfrom',
+};
+
+/**
+ * Hierarchical relation types that must prevent cycles
+ */
+export const HIERARCHICAL_RELATIONS: RelationKind[] = ['subtask', 'parenttask'];
