@@ -54,18 +54,6 @@
 - [x] T016 Run backend linter: mage lint:fix (ensure no style violations)
 
 **Checkpoint**: Backend calculation logic complete and tested - frontend and MCP can now proceed in parallel
-- [ ] T007 Write test for weekday Thursday→Friday in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_ThursdayToFriday)
-- [ ] T008 Write test for weekend Sunday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_SundayToSaturday)
-- [ ] T009 Write test for weekend Friday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_FridayToSaturday)
-- [ ] T010 Write test for weekday task with no due date in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_NoDueDate)
-- [ ] T011 Implement setTaskDatesWeekdayRepeat function in pkg/models/tasks.go (skip Saturday→Monday+2, Sunday→Monday+1)
-- [ ] T012 Implement setTaskDatesWeekendRepeat function in pkg/models/tasks.go (skip Monday-Friday→Saturday)
-- [ ] T013 Add case TaskRepeatModeWeekdays to UpdateDone switch statement in pkg/models/tasks.go
-- [ ] T014 Add case TaskRepeatModeWeekends to UpdateDone switch statement in pkg/models/tasks.go
-- [ ] T015 Run backend tests: mage test:feature (verify all 7 new tests pass)
-- [ ] T016 Run backend linter: mage lint:fix (ensure no style violations)
-
-**Checkpoint**: Backend calculation logic complete and tested - frontend and MCP can now proceed in parallel
 
 ---
 
@@ -77,26 +65,26 @@
 
 ### Frontend Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Add REPEAT_MODE_WEEKDAYS: 3 to TASK_REPEAT_MODES constant in frontend/src/types/IRepeatMode.ts
-- [ ] T018 [P] [US1] Add translation key "weekdays": "Weekdays" to frontend/src/i18n/lang/en.json under task.repeat
-- [ ] T019 [P] [US1] Add translation key "weekdaysDescription": "Repeats Monday through Friday only" to frontend/src/i18n/lang/en.json
-- [ ] T020 [US1] Add "Weekdays" preset button to frontend/src/components/tasks/partials/RepeatAfter.vue template (after "Every 30d" button)
-- [ ] T021 [US1] Update setRepeatAfter method in frontend/src/components/tasks/partials/RepeatAfter.vue to accept repeatMode parameter
-- [ ] T022 [US1] Wire "Weekdays" button click to call setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS)
-- [ ] T023 [US1] Add aria-label="Repeat on weekdays only" to weekdays button for accessibility
-- [ ] T024 [US1] Write unit test for weekdays button click in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
-- [ ] T025 [US1] Write unit test verifying repeatMode=3 emitted on weekdays preset in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
-- [ ] T026 [US1] Run frontend tests: cd frontend && pnpm test:unit (verify RepeatAfter tests pass)
-- [ ] T027 [US1] Run frontend linter: cd frontend && pnpm lint:fix (ensure no violations)
+- [x] T017 [P] [US1] Add REPEAT_MODE_WEEKDAYS: 3 to TASK_REPEAT_MODES constant in frontend/src/types/IRepeatMode.ts
+- [x] T018 [P] [US1] Add translation key "weekdays": "Weekdays" to frontend/src/i18n/lang/en.json under task.repeat
+- [x] T019 [P] [US1] Add translation key "weekdaysDescription": "Repeats Monday through Friday only" to frontend/src/i18n/lang/en.json
+- [x] T020 [US1] Add "Weekdays" preset button to frontend/src/components/tasks/partials/RepeatAfter.vue template (after "Every 30d" button)
+- [x] T021 [US1] Update setRepeatAfter method in frontend/src/components/tasks/partials/RepeatAfter.vue to accept repeatMode parameter
+- [x] T022 [US1] Wire "Weekdays" button click to call setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS)
+- [x] T023 [US1] Add aria-label="Repeat on weekdays only" to weekdays button for accessibility
+- [x] T024 [US1] Write unit test for weekdays button click in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
+- [x] T025 [US1] Write unit test verifying repeatMode=3 emitted on weekdays preset in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
+- [x] T026 [US1] Run frontend tests: cd frontend && pnpm test:unit (verify RepeatAfter tests pass)
+- [x] T027 [US1] Run frontend linter: cd frontend && pnpm lint:fix (ensure no violations)
 
 ### Integration Testing for User Story 1
 
 - [ ] T028 [US1] Manual test: Create task with weekdays preset, verify repeat_mode=3 in API payload
 - [ ] T029 [US1] Manual test: Complete Friday weekday task, verify next occurrence is Monday
 - [ ] T030 [US1] Manual test: View calendar, verify no Saturday/Sunday instances for weekday task
-- [ ] T031 [US1] Write web test for weekday task creation in pkg/webtests/task_weekday_test.go
-- [ ] T032 [US1] Write web test for Friday→Monday completion in pkg/webtests/task_weekday_test.go
-- [ ] T033 [US1] Run web tests: mage test:web (verify new weekday tests pass)
+- [x] T031 [US1] Write web test for weekday task creation in pkg/webtests/task_weekday_test.go
+- [x] T032 [US1] Write web test for Friday→Monday completion in pkg/webtests/task_weekday_test.go
+- [x] T033 [US1] Run web tests: mage test:web (verify new weekday tests pass)
 
 **Checkpoint**: User Story 1 complete - users can create and manage weekday-only recurring tasks
 

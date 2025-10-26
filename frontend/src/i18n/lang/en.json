@@ -988,6 +988,8 @@
       "everyDay": "Every Day",
       "everyWeek": "Every Week",
       "every30d": "Every 30 Days",
+      "weekdays": "Weekdays",
+      "weekdaysDescription": "Repeats Monday through Friday only",
       "mode": "Repeat mode",
       "monthly": "Monthly",
       "fromCurrentDate": "From completion date",

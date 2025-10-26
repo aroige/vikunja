@@ -22,6 +22,14 @@
 			>
 				{{ $t('task.repeat.every30d') }}
 			</XButton>
+			<XButton
+				variant="secondary"
+				class="is-small"
+				:aria-label="$t('task.repeat.weekdaysDescription')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS)"
+			>
+				{{ $t('task.repeat.weekdays') }}
+			</XButton>
 		</div>
 		<div class="is-flex is-align-items-center mbe-2">
 			<label
@@ -100,6 +108,7 @@ import {useI18n} from 'vue-i18n'
 import {error} from '@/message'
 
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
+import type {IRepeatMode} from '@/types/IRepeatMode'
 import type {IRepeatAfter} from '@/types/IRepeatAfter'
 import type {ITask} from '@/modelTypes/ITask'
 import TaskModel from '@/models/task'
@@ -154,8 +163,11 @@ function updateData() {
 	emit('update:modelValue', task.value)
 }
 
-function setRepeatAfter(amount: number, type: IRepeatAfter['type']) {
+function setRepeatAfter(amount: number, type: IRepeatAfter['type'], repeatMode?: IRepeatMode) {
 	Object.assign(repeatAfter, { amount, type})
+	if (repeatMode !== undefined) {
+		task.value.repeatMode = repeatMode
+	}
 	updateData()
 }
 </script>
