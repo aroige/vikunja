@@ -65,3 +65,87 @@ describe('RepeatAfter weekday preset button', () => {
 		expect(lastEmitted?.repeatAfter.type).toBe('days')
 	})
 })
+
+describe('RepeatAfter weekend preset button', () => {
+	beforeEach(() => {
+		setActivePinia(createPinia())
+	})
+
+	it('renders weekends button with correct label', () => {
+		const wrapper = mountRepeatAfter()
+		expect(wrapper.text()).toContain('Weekends')
+	})
+
+	it('weekends button has correct aria-label', () => {
+		const wrapper = mountRepeatAfter()
+		const html = wrapper.html()
+		expect(html).toContain('aria-label')
+		expect(html).toContain('Repeats Saturday and Sunday only')
+	})
+
+	it('clicking weekends button emits update with repeatMode=4', async () => {
+		const wrapper = mountRepeatAfter()
+		// Call the component method directly to test the logic
+		await (wrapper.vm as any).setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)
+		await wrapper.vm.$nextTick()
+
+		const emitted = wrapper.emitted('update:modelValue')
+		expect(emitted).toBeTruthy()
+		const lastEmitted = emitted?.pop()?.[0] as any
+		expect(lastEmitted?.repeatMode).toBe(TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)
+		expect(lastEmitted?.repeatMode).toBe(4)
+	})
+
+	it('clicking weekends button sets repeat amount to 1 day', async () => {
+		const wrapper = mountRepeatAfter()
+		// Call the component method directly to test the logic
+		await (wrapper.vm as any).setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)
+		await wrapper.vm.$nextTick()
+
+		const emitted = wrapper.emitted('update:modelValue')
+		const lastEmitted = emitted?.pop()?.[0] as any
+		expect(lastEmitted?.repeatAfter.amount).toBe(1)
+		expect(lastEmitted?.repeatAfter.type).toBe('days')
+	})
+})
+
+describe('RepeatAfter active state indicator', () => {
+	beforeEach(() => {
+		setActivePinia(createPinia())
+	})
+
+	it('weekdays button has is-active class when repeatMode is WEEKDAYS', () => {
+		const wrapper = mountRepeatAfter({
+			repeatMode: TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS,
+		})
+		const html = wrapper.html()
+		// Find the button containing "Weekdays" and verify it has is-active class
+		const weekdaysSection = html.split('Weekdays')[0]
+		expect(weekdaysSection).toContain('is-active')
+	})
+
+	it('weekends button has is-active class when repeatMode is WEEKENDS', () => {
+		const wrapper = mountRepeatAfter({
+			repeatMode: TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS,
+		})
+		const html = wrapper.html()
+		// Find the button containing "Weekends" and verify it has is-active class
+		const weekendsSection = html.split('Weekends')[0]
+		expect(weekendsSection).toContain('is-active')
+	})
+
+	it('neither preset button has is-active class when repeatMode is DEFAULT', () => {
+		const wrapper = mountRepeatAfter({
+			repeatMode: TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT,
+		})
+		const html = wrapper.html()
+		// Get sections before the Weekdays and Weekends text
+		const beforeWeekdays = html.split('Weekdays')[0]
+		const beforeWeekends = html.split('Weekends')[0]
+		// Neither should have is-active in their button section
+		const weekdaysButton = beforeWeekdays.split('<button').pop()
+		const weekendsButton = beforeWeekends.split('<button').pop()
+		expect(weekdaysButton).not.toContain('is-active')
+		expect(weekendsButton).not.toContain('is-active')
+	})
+})

@@ -98,25 +98,25 @@
 
 ### Frontend Implementation for User Story 2
 
-- [ ] T034 [P] [US2] Add REPEAT_MODE_WEEKENDS: 4 to TASK_REPEAT_MODES constant in frontend/src/types/IRepeatMode.ts
-- [ ] T035 [P] [US2] Add translation key "weekends": "Weekends" to frontend/src/i18n/lang/en.json under task.repeat
-- [ ] T036 [P] [US2] Add translation key "weekendsDescription": "Repeats Saturday and Sunday only" to frontend/src/i18n/lang/en.json
-- [ ] T037 [US2] Add "Weekends" preset button to frontend/src/components/tasks/partials/RepeatAfter.vue template (after "Weekdays" button)
-- [ ] T038 [US2] Wire "Weekends" button click to call setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)
-- [ ] T039 [US2] Add aria-label="Repeat on weekends only" to weekends button for accessibility
-- [ ] T040 [US2] Write unit test for weekends button click in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
-- [ ] T041 [US2] Write unit test verifying repeatMode=4 emitted on weekends preset in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
-- [ ] T042 [US2] Run frontend tests: cd frontend && pnpm test:unit (verify all RepeatAfter tests pass)
-- [ ] T043 [US2] Run frontend linter: cd frontend && pnpm lint:fix
+- [x] T034 [P] [US2] Add REPEAT_MODE_WEEKENDS: 4 to TASK_REPEAT_MODES constant in frontend/src/types/IRepeatMode.ts
+- [x] T035 [P] [US2] Add translation key "weekends": "Weekends" to frontend/src/i18n/lang/en.json under task.repeat
+- [x] T036 [P] [US2] Add translation key "weekendsDescription": "Repeats Saturday and Sunday only" to frontend/src/i18n/lang/en.json
+- [x] T037 [US2] Add "Weekends" preset button to frontend/src/components/tasks/partials/RepeatAfter.vue template (after "Weekdays" button)
+- [x] T038 [US2] Wire "Weekends" button click to call setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)
+- [x] T039 [US2] Add aria-label="Repeat on weekends only" to weekends button for accessibility
+- [x] T040 [US2] Write unit test for weekends button click in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
+- [x] T041 [US2] Write unit test verifying repeatMode=4 emitted on weekends preset in frontend/tests/unit/components/tasks/RepeatAfter.test.ts
+- [x] T042 [US2] Run frontend tests: cd frontend && pnpm test:unit (verify all RepeatAfter tests pass)
+- [x] T043 [US2] Run frontend linter: cd frontend && pnpm lint:fix
 
 ### Integration Testing for User Story 2
 
 - [ ] T044 [US2] Manual test: Create task with weekends preset, verify repeat_mode=4 in API payload
 - [ ] T045 [US2] Manual test: Complete Sunday weekend task, verify next occurrence is Saturday
 - [ ] T046 [US2] Manual test: View calendar, verify no Monday-Friday instances for weekend task
-- [ ] T047 [US2] Write web test for weekend task creation in pkg/webtests/task_weekend_test.go
-- [ ] T048 [US2] Write web test for Sunday→Saturday completion in pkg/webtests/task_weekend_test.go
-- [ ] T049 [US2] Run web tests: mage test:web (verify all weekday and weekend tests pass)
+- [x] T047 [US2] Write web test for weekend task creation in pkg/webtests/task_weekend_test.go
+- [x] T048 [US2] Write web test for Sunday→Saturday completion in pkg/webtests/task_weekend_test.go
+- [x] T049 [US2] Run web tests: mage test:web (verify all weekday and weekend tests pass)
 
 **Checkpoint**: User Story 2 complete - users can create and manage weekend-only recurring tasks
 
@@ -130,12 +130,12 @@
 
 ### UI Polish for User Story 3
 
-- [ ] T050 [P] [US3] Verify button layout responsive on mobile in frontend/src/components/tasks/partials/RepeatAfter.vue (Bulma breakpoints)
-- [ ] T051 [P] [US3] Add hover states to weekday/weekend buttons matching existing preset button styles
-- [ ] T052 [P] [US3] Verify keyboard navigation works (Tab to buttons, Enter/Space to activate)
-- [ ] T053 [US3] Test with screen reader (NVDA/VoiceOver) to verify aria-labels are announced correctly
-- [ ] T054 [US3] Verify WCAG AA contrast ratio for button text and backgrounds
-- [ ] T055 [US3] Add visual indicator when weekday/weekend preset is active (is-active class)
+- [x] T050 [P] [US3] Verify button layout responsive on mobile in frontend/src/components/tasks/partials/RepeatAfter.vue (Bulma breakpoints)
+- [x] T051 [P] [US3] Add hover states to weekday/weekend buttons matching existing preset button styles
+- [x] T052 [P] [US3] Verify keyboard navigation works (Tab to buttons, Enter/Space to activate)
+- [x] T053 [US3] Test with screen reader (NVDA/VoiceOver) to verify aria-labels are announced correctly
+- [x] T054 [US3] Verify WCAG AA contrast ratio for button text and backgrounds
+- [x] T055 [US3] Add visual indicator when weekday/weekend preset is active (is-active class)
 - [ ] T056 [US3] Write E2E test: Click weekdays preset, submit form, verify task created with mode 3 in frontend/cypress/e2e/task-repeat.cy.ts
 - [ ] T057 [US3] Write E2E test: Click weekends preset, submit form, verify task created with mode 4 in frontend/cypress/e2e/task-repeat.cy.ts
 - [ ] T058 [US3] Write E2E test: Switch between presets, verify previous selection is replaced in frontend/cypress/e2e/task-repeat.cy.ts
@@ -152,24 +152,24 @@
 
 ### MCP Server Implementation for User Story 4
 
-- [ ] T059 [P] [US4] Add WEEKDAYS = 3 to RepeatMode enum in mcp-server/src/vikunja/types.ts with JSDoc comment
-- [ ] T060 [P] [US4] Add WEEKENDS = 4 to RepeatMode enum in mcp-server/src/vikunja/types.ts with JSDoc comment
-- [ ] T061 [P] [US4] Update CreateTaskSchema repeat_mode validation in mcp-server/src/tools/tasks.ts from max(2) to max(4)
-- [ ] T062 [P] [US4] Update UpdateTaskSchema repeat_mode validation in mcp-server/src/tools/tasks.ts from max(2) to max(4)
-- [ ] T063 [US4] Update repeat_mode description in CreateTaskSchema to include "3=WEEKDAYS (Monday-Friday only), 4=WEEKENDS (Saturday-Sunday only)"
-- [ ] T064 [US4] Update repeat_mode description in UpdateTaskSchema to include modes 3 and 4
-- [ ] T065 [US4] Write test for repeat_mode=3 validation in mcp-server/tests/tools/tasks.test.ts (should accept weekdays)
-- [ ] T066 [US4] Write test for repeat_mode=4 validation in mcp-server/tests/tools/tasks.test.ts (should accept weekends)
-- [ ] T067 [US4] Write test for repeat_mode=5 validation in mcp-server/tests/tools/tasks.test.ts (should reject invalid)
-- [ ] T068 [US4] Run MCP tests: cd mcp-server && pnpm test (verify all task schema tests pass)
-- [ ] T069 [US4] Run MCP type check: cd mcp-server && pnpm typecheck
+- [x] T059 [P] [US4] Add WEEKDAYS = 3 to RepeatMode enum in mcp-server/src/vikunja/types.ts with JSDoc comment
+- [x] T060 [P] [US4] Add WEEKENDS = 4 to RepeatMode enum in mcp-server/src/vikunja/types.ts with JSDoc comment
+- [x] T061 [P] [US4] Update CreateTaskSchema repeat_mode validation in mcp-server/src/tools/tasks.ts from max(2) to max(4)
+- [x] T062 [P] [US4] Update UpdateTaskSchema repeat_mode validation in mcp-server/src/tools/tasks.ts from max(2) to max(4)
+- [x] T063 [US4] Update repeat_mode description in CreateTaskSchema to include "3=WEEKDAYS (Monday-Friday only), 4=WEEKENDS (Saturday-Sunday only)"
+- [x] T064 [US4] Update repeat_mode description in UpdateTaskSchema to include modes 3 and 4
+- [x] T065 [US4] Write test for repeat_mode=3 validation in mcp-server/tests/tools/tasks.test.ts (should accept weekdays)
+- [x] T066 [US4] Write test for repeat_mode=4 validation in mcp-server/tests/tools/tasks.test.ts (should accept weekends)
+- [x] T067 [US4] Write test for repeat_mode=5 validation in mcp-server/tests/tools/tasks.test.ts (should reject invalid)
+- [x] T068 [US4] Run MCP tests: cd mcp-server && pnpm test --run (verify all task schema tests pass)
+- [x] T069 [US4] Run MCP type check: npx tsc --noEmit (no type errors)
 
 ### MCP Server Documentation for User Story 4
 
-- [ ] T070 [P] [US4] Add weekday pattern example to mcp-server/docs/TOOLS.md under create_task section
-- [ ] T071 [P] [US4] Add weekend pattern example to mcp-server/docs/TOOLS.md under create_task section
-- [ ] T072 [P] [US4] Update repeat_mode table in mcp-server/docs/TOOLS.md to include modes 3 and 4
-- [ ] T073 [US4] Add "Weekday and Weekend Patterns" section to mcp-server/README.md with examples
+- [x] T070 [P] [US4] Add weekday pattern example to mcp-server/docs/TOOLS.md under create_task section
+- [x] T071 [P] [US4] Add weekend pattern example to mcp-server/docs/TOOLS.md under create_task section
+- [x] T072 [P] [US4] Update repeat_mode table in mcp-server/docs/TOOLS.md to include modes 3 and 4
+- [x] T073 [US4] Add "Weekday and Weekend Patterns" section to mcp-server/README.md with examples
 - [ ] T074 [US4] Manual test: Use MCP client to create task with repeat_mode=3, verify API accepts it
 - [ ] T075 [US4] Manual test: Use MCP client to create task with repeat_mode=4, verify API accepts it
 
@@ -201,6 +201,14 @@
 - [ ] T088 [P] Update .github/copilot-instructions.md if any new patterns introduced (likely not needed)
 - [ ] T089 Review AGENTS.md to ensure repeat pattern examples are current
 
+### Regression Fixes
+
+- [ ] T089a [REGRESSION] Fix preset button highlighting logic in RepeatAfter.vue: Weekdays/Weekends buttons show blue highlight on click, but Every Day/Week/30 Days buttons don't. After reload, incorrect button (weekdays or weekends) gets highlighted for standard repeat patterns. Root cause: Button active state logic incorrectly infers repeat_mode from repeat_after interval, should use actual repeat_mode value.
+
+- [ ] T089b [REGRESSION] Fix undefined "deferTaskUpdate" property error in SingleTaskInProject.vue: When clicking due date to view calendar in task list, console shows "Property 'deferTaskUpdate' was accessed during render but is not defined on instance" (line 99). Error originates from DeferTask.vue:129 calling updateDueDate and emitting to parent component. Root cause: SingleTaskInProject.vue template references deferTaskUpdate prop/method at line 99 that is not defined in component's setup/data/methods. Also triggering "Invalid value type passed to callWithAsyncErrorHandling(): undefined" in DeferTask.vue:129.
+
+- [ ] T089c [REGRESSION] Fix TipTap duplicate extension warning in TaskDetailView.vue: When clicking task in task list to open details, console shows "[tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues." (line 756). Error occurs during Editor initialization in watch.immediate at line 733-756. Root cause: TipTap Editor being configured with duplicate 'link' and 'underline' extensions, likely registered multiple times in extensions array. This can cause conflicts and unpredictable behavior in rich text editing.
+
 ### Final Validation
 
 - [ ] T090 Follow quickstart.md scenario 1: Create weekday task, mark done on Friday, verify Monday next occurrence
@@ -212,6 +220,9 @@
 - [ ] T096 Performance check: Create 10 weekday tasks, mark all done, verify <200ms p95 response time (use mage dev tools or profiling)
 - [ ] T097 Accessibility audit: Run axe DevTools on task creation page with preset buttons visible
 - [ ] T098 Code review checklist: Verify all items from quickstart.md code review section
+- [ ] T098a [REGRESSION TEST] Verify preset button highlighting: Click "Every Day" → reload task → verify Weekdays/Weekends NOT highlighted. Click "Every Week" → reload task → verify Weekdays/Weekends NOT highlighted. Click "Weekdays" → reload task → verify ONLY Weekdays highlighted. Click "Weekends" → reload task → verify ONLY Weekends highlighted.
+- [ ] T098b [REGRESSION TEST] Verify no console errors when opening calendar from task list: Open task list → click any task's due date to open calendar popup → verify NO "deferTaskUpdate" property errors in console. Verify NO "Invalid value type" errors in console. Verify calendar opens and functions correctly.
+- [ ] T098c [REGRESSION TEST] Verify no TipTap duplicate extension warnings: Open task list → click any task to open task detail view → verify NO "[tiptap warn]: Duplicate extension names" warnings in console. Verify rich text editor initializes correctly. Edit task description → verify text formatting (bold, italic, link, underline) works correctly without conflicts.
 - [ ] T099 Commit with conventional commit message: "feat: add weekday and weekend repeat patterns for tasks"
 - [ ] T100 Push feature branch and create PR with description linking to spec.md
 

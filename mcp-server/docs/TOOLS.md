@@ -114,7 +114,7 @@ Get all tasks in a specific project. Use this for project-specific queries and v
 
 ### `create_task`
 
-Create a new task in a project. Use this for single task creation (for multiple tasks, use bulk_create_tasks for better performance). Supports recurring tasks via repeat_after (seconds) and repeat_mode (0=from due date, 1=monthly same date, 2=from completion). Examples: Weekly meeting (repeat_after=604800, repeat_mode=0), Monthly report on 1st (repeat_after=0, repeat_mode=1), Water plants every 3 days after completion (repeat_after=259200, repeat_mode=2). Returns the created task with its ID.
+Create a new task in a project. Use this for single task creation (for multiple tasks, use bulk_create_tasks for better performance). Supports recurring tasks via repeat_after (seconds) and repeat_mode (0=from due date, 1=monthly same date, 2=from completion, 3=weekdays only, 4=weekends only). Examples: Weekly meeting (repeat_after=604800, repeat_mode=0), Monthly report on 1st (repeat_after=0, repeat_mode=1), Water plants every 3 days after completion (repeat_after=259200, repeat_mode=2), Daily standup Monday-Friday (repeat_after=86400, repeat_mode=3), Weekend chores Saturday-Sunday (repeat_after=86400, repeat_mode=4). Returns the created task with its ID.
 
 **Parameters:**
 
@@ -132,7 +132,7 @@ Create a new task in a project. Use this for single task creation (for multiple 
 - `assignees` (array, *optional*): Array of user IDs to assign to the task (optional). Get user IDs from project members or team listings.
 - `repeat_after` (integer, *optional*): Recurring task interval in SECONDS (optional). Common intervals: 3600=hourly, 86400=daily, 604800=weekly, 1209600=bi-weekly, 2592000=30-day month. IMPORTANT: Set to 0 when using repeat_mode=1 (monthly) - the mode handles the calendar month logic. Cannot be negative.
   - Minimum: 0
-- `repeat_mode` (integer, *optional*): Recurring task repeat mode (optional, 0-2). RepeatMode enum: 0=DEFAULT (repeat from due date, best for scheduled tasks like meetings), 1=MONTHLY (repeat on same calendar date each month, use repeat_after=0, best for bills/reports on specific dates), 2=FROM_CURRENT (repeat from completion date, best for flexible tasks like "water plants every 3 days"). Default behavior (if omitted): non-recurring task.
+- `repeat_mode` (integer, *optional*): Recurring task repeat mode (optional, 0-4). RepeatMode enum: 0=DEFAULT (repeat from due date, best for scheduled tasks like meetings), 1=MONTHLY (repeat on same calendar date each month, use repeat_after=0, best for bills/reports on specific dates), 2=FROM_CURRENT (repeat from completion date, best for flexible tasks like "water plants every 3 days"), 3=WEEKDAYS (repeat Monday-Friday only, skips weekends automatically), 4=WEEKENDS (repeat Saturday-Sunday only, skips weekdays automatically). Default behavior (if omitted): non-recurring task.
   - Minimum: 0
   - Maximum: 2
 
@@ -159,7 +159,7 @@ Update an existing task's properties. Use this to modify any task field (title, 
 - `assignees` (array, *optional*): New array of user IDs (optional). REPLACES existing assignees. To add/remove single assignees, use assign_task or unassign_task tools.
 - `repeat_after` (integer, *optional*): Update recurring interval in SECONDS (optional). Common: 3600=hourly, 86400=daily, 604800=weekly. Set to 0 for monthly mode (repeat_mode=1). To remove recurrence, set both repeat_after and repeat_mode to appropriate values or use API to clear. Cannot be negative.
   - Minimum: 0
-- `repeat_mode` (integer, *optional*): Update repeat mode (optional, 0-2). 0=repeat from due date (scheduled tasks), 1=monthly on same calendar date (must use repeat_after=0), 2=repeat from completion (flexible tasks). Changing mode affects next recurrence calculation. See create_task description for detailed examples.
+- `repeat_mode` (integer, *optional*): Update repeat mode (optional, 0-4). 0=repeat from due date (scheduled tasks), 1=monthly on same calendar date (must use repeat_after=0), 2=repeat from completion (flexible tasks), 3=weekdays only (Monday-Friday, skips weekends), 4=weekends only (Saturday-Sunday, skips weekdays). Changing mode affects next recurrence calculation. See create_task description for detailed examples.
   - Minimum: 0
   - Maximum: 2
 
@@ -621,12 +621,33 @@ The MCP server implements rate limiting to prevent abuse:
 
 ### Recurring Tasks
 
-Tasks support three recurring modes via `repeat_mode`:
+Tasks support five recurring modes via `repeat_mode`:
 - `0` (Default): Next occurrence calculated from due date
 - `1` (Monthly): Same date each month (e.g., 1st of month)
 - `2` (From Completion): Next occurrence calculated from completion date
+- `3` (Weekdays): Repeat Monday-Friday only, automatically skips weekends
+- `4` (Weekends): Repeat Saturday-Sunday only, automatically skips weekdays
 
 Set `repeat_after` in seconds (e.g., 604800 for weekly, 86400 for daily).
+
+**Weekday and Weekend Patterns:**
+- **Weekdays (mode 3)**: Perfect for work-related tasks like daily standups, email checks, or office routines. When you complete a Friday task, the next occurrence is automatically Monday.
+- **Weekends (mode 4)**: Ideal for personal tasks like household chores, grocery shopping, or weekend hobbies. Completing a Sunday task creates Saturday as the next occurrence.
+
+**Examples:**
+```bash
+# Daily standup (weekdays only)
+create_task project_id=1 title="Daily standup" repeat_after=86400 repeat_mode=3
+
+# Weekend house cleaning  
+create_task project_id=1 title="Clean house" repeat_after=86400 repeat_mode=4
+
+# Weekly meeting (every Monday)
+create_task project_id=1 title="Team meeting" due_date="2025-01-06T10:00:00Z" repeat_after=604800 repeat_mode=0
+
+# Monthly report (1st of each month)
+create_task project_id=1 title="Submit report" repeat_after=0 repeat_mode=1
+```
 
 ### Task Relations
 

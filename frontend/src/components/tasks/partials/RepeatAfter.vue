@@ -24,11 +24,21 @@
 			</XButton>
 			<XButton
 				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS}"
 				class="is-small"
 				:aria-label="$t('task.repeat.weekdaysDescription')"
 				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKDAYS)"
 			>
 				{{ $t('task.repeat.weekdays') }}
+			</XButton>
+			<XButton
+				variant="secondary"
+				:class="{'is-active': task.repeatMode === TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS}"
+				class="is-small"
+				:aria-label="$t('task.repeat.weekendsDescription')"
+				@click="() => setRepeatAfter(1, 'days', TASK_REPEAT_MODES.REPEAT_MODE_WEEKENDS)"
+			>
+				{{ $t('task.repeat.weekends') }}
 			</XButton>
 		</div>
 		<div class="is-flex is-align-items-center mbe-2">
@@ -179,5 +189,11 @@ p {
 
 .input {
 	min-inline-size: 2rem;
+}
+
+.button.is-active {
+	background-color: var(--primary);
+	color: var(--white);
+	border-color: var(--primary);
 }
 </style>
