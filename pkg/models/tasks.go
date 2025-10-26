@@ -43,6 +43,8 @@ const (
 	TaskRepeatModeDefault TaskRepeatMode = iota
 	TaskRepeatModeMonth
 	TaskRepeatModeFromCurrentDate
+	TaskRepeatModeWeekdays
+	TaskRepeatModeWeekends
 )
 
 // AddMoreInfoToTasksFunc is a function variable used to plug the service implementation into the models layer.
@@ -112,8 +114,8 @@ type Task struct {
 	ProjectID int64 `xorm:"bigint INDEX not null" json:"project_id" param:"project"`
 	// An amount in seconds this task repeats itself. If this is set, when marking the task as done, it will mark itself as "undone" and then increase all remindes and the due date by its amount.
 	RepeatAfter int64 `xorm:"bigint INDEX null" json:"repeat_after" valid:"range(0|9223372036854775807)"`
-	// Can have three possible values which will trigger when the task is marked as done: 0 = repeats after the amount specified in repeat_after, 1 = repeats all dates each months (ignoring repeat_after), 3 = repeats from the current date rather than the last set date.
-	RepeatMode TaskRepeatMode `xorm:"not null default 0" json:"repeat_mode"`
+	// Can have three possible values which will trigger when the task is marked as done: 0 = repeats after the amount specified in repeat_after, 1 = repeats all dates each months (ignoring repeat_after), 2 = repeats from the current date rather than the last set date, 3 = repeats on weekdays only (Monday-Friday), 4 = repeats on weekends only (Saturday-Sunday).
+	RepeatMode TaskRepeatMode `xorm:"not null default 0" json:"repeat_mode" valid:"range(0|4)"`
 	// The task priority. Can be anything you want, it is possible to sort by this later.
 	Priority int64 `xorm:"bigint null" json:"priority"`
 	// When this task starts.
@@ -1228,6 +1230,106 @@ func setTaskDatesFromCurrentDateRepeat(oldTask, newTask *Task) {
 	newTask.Done = false
 }
 
+func setTaskDatesWeekdayRepeat(oldTask, newTask *Task) {
+	if oldTask.RepeatAfter == 0 {
+		return
+	}
+
+	repeatDuration := time.Duration(oldTask.RepeatAfter) * time.Second
+
+	// Calculate next due date and skip weekends
+	if !oldTask.DueDate.IsZero() {
+		// Simply add the repeat interval once (no loop to catch up to now)
+		nextDate := oldTask.DueDate.Add(repeatDuration)
+		// Skip Saturday (6) and Sunday (0) to Monday
+		for nextDate.Weekday() == time.Saturday || nextDate.Weekday() == time.Sunday {
+			nextDate = nextDate.Add(24 * time.Hour)
+		}
+		newTask.DueDate = nextDate
+	}
+
+	newTask.Reminders = oldTask.Reminders
+	if len(oldTask.Reminders) > 0 {
+		for in, r := range oldTask.Reminders {
+			nextReminder := r.Reminder.Add(repeatDuration)
+			// Skip weekends for reminders too
+			for nextReminder.Weekday() == time.Saturday || nextReminder.Weekday() == time.Sunday {
+				nextReminder = nextReminder.Add(24 * time.Hour)
+			}
+			newTask.Reminders[in].Reminder = nextReminder
+		}
+	}
+
+	// Handle start and end dates
+	if !oldTask.StartDate.IsZero() {
+		nextStart := oldTask.StartDate.Add(repeatDuration)
+		for nextStart.Weekday() == time.Saturday || nextStart.Weekday() == time.Sunday {
+			nextStart = nextStart.Add(24 * time.Hour)
+		}
+		newTask.StartDate = nextStart
+	}
+
+	if !oldTask.EndDate.IsZero() {
+		nextEnd := oldTask.EndDate.Add(repeatDuration)
+		for nextEnd.Weekday() == time.Saturday || nextEnd.Weekday() == time.Sunday {
+			nextEnd = nextEnd.Add(24 * time.Hour)
+		}
+		newTask.EndDate = nextEnd
+	}
+
+	newTask.Done = false
+}
+
+func setTaskDatesWeekendRepeat(oldTask, newTask *Task) {
+	if oldTask.RepeatAfter == 0 {
+		return
+	}
+
+	repeatDuration := time.Duration(oldTask.RepeatAfter) * time.Second
+
+	// Calculate next due date and skip weekdays
+	if !oldTask.DueDate.IsZero() {
+		// Simply add the repeat interval once (no loop to catch up to now)
+		nextDate := oldTask.DueDate.Add(repeatDuration)
+		// Skip Monday (1) through Friday (5) to Saturday
+		for nextDate.Weekday() >= time.Monday && nextDate.Weekday() <= time.Friday {
+			nextDate = nextDate.Add(24 * time.Hour)
+		}
+		newTask.DueDate = nextDate
+	}
+
+	newTask.Reminders = oldTask.Reminders
+	if len(oldTask.Reminders) > 0 {
+		for in, r := range oldTask.Reminders {
+			nextReminder := r.Reminder.Add(repeatDuration)
+			// Skip weekdays for reminders too
+			for nextReminder.Weekday() >= time.Monday && nextReminder.Weekday() <= time.Friday {
+				nextReminder = nextReminder.Add(24 * time.Hour)
+			}
+			newTask.Reminders[in].Reminder = nextReminder
+		}
+	}
+
+	// Handle start and end dates
+	if !oldTask.StartDate.IsZero() {
+		nextStart := oldTask.StartDate.Add(repeatDuration)
+		for nextStart.Weekday() >= time.Monday && nextStart.Weekday() <= time.Friday {
+			nextStart = nextStart.Add(24 * time.Hour)
+		}
+		newTask.StartDate = nextStart
+	}
+
+	if !oldTask.EndDate.IsZero() {
+		nextEnd := oldTask.EndDate.Add(repeatDuration)
+		for nextEnd.Weekday() >= time.Monday && nextEnd.Weekday() <= time.Friday {
+			nextEnd = nextEnd.Add(24 * time.Hour)
+		}
+		newTask.EndDate = nextEnd
+	}
+
+	newTask.Done = false
+}
+
 // This helper function updates the reminders, doneAt, start and end dates of the *old* task
 // and saves the new values in the newTask object.
 // We make a few assumptions here:
@@ -1242,6 +1344,10 @@ func UpdateDone(oldTask *Task, newTask *Task) {
 			setTaskDatesMonthRepeat(oldTask, newTask)
 		case TaskRepeatModeFromCurrentDate:
 			setTaskDatesFromCurrentDateRepeat(oldTask, newTask)
+		case TaskRepeatModeWeekdays:
+			setTaskDatesWeekdayRepeat(oldTask, newTask)
+		case TaskRepeatModeWeekends:
+			setTaskDatesWeekendRepeat(oldTask, newTask)
 		case TaskRepeatModeDefault:
 			setTaskDatesDefault(oldTask, newTask)
 		}

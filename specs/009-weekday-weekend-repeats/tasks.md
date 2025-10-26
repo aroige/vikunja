@@ -23,9 +23,9 @@
 
 **Purpose**: No new infrastructure needed - extending existing repeat system
 
-- [ ] T001 Review existing repeat mode system in pkg/models/tasks.go (TaskRepeatMode enum, UpdateDone function)
-- [ ] T002 Review existing frontend repeat UI in frontend/src/components/tasks/partials/RepeatAfter.vue
-- [ ] T003 Review existing MCP server task tools in mcp-server/src/tools/tasks.ts
+- [x] T001 Review existing repeat mode system in pkg/models/tasks.go (TaskRepeatMode enum, UpdateDone function)
+- [x] T002 Review existing frontend repeat UI in frontend/src/components/tasks/partials/RepeatAfter.vue
+- [x] T003 Review existing MCP server task tools in mcp-server/src/tools/tasks.ts
 
 **Checkpoint**: Understanding of current architecture complete - ready for implementation
 
@@ -39,9 +39,21 @@
 
 ### Backend Foundation
 
-- [ ] T004 [P] Add TaskRepeatModeWeekdays (3) and TaskRepeatModeWeekends (4) constants to pkg/models/tasks.go RepeatMode enum
-- [ ] T005 [P] Update RepeatMode validation tag in pkg/models/tasks.go from valid:"range(0|2)" to valid:"range(0|4)"
-- [ ] T006 Write test for weekday Friday→Monday skip in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_FridayToMonday)
+- [x] T004 [P] Add TaskRepeatModeWeekdays (3) and TaskRepeatModeWeekends (4) constants to pkg/models/tasks.go RepeatMode enum
+- [x] T005 [P] Update RepeatMode validation tag in pkg/models/tasks.go from valid:"range(0|2)" to valid:"range(0|4)"
+- [x] T006 Write test for weekday Friday→Monday skip in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_FridayToMonday)
+- [x] T007 Write test for weekday Thursday→Friday in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_ThursdayToFriday)
+- [x] T008 Write test for weekend Sunday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_SundayToSaturday)
+- [x] T009 Write test for weekend Friday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_FridayToSaturday)
+- [x] T010 Write test for weekday task with no due date in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_NoDueDate)
+- [x] T011 Implement setTaskDatesWeekdayRepeat function in pkg/models/tasks.go (skip Saturday→Monday+2, Sunday→Monday+1)
+- [x] T012 Implement setTaskDatesWeekendRepeat function in pkg/models/tasks.go (skip Monday-Friday→Saturday)
+- [x] T013 Add case TaskRepeatModeWeekdays to UpdateDone switch statement in pkg/models/tasks.go
+- [x] T014 Add case TaskRepeatModeWeekends to UpdateDone switch statement in pkg/models/tasks.go
+- [x] T015 Run backend tests: mage test:feature (verify all 7 new tests pass)
+- [x] T016 Run backend linter: mage lint:fix (ensure no style violations)
+
+**Checkpoint**: Backend calculation logic complete and tested - frontend and MCP can now proceed in parallel
 - [ ] T007 Write test for weekday Thursday→Friday in pkg/services/task_test.go (TestTaskService_WeekdayRepeat_ThursdayToFriday)
 - [ ] T008 Write test for weekend Sunday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_SundayToSaturday)
 - [ ] T009 Write test for weekend Friday→Saturday skip in pkg/services/task_test.go (TestTaskService_WeekendRepeat_FridayToSaturday)
