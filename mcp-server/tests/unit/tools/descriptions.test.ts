@@ -594,4 +594,111 @@ describe('Tool Description Quality Tests (US1)', () => {
       ).toBe(true);
     }
   });
+
+  it('should verify attachment tool has comprehensive description (US6 - T110a)', () => {
+    const registry = new ToolRegistry(mockClient, mockRateLimiter);
+    const tools = registry.getTools();
+    
+    const attachmentTool = 'get_task_attachments';
+    const tool = tools.find((t) => t.name === attachmentTool);
+    
+    // FR-001: Tool should exist
+    expect(tool, `${attachmentTool} should exist - US6`).toBeDefined();
+    
+    const desc = tool?.description || '';
+    
+    // FR-001: Comprehensive description (>20 chars, mentions purpose/use cases/outcomes)
+    expect(desc.length, `${attachmentTool} should have description >20 chars - FR-001`).toBeGreaterThan(20);
+    
+    // FR-001: Should mention purpose - retrieving attachment metadata
+    expect(
+      desc.toLowerCase().includes('metadata') ||
+      desc.toLowerCase().includes('attachment') ||
+      desc.toLowerCase().includes('file'),
+      `${attachmentTool} description should mention attachments/metadata/files - FR-001`
+    ).toBe(true);
+    
+    // FR-001: Should mention use case - context awareness, understanding task resources
+    const hasUseCase = 
+      desc.toLowerCase().includes('context') ||
+      desc.toLowerCase().includes('understand') ||
+      desc.toLowerCase().includes('associated') ||
+      desc.toLowerCase().includes('use this');
+    
+    expect(hasUseCase,
+      `${attachmentTool} description should mention use case (context awareness) - FR-001`
+    ).toBe(true);
+    
+    // FR-001: Should mention outcome - returns metadata without file content
+    const hasOutcome = 
+      desc.toLowerCase().includes('return') ||
+      desc.toLowerCase().includes('retriev') ||
+      desc.toLowerCase().includes('details') ||
+      desc.toLowerCase().includes('information');
+    
+    expect(hasOutcome,
+      `${attachmentTool} description should mention expected outcome - FR-001`
+    ).toBe(true);
+    
+    // FR-035: CRITICAL - Must clarify metadata only (no file upload/download)
+    const clarifiesMetadataOnly = 
+      (desc.toLowerCase().includes('metadata') && desc.toLowerCase().includes('only')) ||
+      desc.toLowerCase().includes('without file content') ||
+      desc.toLowerCase().includes('no file content') ||
+      desc.toLowerCase().includes('does not download') ||
+      desc.toLowerCase().includes('not support') ||
+      (desc.toLowerCase().includes('metadata') && 
+       (desc.toLowerCase().includes('without') || desc.toLowerCase().includes('no upload') || desc.toLowerCase().includes('no download')));
+    
+    expect(clarifiesMetadataOnly,
+      `${attachmentTool} must clarify metadata only (no file upload/download) - FR-035`
+    ).toBe(true);
+    
+    // FR-035: Should explicitly state NO upload/download support
+    const explicitlyStatesNoUploadDownload = 
+      desc.toLowerCase().includes('not support') ||
+      desc.toLowerCase().includes('does not support') ||
+      desc.toLowerCase().includes('no upload') ||
+      desc.toLowerCase().includes('no download') ||
+      desc.toLowerCase().includes('without downloading');
+    
+    expect(explicitlyStatesNoUploadDownload,
+      `${attachmentTool} should explicitly state no upload/download support - FR-035`
+    ).toBe(true);
+    
+    // Check parameter descriptions
+    if (tool?.inputSchema?.properties) {
+      const properties = tool.inputSchema.properties as Record<string, { description?: string }>;
+      
+      // task_id parameter should have adequate description
+      if (properties.task_id) {
+        const taskIdDesc = properties.task_id.description || '';
+        
+        expect(taskIdDesc.length, 
+          `${attachmentTool} task_id parameter should have description >10 chars - FR-001`
+        ).toBeGreaterThan(10);
+        
+        // Should clarify what metadata is retrieved
+        const clarifiesMetadata = 
+          taskIdDesc.toLowerCase().includes('metadata') ||
+          taskIdDesc.toLowerCase().includes('file information') ||
+          taskIdDesc.toLowerCase().includes('without download');
+        
+        expect(clarifiesMetadata,
+          `${attachmentTool} task_id parameter should clarify metadata retrieval - FR-001`
+        ).toBe(true);
+      }
+    }
+    
+    // Verify tool provides context for AI agents
+    const mentionsAIContext = 
+      desc.toLowerCase().includes('agent') ||
+      desc.toLowerCase().includes('context') ||
+      desc.toLowerCase().includes('understanding') ||
+      desc.toLowerCase().includes('what files');
+    
+    expect(mentionsAIContext,
+      `${attachmentTool} should explain usefulness for AI agents/context - FR-001`
+    ).toBe(true);
+  });
 });

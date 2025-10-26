@@ -10,4 +10,5 @@ export * from './bulk.js';
 export * from './relations.js';
 export * from './comments.js';
 export * from './labels.js';
+export * from './attachments.js';
 export * from './registry.js';

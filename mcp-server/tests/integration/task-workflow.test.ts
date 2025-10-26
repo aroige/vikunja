@@ -10,6 +10,7 @@ import { VikunjaClient } from '../../src/vikunja/client.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation } from '../../src/tools/relations.js';
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment } from '../../src/tools/comments.js';
 import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels } from '../../src/tools/labels.js';
+import { getTaskAttachments } from '../../src/tools/attachments.js';
 import type { RelationKind } from '../../src/vikunja/types.js';
 
 // Test configuration
@@ -638,6 +639,114 @@ describe('Label Management Workflow Integration', () => {
           TEST_TOKEN
         )
       ).rejects.toThrow(/Task 999999 not found/);
+    });
+  });
+});
+
+/**
+ * Task Attachment Workflow Integration Tests (T110)
+ */
+describe('Task Attachment Workflow Integration', () => {
+  let client: VikunjaClient;
+  let testTaskId: number;
+
+  beforeAll(() => {
+    client = new VikunjaClient();
+  });
+
+  beforeEach(() => {
+    // Note: In a real integration test, you would create test tasks here
+    // For now, we'll use a mock task ID
+    testTaskId = 1;
+  });
+
+  describe('Attachment Metadata Retrieval', () => {
+    it('T110: should retrieve task attachment metadata successfully', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Query task attachments
+      const result = await getTaskAttachments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      // Verify response structure
+      expect(result).toBeDefined();
+      expect(result.content).toBeDefined();
+      expect(Array.isArray(result.content)).toBe(true);
+      expect(result.content.length).toBeGreaterThan(0);
+      expect(result.content[0].type).toBe('text');
+      expect(result.content[0].text).toContain('attachment(s)');
+      
+      // If attachments exist, verify metadata fields are present
+      if (result.content[0].text.includes('Found') && !result.content[0].text.includes('No attachments')) {
+        expect(result.content[0].text).toMatch(/Size:/);
+        expect(result.content[0].text).toMatch(/MIME Type:/);
+        expect(result.content[0].text).toMatch(/Uploaded by:/);
+        expect(result.content[0].text).toMatch(/Uploaded:/);
+      }
+    });
+
+    it('should handle task with no attachments gracefully', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Query task that likely has no attachments
+      const result = await getTaskAttachments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      // Should return empty list, not error
+      expect(result).toBeDefined();
+      expect(result.content).toBeDefined();
+      expect(result.content[0].text).toContain('attachment(s)');
+      
+      // May contain "No attachments found" or show 0 count
+      expect(
+        result.content[0].text.includes('No attachments') || 
+        result.content[0].text.includes('Found 0')
+      ).toBeTruthy();
+    });
+
+    it('should handle task not found error', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      // Try to get attachments for non-existent task
+      await expect(
+        getTaskAttachments(
+          { task_id: 999999 },
+          client,
+          TEST_TOKEN
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should clarify metadata-only response (no file content)', async () => {
+      if (!process.env.VIKUNJA_TEST_TOKEN) {
+        console.log('Skipping integration test: VIKUNJA_TEST_TOKEN not set');
+        return;
+      }
+
+      const result = await getTaskAttachments(
+        { task_id: testTaskId },
+        client,
+        TEST_TOKEN
+      );
+
+      // Verify clarification that this is metadata only
+      expect(result.content[0].text).toContain('metadata only');
+      expect(result.content[0].text).toContain('no file content');
     });
   });
 });
