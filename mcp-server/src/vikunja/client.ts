@@ -300,5 +300,278 @@ export class VikunjaClient {
       message: result.message || 'Task relation deleted successfully. Bidirectional relation also removed automatically.',
     };
   }
+
+  /**
+   * Add comment to task
+   * 
+   * Creates a new comment on the specified task.
+   * The comment author is determined by the authentication token.
+   * 
+   * @param taskId - ID of the task to comment on
+   * @param commentText - Comment text content
+   * @param token - Authentication token
+   */
+  async addTaskComment(
+    taskId: number,
+    commentText: string,
+    token?: string
+  ): Promise<import('./types.js').AddCommentResponse> {
+    const comment = await this.put<import('./types.js').TaskComment>(
+      `/api/v1/tasks/${taskId}/comments`,
+      { comment: commentText },
+      token
+    );
+
+    return {
+      success: true,
+      comment,
+      message: 'Comment added successfully',
+    };
+  }
+
+  /**
+   * Get task comments
+   * 
+   * Retrieves all comments for a task with pagination support.
+   * Comments are returned in chronological order.
+   * 
+   * @param taskId - ID of the task
+   * @param page - Page number (default: 1)
+   * @param pageSize - Number of comments per page (default: 50, max: 100)
+   * @param token - Authentication token
+   */
+  async getTaskComments(
+    taskId: number,
+    page: number = 1,
+    pageSize: number = 50,
+    token?: string
+  ): Promise<import('./types.js').GetCommentsResponse> {
+    const comments = await this.get<import('./types.js').TaskComment[]>(
+      `/api/v1/tasks/${taskId}/comments`,
+      { page: page.toString(), per_page: pageSize.toString() },
+      token
+    );
+
+    // Calculate pagination metadata
+    const total = comments.length; // Note: Vikunja API may return total in headers or separate field
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      task_id: taskId,
+      comments: Array.isArray(comments) ? comments : [],
+      total,
+      page,
+      page_size: pageSize,
+      total_pages: totalPages,
+    };
+  }
+
+  /**
+   * Update task comment
+   * 
+   * Modifies the text of an existing comment.
+   * Users can only update their own comments unless they have admin permissions.
+   * 
+   * @param taskId - ID of the task containing the comment
+   * @param commentId - ID of the comment to update
+   * @param commentText - New comment text
+   * @param token - Authentication token
+   */
+  async updateTaskComment(
+    taskId: number,
+    commentId: number,
+    commentText: string,
+    token?: string
+  ): Promise<import('./types.js').UpdateCommentResponse> {
+    const comment = await this.post<import('./types.js').TaskComment>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}`,
+      { comment: commentText },
+      token
+    );
+
+    return {
+      success: true,
+      comment,
+      message: 'Comment updated successfully',
+    };
+  }
+
+  /**
+   * Delete task comment
+   * 
+   * Removes a comment from a task.
+   * Users can only delete their own comments unless they have admin permissions.
+   * 
+   * @param taskId - ID of the task containing the comment
+   * @param commentId - ID of the comment to delete
+   * @param token - Authentication token
+   */
+  async deleteTaskComment(
+    taskId: number,
+    commentId: number,
+    token?: string
+  ): Promise<import('./types.js').DeleteCommentResponse> {
+    await this.delete<{ message: string }>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}`,
+      token
+    );
+
+    return {
+      success: true,
+      message: 'Comment deleted successfully',
+    };
+  }
+
+  /**
+   * Get all labels
+   * 
+   * Retrieves all labels visible to the user.
+   * User sees labels on accessible tasks + labels they created.
+   * Labels are project-independent (global scope).
+   * 
+   * @param page - Page number (default: 1)
+   * @param pageSize - Number of labels per page (default: 50, max: 100)
+   * @param search - Optional search filter for label title
+   * @param token - Authentication token
+   */
+  async getAllLabels(
+    page = 1,
+    pageSize = 50,
+    search?: string,
+    token?: string
+  ): Promise<import('./types.js').GetLabelsResponse> {
+    const params: Record<string, string> = {
+      page: page.toString(),
+      per_page: pageSize.toString(),
+    };
+
+    if (search) {
+      params['s'] = search;
+    }
+
+    const labels = await this.get<import('./types.js').Label[]>(
+      '/api/v1/labels',
+      params,
+      token
+    );
+
+    const total = Array.isArray(labels) ? labels.length : 0;
+    const hasNextPage = total === pageSize;
+
+    return {
+      labels: Array.isArray(labels) ? labels : [],
+      total,
+      page,
+      page_size: pageSize,
+      has_next_page: hasNextPage,
+    };
+  }
+
+  /**
+   * Get label details
+   * 
+   * Retrieves full details of a specific label by ID.
+   * 
+   * @param labelId - ID of the label to retrieve
+   * @param token - Authentication token
+   */
+  async getLabel(
+    labelId: number,
+    token?: string
+  ): Promise<import('./types.js').GetLabelResponse> {
+    const label = await this.get<import('./types.js').Label>(
+      `/api/v1/labels/${labelId}`,
+      undefined,
+      token
+    );
+
+    return {
+      label,
+    };
+  }
+
+  /**
+   * Update label
+   * 
+   * Modifies label properties (title, description, hex_color).
+   * Only the label creator can update it.
+   * 
+   * @param labelId - ID of the label to update
+   * @param updates - Fields to update (at least one required)
+   * @param token - Authentication token
+   */
+  async updateLabel(
+    labelId: number,
+    updates: {
+      title?: string;
+      description?: string;
+      hex_color?: string;
+    },
+    token?: string
+  ): Promise<import('./types.js').UpdateLabelResponse> {
+    const label = await this.post<import('./types.js').Label>(
+      `/api/v1/labels/${labelId}`,
+      updates,
+      token
+    );
+
+    return {
+      success: true,
+      label,
+      message: 'Label updated successfully',
+    };
+  }
+
+  /**
+   * Delete label
+   * 
+   * Removes a label and detaches it from all tasks.
+   * Only the label creator can delete it.
+   * 
+   * @param labelId - ID of the label to delete
+   * @param token - Authentication token
+   */
+  async deleteLabel(
+    labelId: number,
+    token?: string
+  ): Promise<import('./types.js').DeleteLabelResponse> {
+    await this.delete<{ message: string }>(
+      `/api/v1/labels/${labelId}`,
+      token
+    );
+
+    return {
+      success: true,
+      label_id: labelId,
+      message: 'Label deleted successfully and removed from all tasks',
+    };
+  }
+
+  /**
+   * Get task labels
+   * 
+   * Retrieves all labels attached to a specific task.
+   * 
+   * @param taskId - ID of the task to retrieve labels for
+   * @param token - Authentication token
+   */
+  async getTaskLabels(
+    taskId: number,
+    token?: string
+  ): Promise<import('./types.js').GetTaskLabelsResponse> {
+    const task = await this.get<import('./types.js').VikunjaTask>(
+      `/api/v1/tasks/${taskId}`,
+      undefined,
+      token
+    );
+
+    const labels = task.labels || [];
+
+    return {
+      task_id: taskId,
+      labels,
+      total_count: labels.length,
+    };
+  }
 }
 

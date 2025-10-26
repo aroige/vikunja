@@ -14,7 +14,7 @@ export const CreateProjectSchema = z.object({
   description: z.string().optional()
     .describe('Project description (optional, supports Markdown). Use this to explain the project\'s purpose or goals.'),
   hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
-    .describe('Project color as hex code including # (optional, e.g., "#FF5733"). Used for visual identification in the UI.'),
+    .describe('Project color as hex code including # (optional, e.g., "#FF5733"). Format: 6-character hex code with # prefix. Used for visual identification in the UI.'),
   parent_project_id: z.number().int().positive().optional()
     .describe('ID of parent project for nested organization (optional). Creates a sub-project hierarchy.'),
 });
@@ -27,7 +27,7 @@ export const UpdateProjectSchema = z.object({
   description: z.string().optional()
     .describe('New project description (optional, supports Markdown).'),
   hex_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional()
-    .describe('New project color as hex code including # (optional, e.g., "#FF5733").'),
+    .describe('New project color as hex code including # (optional, e.g., "#FF5733"). Format: 6-character hex code with # prefix.'),
   is_archived: z.boolean().optional()
     .describe('Archive status (optional). Set true to archive, false to unarchive. Consider using archive_project tool instead.'),
   parent_project_id: z.number().int().positive().optional()
