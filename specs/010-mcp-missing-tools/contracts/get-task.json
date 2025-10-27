@@ -1,0 +1,112 @@
+{
+  "name": "get_task",
+  "description": "Retrieve a single task by its ID. Use this when you need complete task details for a known task ID. This is more efficient than searching or listing project tasks when you have a direct task reference. Returns the full task entity including all relations, assignees, labels, and metadata.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID of the task to retrieve (required). Must be a positive integer. Returns complete task details including title, description, due date, priority, assignees, labels, relations, and all metadata.",
+        "minimum": 1
+      }
+    },
+    "required": ["id"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation succeeded"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable result description"
+      },
+      "task": {
+        "type": "object",
+        "description": "Full task entity with all relations (present when success=true)",
+        "properties": {
+          "id": { "type": "number" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "done": { "type": "boolean" },
+          "due_date": { "type": "string", "format": "date-time", "nullable": true },
+          "priority": { "type": "number", "minimum": 0, "maximum": 5 },
+          "project_id": { "type": "number" },
+          "position": { "type": "number" },
+          "created": { "type": "string", "format": "date-time" },
+          "updated": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "object" },
+          "assignees": { "type": "array", "items": { "type": "object" } },
+          "labels": { "type": "array", "items": { "type": "object" } },
+          "relations": { "type": "object" }
+        }
+      },
+      "error": {
+        "type": "string",
+        "description": "Error code or message (present when success=false). Common codes: NOT_FOUND, FORBIDDEN, UNAUTHORIZED"
+      }
+    },
+    "required": ["success", "message"]
+  },
+  "examples": [
+    {
+      "description": "Retrieve task 12345 with all details",
+      "input": { "id": 12345 },
+      "output": {
+        "success": true,
+        "message": "Task \"Fix payment bug\" retrieved successfully",
+        "task": {
+          "id": 12345,
+          "title": "Fix payment bug",
+          "description": "Users cannot complete checkout when using PayPal",
+          "done": false,
+          "due_date": "2025-10-30T17:00:00Z",
+          "priority": 5,
+          "project_id": 1,
+          "position": 100.5,
+          "created": "2025-10-25T09:00:00Z",
+          "updated": "2025-10-26T10:30:00Z",
+          "created_by": { "id": 1, "username": "user1" },
+          "assignees": [
+            { "id": 2, "username": "dev1", "name": "Developer One" }
+          ],
+          "labels": [
+            { "id": 10, "title": "bug", "hex_color": "e74c3c" },
+            { "id": 15, "title": "urgent", "hex_color": "f39c12" }
+          ],
+          "relations": {
+            "blocking": [{ "id": 12346, "title": "Deploy fix" }]
+          }
+        }
+      }
+    },
+    {
+      "description": "Task not found error",
+      "input": { "id": 999999 },
+      "output": {
+        "success": false,
+        "message": "Task with ID 999999 not found",
+        "error": "NOT_FOUND"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": "NOT_FOUND",
+      "httpStatus": 404,
+      "description": "Task with the specified ID does not exist or user lacks permission to view it"
+    },
+    {
+      "code": "FORBIDDEN",
+      "httpStatus": 403,
+      "description": "User does not have permission to access this task (parent project not accessible)"
+    },
+    {
+      "code": "VALIDATION_ERROR",
+      "httpStatus": 400,
+      "description": "Invalid task ID (must be positive integer)"
+    }
+  ]
+}

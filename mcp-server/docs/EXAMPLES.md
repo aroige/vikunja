@@ -653,6 +653,364 @@ class CachedMCPClient {
 
 ---
 
+## Direct Entity Access (Read-Only Tools)
+
+### Example 12: Get Project Details
+
+**Scenario**: Retrieve complete information about a specific project by ID.
+
+**Claude Desktop Interaction:**
+```
+User: "Show me details for project 11"
+
+Claude: I'll fetch that project's information.
+```
+
+**Tool Call:**
+```json
+{
+  "tool": "get_project",
+  "arguments": {
+    "id": 11
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Project 'Personal Tasks' retrieved successfully",
+  "project": {
+    "id": 11,
+    "title": "Personal Tasks",
+    "description": "My personal todo list",
+    "hex_color": "#3498db",
+    "parent_project_id": 0,
+    "is_archived": false,
+    "created": "2025-01-15T10:30:00Z",
+    "updated": "2025-10-26T14:00:00Z",
+    "owner": {
+      "id": 1,
+      "username": "testuser"
+    }
+  }
+}
+```
+
+### Example 13: List All Projects
+
+**Scenario**: Discover all accessible projects for the user.
+
+**n8n Workflow:**
+```json
+{
+  "tool": "get_all_projects",
+  "arguments": {
+    "page": 1,
+    "filter_archived": false
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Found 3 projects",
+  "projects": [
+    {
+      "id": 1,
+      "title": "Work Tasks",
+      "is_archived": false
+    },
+    {
+      "id": 11,
+      "title": "Personal Tasks",
+      "is_archived": false
+    },
+    {
+      "id": 25,
+      "title": "Home Projects",
+      "is_archived": false
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "hasMore": false
+}
+```
+
+### Example 14: Get Task with Relationships
+
+**Scenario**: Fetch complete task details including assignees, labels, and related tasks.
+
+**Python Script:**
+```python
+async def get_task_details(task_id):
+    client = VikunjaMCPClient(
+        api_url="http://localhost:3457",
+        api_token="your-token"
+    )
+    
+    result = await client.call_tool("get_task", {
+        "id": task_id
+    })
+    
+    print(f"Task: {result['task']['title']}")
+    print(f"Priority: {result['task']['priority']}")
+    print(f"Assignees: {len(result['task']['assignees'])}")
+    print(f"Labels: {len(result['task']['labels'])}")
+    
+    # Check related tasks
+    related = result['task']['related_tasks']
+    if related.get('blocking'):
+        print(f"Blocking {len(related['blocking'])} tasks")
+    
+    return result
+```
+
+### Example 15: Get Current User Info
+
+**Scenario**: Retrieve authenticated user profile for context-aware responses.
+
+**Tool Call:**
+```json
+{
+  "tool": "get_user_info",
+  "arguments": {}
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User information retrieved for testuser",
+  "user": {
+    "id": 1,
+    "username": "testuser",
+    "email": "user@example.com",
+    "name": "Test User",
+    "created": "2025-01-01T00:00:00Z",
+    "updated": "2025-10-27T00:00:00Z",
+    "language": "en",
+    "timezone": "America/New_York",
+    "overdue_tasks_reminders_enabled": true
+  }
+}
+```
+
+**Note**: Sensitive fields (password, tokens, secrets) are automatically filtered for security.
+
+### Example 16: Chained Read Operations
+
+**Scenario**: Get user info, list their projects, and fetch details of a specific task.
+
+**Claude Desktop Workflow:**
+```
+User: "Show me my profile, list my projects, and get task 42 details"
+
+Claude: I'll fetch all that information for you.
+```
+
+**Tool Sequence:**
+```json
+[
+  {
+    "tool": "get_user_info",
+    "arguments": {}
+  },
+  {
+    "tool": "get_all_projects",
+    "arguments": {
+      "page": 1
+    }
+  },
+  {
+    "tool": "get_task",
+    "arguments": {
+      "id": 42
+    }
+  }
+]
+```
+
+**Use Case**: AI agents can use this workflow to understand the user's context before suggesting task organization or project management strategies.
+
+### Example 17: List Project Members for Task Assignment
+
+**Scenario**: Find available assignees before assigning a task.
+
+**Claude Desktop Workflow:**
+```
+User: "Who can I assign tasks to in the Engineering project?"
+
+Claude: I'll check the members of that project for you.
+```
+
+**Tool Sequence:**
+```json
+[
+  {
+    "tool": "search_projects",
+    "arguments": {
+      "query": "Engineering"
+    }
+  },
+  {
+    "tool": "list_project_members",
+    "arguments": {
+      "project_id": 11
+    }
+  }
+]
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Found 3 members for project 11",
+  "members": [
+    {
+      "user": {
+        "id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "name": "Alice Smith"
+      },
+      "access_level": 2
+    },
+    {
+      "user": {
+        "id": 2,
+        "username": "bob",
+        "email": "bob@example.com",
+        "name": "Bob Jones"
+      },
+      "access_level": 1
+    },
+    {
+      "user": {
+        "id": 3,
+        "username": "charlie",
+        "email": "charlie@example.com",
+        "name": "Charlie Brown"
+      },
+      "access_level": 0
+    }
+  ]
+}
+```
+
+**Use Case**: Before calling `assign_task`, agents can use this to discover valid user IDs and understand permission levels (0=read, 1=write, 2=admin).
+
+---
+
+## Example 18: Search Tasks by Label Title (filter_label_titles)
+
+**User Request**: "Which tasks have the @Computer label?"
+
+**Problem Solved**: Previously required two steps: list labels → get ID → search tasks. Now agents can search by label name directly.
+
+**JSON-RPC Call:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "search_tasks",
+    "arguments": {
+      "query": "",
+      "filter_label_titles": ["@Computer"]
+    }
+  },
+  "id": 1
+}
+```
+
+**TypeScript:**
+```typescript
+async function findTasksByLabel(client: VikunjaMCPClient, labelName: string) {
+  // Direct search by label title
+  const result = await client.callTool('search_tasks', {
+    query: '',  // Empty query searches all tasks
+    filter_label_titles: [labelName]
+  });
+  
+  console.log(`Found ${result.tasks.length} tasks with label "${labelName}"`);
+  return result.tasks;
+}
+
+// Find tasks with multiple labels (AND logic)
+async function findTasksWithAllLabels(client: VikunjaMCPClient) {
+  const result = await client.callTool('search_tasks', {
+    query: '',
+    filter_label_titles: ['@Computer', '@Urgent']  // Tasks must have BOTH labels
+  });
+  
+  console.log(`Found ${result.tasks.length} tasks with both @Computer AND @Urgent`);
+  return result.tasks;
+}
+
+// Combine with other filters
+async function findUrgentComputerTasks(client: VikunjaMCPClient) {
+  const result = await client.callTool('search_tasks', {
+    query: 'bug',  // Text search in title/description
+    filter_label_titles: ['@Computer'],
+    filter_priority: 5,  // Only critical priority
+    filter_done: false  // Only incomplete tasks
+  });
+  
+  return result.tasks;
+}
+```
+
+**Python:**
+```python
+async def find_tasks_by_label(client, label_name: str):
+    """Direct search by label title."""
+    result = await client.call_tool("search_tasks", {
+        "query": "",  # Empty query searches all tasks
+        "filter_label_titles": [label_name]
+    })
+    
+    print(f"Found {len(result['tasks'])} tasks with label '{label_name}'")
+    return result['tasks']
+
+async def find_tasks_with_all_labels(client):
+    """Find tasks with multiple labels (AND logic)."""
+    result = await client.call_tool("search_tasks", {
+        "query": "",
+        "filter_label_titles": ["@Computer", "@Urgent"]  # Must have BOTH
+    })
+    
+    print(f"Found {len(result['tasks'])} tasks with both labels")
+    return result['tasks']
+
+async def find_urgent_computer_tasks(client):
+    """Combine label filter with other criteria."""
+    result = await client.call_tool("search_tasks", {
+        "query": "bug",  # Text search
+        "filter_label_titles": ["@Computer"],
+        "filter_priority": 5,  # Critical only
+        "filter_done": False  # Incomplete only
+    })
+    
+    return result['tasks']
+```
+
+**Notes:**
+- **Case-insensitive**: `@computer`, `@Computer`, and `@COMPUTER` all match
+- **Exact match**: Searches for exact label title, not partial match
+- **AND logic**: Multiple labels require tasks to have ALL specified labels
+- **Error handling**: Returns error if label title not found, prompting user to use `get_all_labels`
+- **Alternative**: Use `filter_labels` with numeric IDs if you already know the label IDs
+- **Cannot mix**: Cannot use both `filter_labels` and `filter_label_titles` in the same call
+
+---
+
 ## Next Steps
 
 - **API Reference**: See [API.md](./API.md) for complete tool documentation

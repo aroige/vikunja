@@ -28,6 +28,8 @@ const mockUserContext: UserContext = {
   username: 'testuser',
   email: 'test@example.com',
   token: 'test-token',
+  permissions: ['read', 'write'],
+  validatedAt: new Date(),
 };
 
 describe('ToolRegistry', () => {
@@ -40,22 +42,23 @@ describe('ToolRegistry', () => {
   });
 
   describe('Tool Registration', () => {
-    it('should register all 35 tools (including 5 label management tools and 1 attachment tool)', () => {
+    it('should register all 40 tools (including list_project_members)', () => {
       const tools = registry.getTools();
-      expect(tools).toHaveLength(35);
+      expect(tools).toHaveLength(40);
     });
 
     it('should register project tools', () => {
       const tools = registry.getTools();
       const projectTools = tools.filter((t) =>
-        ['create_project', 'update_project', 'delete_project', 'archive_project'].includes(t.name)
+        ['create_project', 'update_project', 'delete_project', 'archive_project', 'list_project_members'].includes(t.name)
       );
-      expect(projectTools).toHaveLength(4);
+      expect(projectTools).toHaveLength(5);
       expect(projectTools.map((t) => t.name)).toEqual([
         'create_project',
         'update_project',
         'delete_project',
         'archive_project',
+        'list_project_members',
       ]);
     });
 

@@ -1,0 +1,116 @@
+{
+  "name": "get_user_info",
+  "description": "Retrieve the authenticated user's profile information. Use this when you need to know who you're acting as or to provide personalized context (e.g., \"Who am I?\" or \"What's my username?\"). This tool provides self-awareness for AI agents. Returns safe user profile fields excluding sensitive authentication data.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation succeeded"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable result description"
+      },
+      "user": {
+        "type": "object",
+        "description": "Filtered user profile (present when success=true). Excludes sensitive fields like password, TOTP secret, and tokens.",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Unique user identifier"
+          },
+          "username": {
+            "type": "string",
+            "description": "Login username"
+          },
+          "email": {
+            "type": "string",
+            "description": "User's email address"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name (optional)"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Account creation timestamp"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last profile update timestamp"
+          },
+          "language": {
+            "type": "string",
+            "description": "Preferred language (ISO 639-1 code, e.g., 'en')"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "User timezone (IANA format, e.g., 'America/New_York')"
+          },
+          "overdue_tasks_reminders_enabled": {
+            "type": "boolean",
+            "description": "Whether user receives overdue task reminders"
+          }
+        },
+        "required": ["id", "username", "email", "created", "updated"]
+      },
+      "error": {
+        "type": "string",
+        "description": "Error code or message (present when success=false). Common codes: UNAUTHORIZED"
+      }
+    },
+    "required": ["success", "message"]
+  },
+  "examples": [
+    {
+      "description": "Get current user information",
+      "input": {},
+      "output": {
+        "success": true,
+        "message": "User information retrieved for johndoe",
+        "user": {
+          "id": 1,
+          "username": "johndoe",
+          "email": "john.doe@example.com",
+          "name": "John Doe",
+          "created": "2025-01-01T00:00:00Z",
+          "updated": "2025-10-20T15:30:00Z",
+          "language": "en",
+          "timezone": "America/Los_Angeles",
+          "overdue_tasks_reminders_enabled": true
+        }
+      }
+    },
+    {
+      "description": "Unauthorized error (invalid token)",
+      "input": {},
+      "output": {
+        "success": false,
+        "message": "Unauthorized: No user context found",
+        "error": "UNAUTHORIZED"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": "UNAUTHORIZED",
+      "httpStatus": 401,
+      "description": "Invalid or missing authentication token"
+    }
+  ],
+  "securityNotes": [
+    "This tool explicitly filters sensitive user fields for security:",
+    "- Password hashes are never exposed",
+    "- TOTP secrets (2FA) are excluded",
+    "- Temporary tokens (email confirm, password reset) are excluded",
+    "- Only safe profile and preference fields are returned"
+  ]
+}

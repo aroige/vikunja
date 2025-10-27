@@ -11,7 +11,7 @@
 The Vikunja MCP Server enables AI agents (like Claude Desktop, n8n, custom scripts) to interact with [Vikunja](https://vikunja.io) through the [Model Context Protocol](https://modelcontextprotocol.io).
 
 **Key Features:**
-- 🤖 **35 MCP Tools** - Complete CRUD for projects, tasks, relations, comments, labels, attachments, and more
+- 🤖 **40 MCP Tools** - Complete CRUD for projects, tasks, relations, comments, labels, attachments, and more
 - 🔐 **Secure** - Token-based authentication with rate limiting
 - 🚀 **Fast** - <200ms p95 latency, stateless for horizontal scaling
 - 📦 **Easy Deploy** - Docker Compose or standalone
@@ -125,7 +125,7 @@ npm install
 
 ## Available Tools
 
-The MCP server provides **35 comprehensive tools** for AI agents to interact with Vikunja. Each tool includes detailed descriptions, parameter documentation, and usage examples to enable reliable agent decision-making without trial-and-error.
+The MCP server provides **39 comprehensive tools** for AI agents to interact with Vikunja. Each tool includes detailed descriptions, parameter documentation, and usage examples to enable reliable agent decision-making without trial-and-error.
 
 ### Enhanced Tool Discovery
 
@@ -140,16 +140,19 @@ All tools feature:
 
 For complete tool documentation with schemas, see [docs/TOOLS.md](docs/TOOLS.md) (auto-generated).
 
-### Project Management (4 tools)
+### Project Management (7 tools)
 - `create_project` - Create a new project
 - `update_project` - Update project details
 - `delete_project` - Delete a project
 - `archive_project` - Archive/unarchive a project
+- `get_project` - **NEW** - Retrieve single project details by ID
+- `get_all_projects` - **NEW** - List all accessible projects with pagination and filtering
+- `list_project_members` - **NEW** - List users with access to a project (for discovering assignees)
 
-### Task Management (7 tools)
+### Task Management (8 tools)
 - `create_task` - Create a task in a project (supports recurring tasks with repeat_after/repeat_mode)
 - `update_task` - Update task details
-- `get_task` - Retrieve single task details
+- `get_task` - **NEW** - Retrieve single task details by ID with full relationships
 - `complete_task` - Mark a task as complete
 - `delete_task` - Delete a task
 - `move_task` - Move task to another project
@@ -194,6 +197,9 @@ For complete tool documentation with schemas, see [docs/TOOLS.md](docs/TOOLS.md)
 - `bulk_update_tasks` - Update multiple tasks at once (max 100) for efficient batch modifications
 - `bulk_complete_tasks` - Complete multiple tasks at once (max 100)
 - `bulk_add_labels` - Add label to multiple tasks for organizing task groups
+
+### User Information (1 tool)
+- `get_user_info` - **NEW** - Retrieve authenticated user profile (safe fields only, excludes passwords/tokens)
 
 ## Recurring Tasks
 

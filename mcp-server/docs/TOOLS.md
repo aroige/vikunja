@@ -448,7 +448,7 @@ Retrieve metadata for all files attached to a task (filename, size, MIME type, u
 
 ### `search_tasks`
 
-Search for tasks by query string with advanced filtering. Use this when you need flexible text search with filters. For all user's tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. Supports pagination and filtering by done status, priority, labels (AND logic), and assignees. Returns matching tasks.
+Search for tasks by query string with advanced filtering. Efficiently handles large task sets (thousands of tasks). Use this when you need flexible text search with filters. For all user's tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. Supports pagination and filtering by done status, priority, labels (AND logic), and assignees (OR logic). Returns matching tasks.
 
 **Parameters:**
 
@@ -460,7 +460,7 @@ Search for tasks by query string with advanced filtering. Use this when you need
   - Minimum: 0
   - Maximum: 5
 - `filter_labels` (array, *optional*): Filter by label IDs (optional). Uses AND logic: tasks must have ALL specified labels. Example: [1, 2] returns tasks with both label 1 AND label 2.
-- `filter_assignees` (array, *optional*): Filter by assignee user IDs (optional). Returns tasks assigned to any of the specified users.
+- `filter_assignees` (array, *optional*): Filter by assignee user IDs (optional). Uses OR logic: returns tasks assigned to ANY of the specified users.
 
 ---
 
@@ -479,7 +479,7 @@ Search for projects by query string. Use this to find projects by name or descri
 
 ### `get_my_tasks`
 
-Get all tasks assigned to the current user across all projects. Use this for personal task list views. Supports pagination and filtering by done status and priority. Returns tasks sorted by due date. This is the primary tool for "what are my tasks?" queries.
+Get all tasks assigned to the current user across all projects. Efficiently handles large task counts. Use this for personal task list views. Supports pagination and filtering by done status and priority. Returns tasks sorted by due date. This is the primary tool for "what are my tasks?" queries.
 
 **Parameters:**
 
@@ -493,7 +493,7 @@ Get all tasks assigned to the current user across all projects. Use this for per
 
 ### `get_project_tasks`
 
-Get all tasks in a specific project. Use this for project-specific queries and views. Supports pagination and filtering by done status and priority. Returns tasks in the specified project, useful for "what needs to be done in project X?" queries.
+Get all tasks in a specific project. Efficiently handles projects with many tasks. Use this for project-specific queries and views. Supports pagination and filtering by done status and priority. Returns tasks in the specified project, useful for "what needs to be done in project X?" queries.
 
 **Parameters:**
 

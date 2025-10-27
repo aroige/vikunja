@@ -21,8 +21,8 @@ describe('Tool Description Quality Tests (US1)', () => {
     const registry = new ToolRegistry(mockClient, mockRateLimiter);
     const tools = registry.getTools();
 
-    // Verify we have all expected tools
-    expect(tools.length).toBeGreaterThanOrEqual(21);
+    // Verify we have all expected tools (25+ including get_project, get_all_projects, get_task, get_user_info from 010-mcp-missing-tools)
+    expect(tools.length).toBeGreaterThanOrEqual(25);
 
     // Track validation results
     const validationResults: Array<{ name: string; issues: string[] }> = [];
@@ -699,6 +699,398 @@ describe('Tool Description Quality Tests (US1)', () => {
     
     expect(mentionsAIContext,
       `${attachmentTool} should explain usefulness for AI agents/context - FR-001`
+    ).toBe(true);
+  });
+
+  it('should verify get_project and get_all_projects have comprehensive descriptions (010-mcp-missing-tools US1)', () => {
+    const registry = new ToolRegistry(mockClient, mockRateLimiter);
+    const tools = registry.getTools();
+    
+    // US1: get_project - Direct project lookup by ID
+    const getProject = tools.find((t) => t.name === 'get_project');
+    expect(getProject, 'get_project should exist - US1').toBeDefined();
+    
+    const getProjectDesc = getProject?.description || '';
+    
+    // FR-001: Comprehensive description (>20 chars)
+    expect(getProjectDesc.length, 'get_project should have description >20 chars - FR-001').toBeGreaterThan(20);
+    
+    // FR-001: Should mention purpose - retrieve single project by ID
+    expect(
+      getProjectDesc.toLowerCase().includes('retrieve') ||
+      getProjectDesc.toLowerCase().includes('get'),
+      'get_project description should mention retrieval purpose - FR-001'
+    ).toBe(true);
+    
+    expect(
+      getProjectDesc.toLowerCase().includes('single') ||
+      getProjectDesc.toLowerCase().includes('by id') ||
+      getProjectDesc.toLowerCase().includes('project id'),
+      'get_project description should mention single project by ID - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention use case - when you have the ID already
+    const hasUseCase = 
+      getProjectDesc.toLowerCase().includes('use this when') ||
+      getProjectDesc.toLowerCase().includes('when you') ||
+      getProjectDesc.toLowerCase().includes('already have') ||
+      getProjectDesc.toLowerCase().includes('known');
+    
+    expect(hasUseCase,
+      'get_project description should explain when to use this tool - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention efficiency advantage over searching
+    const mentionsEfficiency = 
+      getProjectDesc.toLowerCase().includes('efficient') ||
+      getProjectDesc.toLowerCase().includes('direct') ||
+      getProjectDesc.toLowerCase().includes('than search');
+    
+    expect(mentionsEfficiency,
+      'get_project description should mention efficiency advantage - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention what data is returned
+    const mentionsOutput = 
+      getProjectDesc.toLowerCase().includes('detail') ||
+      getProjectDesc.toLowerCase().includes('return') ||
+      getProjectDesc.toLowerCase().includes('metadata') ||
+      getProjectDesc.toLowerCase().includes('title') ||
+      getProjectDesc.toLowerCase().includes('color') ||
+      getProjectDesc.toLowerCase().includes('archived');
+    
+    expect(mentionsOutput,
+      'get_project description should mention returned data - FR-001'
+    ).toBe(true);
+    
+    // Check parameter descriptions
+    if (getProject?.inputSchema?.properties) {
+      const properties = getProject.inputSchema.properties as Record<string, { description?: string }>;
+      
+      // id parameter should have adequate description
+      expect(properties.id, 'get_project should have id parameter').toBeDefined();
+      
+      if (properties.id) {
+        const idDesc = properties.id.description || '';
+        
+        expect(idDesc.length, 
+          'get_project id parameter should have description >10 chars - FR-001'
+        ).toBeGreaterThan(10);
+        
+        // Should mention what is returned
+        expect(
+          idDesc.toLowerCase().includes('return') ||
+          idDesc.toLowerCase().includes('detail') ||
+          idDesc.toLowerCase().includes('full'),
+          'get_project id parameter should mention returned details - FR-001'
+        ).toBe(true);
+      }
+    }
+    
+    // US1: get_all_projects - List all accessible projects
+    const getAllProjects = tools.find((t) => t.name === 'get_all_projects');
+    expect(getAllProjects, 'get_all_projects should exist - US1').toBeDefined();
+    
+    const getAllProjectsDesc = getAllProjects?.description || '';
+    
+    // FR-001: Comprehensive description (>20 chars)
+    expect(getAllProjectsDesc.length, 'get_all_projects should have description >20 chars - FR-001').toBeGreaterThan(20);
+    
+    // FR-001: Should mention purpose - list all projects
+    expect(
+      getAllProjectsDesc.toLowerCase().includes('list') ||
+      getAllProjectsDesc.toLowerCase().includes('all'),
+      'get_all_projects description should mention listing all projects - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention use case - discovery without search query
+    const hasDiscoveryUseCase = 
+      getAllProjectsDesc.toLowerCase().includes('discover') ||
+      getAllProjectsDesc.toLowerCase().includes('without') ||
+      getAllProjectsDesc.toLowerCase().includes('overview') ||
+      getAllProjectsDesc.toLowerCase().includes('available');
+    
+    expect(hasDiscoveryUseCase,
+      'get_all_projects description should explain discovery use case - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention filtering/pagination features
+    const mentionsFeatures = 
+      getAllProjectsDesc.toLowerCase().includes('pagination') ||
+      getAllProjectsDesc.toLowerCase().includes('filter') ||
+      getAllProjectsDesc.toLowerCase().includes('archived');
+    
+    expect(mentionsFeatures,
+      'get_all_projects description should mention pagination/filtering - FR-001'
+    ).toBe(true);
+    
+    // Check parameter descriptions
+    if (getAllProjects?.inputSchema?.properties) {
+      const properties = getAllProjects.inputSchema.properties as Record<string, { description?: string }>;
+      
+      // page parameter should exist and have description
+      if (properties.page) {
+        const pageDesc = properties.page.description || '';
+        
+        expect(pageDesc.length, 
+          'get_all_projects page parameter should have description >10 chars - FR-001'
+        ).toBeGreaterThan(10);
+        
+        // Should mention default and page size
+        expect(
+          pageDesc.includes('default') ||
+          pageDesc.includes('optional'),
+          'get_all_projects page parameter should mention defaults - FR-001'
+        ).toBe(true);
+      }
+      
+      // filter_archived parameter should exist and have description
+      if (properties.filter_archived) {
+        const filterDesc = properties.filter_archived.description || '';
+        
+        expect(filterDesc.length, 
+          'get_all_projects filter_archived parameter should have description >10 chars - FR-001'
+        ).toBeGreaterThan(10);
+        
+        // Should explain filtering options
+        expect(
+          filterDesc.toLowerCase().includes('filter') ||
+          filterDesc.toLowerCase().includes('active') ||
+          filterDesc.toLowerCase().includes('archived'),
+          'get_all_projects filter_archived parameter should explain filtering - FR-001'
+        ).toBe(true);
+      }
+    }
+    
+    // FR-002: Verify differentiation between get_project and get_all_projects
+    // get_all_projects should mention when to use vs get_project
+    const mentionsDifferentiation = 
+      getAllProjectsDesc.toLowerCase().includes('when') ||
+      getAllProjectsDesc.toLowerCase().includes('use this') ||
+      getAllProjectsDesc.toLowerCase().includes('discover');
+    
+    expect(mentionsDifferentiation,
+      'get_all_projects should explain when to use vs get_project - FR-002'
+    ).toBe(true);
+  });
+
+  it('should verify get_task has comprehensive description (010-mcp-missing-tools US3)', () => {
+    const registry = new ToolRegistry(mockClient, mockRateLimiter);
+    const tools = registry.getTools();
+    
+    // US3: get_task - Direct task lookup by ID
+    const getTask = tools.find((t) => t.name === 'get_task');
+    expect(getTask, 'get_task should exist - US3').toBeDefined();
+    
+    const getTaskDesc = getTask?.description || '';
+    
+    // FR-001: Comprehensive description (>20 chars)
+    expect(getTaskDesc.length, 'get_task should have description >20 chars - FR-001').toBeGreaterThan(20);
+    
+    // FR-001: Should mention purpose - retrieve single task by ID
+    expect(
+      getTaskDesc.toLowerCase().includes('retrieve') ||
+      getTaskDesc.toLowerCase().includes('get'),
+      'get_task description should mention retrieval purpose - FR-001'
+    ).toBe(true);
+    
+    expect(
+      getTaskDesc.toLowerCase().includes('single') ||
+      getTaskDesc.toLowerCase().includes('by id') ||
+      getTaskDesc.toLowerCase().includes('task id'),
+      'get_task description should mention single task by ID - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention use case - when you have the ID already
+    const hasUseCase = 
+      getTaskDesc.toLowerCase().includes('use this when') ||
+      getTaskDesc.toLowerCase().includes('when you') ||
+      getTaskDesc.toLowerCase().includes('already have') ||
+      getTaskDesc.toLowerCase().includes('known');
+    
+    expect(hasUseCase,
+      'get_task description should explain when to use this tool - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention complete data returned (relations, assignees, labels)
+    const mentionsCompleteData = 
+      getTaskDesc.toLowerCase().includes('complete') ||
+      getTaskDesc.toLowerCase().includes('full') ||
+      getTaskDesc.toLowerCase().includes('detail') ||
+      getTaskDesc.toLowerCase().includes('all');
+    
+    expect(mentionsCompleteData,
+      'get_task description should mention complete task data - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention what specific data is included
+    const mentionsSpecificData = 
+      getTaskDesc.toLowerCase().includes('relation') ||
+      getTaskDesc.toLowerCase().includes('assignee') ||
+      getTaskDesc.toLowerCase().includes('label') ||
+      getTaskDesc.toLowerCase().includes('metadata');
+    
+    expect(mentionsSpecificData,
+      'get_task description should mention specific data included (relations/assignees/labels) - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention efficiency advantage over searching
+    const mentionsEfficiency = 
+      getTaskDesc.toLowerCase().includes('efficient') ||
+      getTaskDesc.toLowerCase().includes('direct') ||
+      getTaskDesc.toLowerCase().includes('than search');
+    
+    expect(mentionsEfficiency,
+      'get_task description should mention efficiency advantage - FR-001'
+    ).toBe(true);
+    
+    // Check parameter descriptions
+    if (getTask?.inputSchema?.properties) {
+      const properties = getTask.inputSchema.properties as Record<string, { description?: string }>;
+      
+      // id parameter should have adequate description
+      expect(properties.id, 'get_task should have id parameter').toBeDefined();
+      
+      if (properties.id) {
+        const idDesc = properties.id.description || '';
+        
+        expect(idDesc.length, 
+          'get_task id parameter should have description >10 chars - FR-003'
+        ).toBeGreaterThan(10);
+        
+        // Should mention what complete data is returned
+        expect(
+          idDesc.toLowerCase().includes('complete') ||
+          idDesc.toLowerCase().includes('detail') ||
+          idDesc.toLowerCase().includes('full') ||
+          idDesc.toLowerCase().includes('relation') ||
+          idDesc.toLowerCase().includes('assignee') ||
+          idDesc.toLowerCase().includes('label'),
+          'get_task id parameter should mention complete data with relations/assignees/labels - FR-003'
+        ).toBe(true);
+      }
+    }
+    
+    // FR-002: Verify differentiation from search_tasks
+    const mentionsDifferentiation = 
+      getTaskDesc.toLowerCase().includes('when') ||
+      getTaskDesc.toLowerCase().includes('use this') ||
+      getTaskDesc.toLowerCase().includes('already have') ||
+      getTaskDesc.toLowerCase().includes('known id');
+    
+    expect(mentionsDifferentiation,
+      'get_task should explain when to use vs search_tasks - FR-002'
+    ).toBe(true);
+  });
+
+  it('should verify get_user_info has comprehensive description (010-mcp-missing-tools US4)', () => {
+    const registry = new ToolRegistry(mockClient, mockRateLimiter);
+    const tools = registry.getTools();
+    
+    // US4: get_user_info - Get authenticated user profile
+    const getUserInfo = tools.find((t) => t.name === 'get_user_info');
+    expect(getUserInfo, 'get_user_info should exist - US4').toBeDefined();
+    
+    const getUserInfoDesc = getUserInfo?.description || '';
+    
+    // FR-001: Comprehensive description (>20 chars)
+    expect(getUserInfoDesc.length, 'get_user_info should have description >20 chars - FR-001').toBeGreaterThan(20);
+    
+    // FR-001: Should mention purpose - retrieve authenticated user profile
+    expect(
+      getUserInfoDesc.toLowerCase().includes('retrieve') ||
+      getUserInfoDesc.toLowerCase().includes('get'),
+      'get_user_info description should mention retrieval purpose - FR-001'
+    ).toBe(true);
+    
+    expect(
+      getUserInfoDesc.toLowerCase().includes('authenticated') ||
+      getUserInfoDesc.toLowerCase().includes('current') ||
+      getUserInfoDesc.toLowerCase().includes('user'),
+      'get_user_info description should mention authenticated user - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention use case - AI agent context awareness
+    const hasUseCase = 
+      getUserInfoDesc.toLowerCase().includes('use this') ||
+      getUserInfoDesc.toLowerCase().includes('context') ||
+      getUserInfoDesc.toLowerCase().includes('understand') ||
+      getUserInfoDesc.toLowerCase().includes('identify') ||
+      getUserInfoDesc.toLowerCase().includes('agent');
+    
+    expect(hasUseCase,
+      'get_user_info description should explain context awareness use case - FR-001'
+    ).toBe(true);
+    
+    // FR-001: Should mention what safe fields are returned
+    const mentionsSafeFields = 
+      getUserInfoDesc.toLowerCase().includes('safe') ||
+      getUserInfoDesc.toLowerCase().includes('profile') ||
+      getUserInfoDesc.toLowerCase().includes('id') ||
+      getUserInfoDesc.toLowerCase().includes('username') ||
+      getUserInfoDesc.toLowerCase().includes('email') ||
+      getUserInfoDesc.toLowerCase().includes('name');
+    
+    expect(mentionsSafeFields,
+      'get_user_info description should mention safe user fields returned - FR-001'
+    ).toBe(true);
+    
+    // FR-011: CRITICAL - Must explicitly mention sensitive field filtering
+    const mentionsFiltering = 
+      getUserInfoDesc.toLowerCase().includes('excluding') ||
+      getUserInfoDesc.toLowerCase().includes('without') ||
+      getUserInfoDesc.toLowerCase().includes('safe') ||
+      getUserInfoDesc.toLowerCase().includes('filtered') ||
+      getUserInfoDesc.toLowerCase().includes('no password') ||
+      getUserInfoDesc.toLowerCase().includes('no token') ||
+      (getUserInfoDesc.toLowerCase().includes('sensitive') && 
+       (getUserInfoDesc.toLowerCase().includes('not') || getUserInfoDesc.toLowerCase().includes('without')));
+    
+    expect(mentionsFiltering,
+      'get_user_info description must explicitly mention sensitive field filtering - FR-011'
+    ).toBe(true);
+    
+    // FR-011: Should mention what sensitive fields are excluded
+    const mentionsSensitiveFields = 
+      getUserInfoDesc.toLowerCase().includes('password') ||
+      getUserInfoDesc.toLowerCase().includes('token') ||
+      getUserInfoDesc.toLowerCase().includes('sensitive') ||
+      getUserInfoDesc.toLowerCase().includes('credential');
+    
+    expect(mentionsSensitiveFields,
+      'get_user_info description should mention sensitive fields excluded - FR-011'
+    ).toBe(true);
+    
+    // FR-001: Should explain value for AI agents
+    const mentionsAIValue = 
+      getUserInfoDesc.toLowerCase().includes('agent') ||
+      getUserInfoDesc.toLowerCase().includes('context') ||
+      getUserInfoDesc.toLowerCase().includes('personalize') ||
+      getUserInfoDesc.toLowerCase().includes('understand who');
+    
+    expect(mentionsAIValue,
+      'get_user_info description should explain value for AI agents - FR-001'
+    ).toBe(true);
+    
+    // Check that schema is empty object (no parameters required)
+    if (getUserInfo?.inputSchema?.properties) {
+      const properties = getUserInfo.inputSchema.properties as Record<string, { description?: string }>;
+      const paramCount = Object.keys(properties).length;
+      
+      expect(paramCount, 
+        'get_user_info should have no parameters (empty schema) - uses authenticated context'
+      ).toBe(0);
+    }
+    
+    // Verify description mentions no parameters needed (uses auth context)
+    const mentionsNoParams = 
+      getUserInfoDesc.toLowerCase().includes('no parameter') ||
+      getUserInfoDesc.toLowerCase().includes('authenticated') ||
+      getUserInfoDesc.toLowerCase().includes('current user') ||
+      getUserInfoDesc.toLowerCase().includes('from context');
+    
+    expect(mentionsNoParams,
+      'get_user_info description should clarify no parameters needed (uses auth context) - FR-001'
     ).toBe(true);
   });
 });
