@@ -69,11 +69,17 @@ export const MoveTaskSchema = z.object({
     .describe('ID of the destination project. The task will be moved from its current project to this one. Requires write permission on both projects.'),
 });
 
+export const GetTaskSchema = z.object({
+  id: z.number().int().positive()
+    .describe('ID of the task to retrieve (required). Returns complete task details including title, description, priority, assignees, labels, and relations to other tasks.'),
+});
+
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 export type DeleteTaskInput = z.infer<typeof DeleteTaskSchema>;
 export type MoveTaskInput = z.infer<typeof MoveTaskSchema>;
+export type GetTaskInput = z.infer<typeof GetTaskSchema>;
 
 /**
  * Tool result for task operations
@@ -285,6 +291,61 @@ export class TaskTools {
       return {
         success: false,
         message: 'Failed to move task',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get a single task by ID
+   */
+  async getTask(
+    input: GetTaskInput,
+    userContext: UserContext
+  ): Promise<TaskToolResult> {
+    try {
+      // Rate limiting check
+      await this.rateLimiter.checkLimit(userContext.token);
+
+      // Retrieve task with token passed directly
+      const task = await this.client.get<VikunjaTask>(
+        `/api/v1/tasks/${input.id}`,
+        undefined, // no query params
+        userContext.token
+      );
+
+      logger.info('Task retrieved', {
+        taskId: task.id,
+        userId: userContext.userId,
+      });
+
+      return {
+        success: true,
+        message: `Task "${task.title}" retrieved successfully`,
+        task,
+        taskId: task.id,
+      };
+    } catch (error) {
+      logger.error('Failed to retrieve task', {
+        error,
+        taskId: input.id,
+        userId: userContext.userId,
+      });
+
+      // Handle specific error cases
+      let message = 'Failed to retrieve task';
+      if (error instanceof Error) {
+        const statusCode = (error as any).response?.status;
+        if (statusCode === 404) {
+          message = `Task with ID ${input.id} not found`;
+        } else if (statusCode === 403) {
+          message = 'You do not have permission to access this task';
+        }
+      }
+
+      return {
+        success: false,
+        message,
         error: error instanceof Error ? error.message : String(error),
       };
     }

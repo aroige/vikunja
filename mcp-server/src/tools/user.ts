@@ -27,7 +27,6 @@ export interface UserToolResult {
  */
 export class UserTools {
   constructor(
-    // @ts-expect-error - Will be used in implementation phase
     private client: VikunjaClient,
     private rateLimiter: RateLimiter
   ) {}
@@ -37,23 +36,44 @@ export class UserTools {
    * Returns safe user profile fields, excluding sensitive data
    */
   async getUserInfo(
-    // @ts-expect-error - Will be used in implementation phase
-    input: GetUserInfoInput,
+    _input: GetUserInfoInput,
     userContext: UserContext
   ): Promise<UserToolResult> {
     try {
       // Rate limiting check
       await this.rateLimiter.checkLimit(userContext.token);
 
-      // Placeholder implementation - will be completed in later tasks
-      logger.info('Get user info requested', {
+      // Retrieve user info from Vikunja API
+      const user = await this.client.get<any>(
+        '/api/v1/user',
+        undefined,
+        userContext.token
+      );
+
+      logger.info('User info retrieved', {
         userId: userContext.userId,
       });
 
+      // Filter to only safe fields - explicitly exclude sensitive data
+      const safeUser = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        created: user.created,
+        updated: user.updated,
+        // Optional settings fields
+        ...(user.language !== undefined && { language: user.language }),
+        ...(user.timezone !== undefined && { timezone: user.timezone }),
+        ...(user.overdue_tasks_reminders_enabled !== undefined && {
+          overdue_tasks_reminders_enabled: user.overdue_tasks_reminders_enabled,
+        }),
+      };
+
       return {
-        success: false,
-        message: 'Not yet implemented',
-        error: 'getUserInfo method needs implementation',
+        success: true,
+        message: `User information retrieved for ${user.username}`,
+        user: safeUser,
       };
     } catch (error) {
       logger.error('Failed to get user info', {
@@ -61,9 +81,18 @@ export class UserTools {
         userId: userContext.userId,
       });
 
+      // Handle specific error cases
+      let message = 'Failed to retrieve user information';
+      if (error instanceof Error) {
+        const statusCode = (error as any).response?.status;
+        if (statusCode === 401) {
+          message = 'Unauthorized - invalid or expired token';
+        }
+      }
+
       return {
         success: false,
-        message: 'Failed to retrieve user information',
+        message,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

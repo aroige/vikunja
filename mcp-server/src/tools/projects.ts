@@ -298,23 +298,24 @@ export class ProjectTools {
   async getAllProjects(
     input: GetAllProjectsInput,
     userContext: UserContext
-  ): Promise<ProjectToolResult & { projects?: VikunjaProject[]; hasMore?: boolean }> {
+  ): Promise<ProjectToolResult & { projects?: VikunjaProject[]; total?: number; page?: number; hasMore?: boolean }> {
     try {
       // Rate limiting check
       await this.rateLimiter.checkLimit(userContext.token);
 
       // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', input.page?.toString() || '1');
+      const params: Record<string, any> = {
+        page: input.page || 1,
+      };
       
       if (input.filter_archived !== undefined) {
-        params.append('is_archived', input.filter_archived.toString());
+        params['is_archived'] = input.filter_archived;
       }
 
       // Retrieve projects list with token passed directly
       const projects = await this.client.get<VikunjaProject[]>(
-        `/api/v1/projects?${params.toString()}`,
-        undefined, // params already in URL
+        `/api/v1/projects`,
+        params,
         userContext.token
       );
 
@@ -326,11 +327,14 @@ export class ProjectTools {
 
       // Heuristic for hasMore: if we got 50 results, there might be more
       const hasMore = projects.length >= 50;
+      const page = input.page || 1;
 
       return {
         success: true,
-        message: `Retrieved ${projects.length} project${projects.length !== 1 ? 's' : ''}`,
+        message: `Found ${projects.length} projects`,
         projects,
+        total: projects.length,
+        page,
         hasMore,
       };
     } catch (error) {

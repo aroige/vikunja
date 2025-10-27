@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema } from './projects.js';
-import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, DeleteTaskSchema, MoveTaskSchema } from './tasks.js';
+import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, DeleteTaskSchema, MoveTaskSchema, GetTaskSchema } from './tasks.js';
 import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, RemoveLabelSchema, CreateLabelSchema } from './assignments.js';
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
 import { BulkTools, BulkUpdateTasksSchema, BulkCompleteTasksSchema, BulkAssignTasksSchema, BulkAddLabelsSchema } from './bulk.js';
+import { UserTools, GetUserInfoSchema } from './user.js';
 import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRelationSchema, GetTaskRelationsSchema, DeleteTaskRelationSchema } from './relations.js';
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment, AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema } from './comments.js';
 import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels, GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema } from './labels.js';
@@ -43,6 +44,7 @@ export class ToolRegistry {
   private readonly assignmentTools: AssignmentTools;
   private readonly searchTools: SearchTools;
   private readonly bulkTools: BulkTools;
+  private readonly userTools: UserTools;
 
   private readonly tools: Map<string, MCPTool>;
   private readonly executors: Map<string, ToolExecutor>;
@@ -54,6 +56,7 @@ export class ToolRegistry {
     this.assignmentTools = new AssignmentTools(client, rateLimiter);
     this.searchTools = new SearchTools(client, rateLimiter);
     this.bulkTools = new BulkTools(client, rateLimiter);
+    this.userTools = new UserTools(client, rateLimiter);
 
     this.tools = new Map();
     this.executors = new Map();
@@ -142,6 +145,13 @@ export class ToolRegistry {
       'Move a task to a different project. Use this to reorganize tasks across projects. The task keeps its properties (title, description, labels, etc.) but changes its parent project. Requires write permission on both projects. Returns the updated task.',
       MoveTaskSchema,
       async (args, ctx) => this.taskTools.moveTask(args as z.infer<typeof MoveTaskSchema>, ctx)
+    );
+
+    this.registerTool(
+      'get_task',
+      'Retrieve a single task by its ID. Use this when you need complete task details (title, description, priority, assignees, labels, relations) for a known task ID. This is more efficient than searching when you already have the ID. Returns the full task entity with all relationships including related tasks, labels, and assignees.',
+      GetTaskSchema,
+      async (args, ctx) => this.taskTools.getTask(args as z.infer<typeof GetTaskSchema>, ctx)
     );
 
     // Assignment Tools
@@ -370,6 +380,14 @@ export class ToolRegistry {
         const validatedArgs = args as z.infer<typeof GetTaskAttachmentsSchema>;
         return getTaskAttachments(validatedArgs, this.client, ctx.token);
       }
+    );
+
+    // User Tools
+    this.registerTool(
+      'get_user_info',
+      'Retrieve authenticated user profile information. Use this to understand the current user context for personalized responses or to display user details. Returns safe user fields (id, username, email, name, preferences) while explicitly filtering sensitive data (passwords, tokens). No parameters required - uses authenticated session.',
+      GetUserInfoSchema,
+      async (args, ctx) => this.userTools.getUserInfo(args as z.infer<typeof GetUserInfoSchema>, ctx)
     );
   }
 
