@@ -99,14 +99,14 @@ export class ToolRegistry {
 
     this.registerTool(
       'get_project',
-      'Retrieve a single project by its ID. Use this when you need complete project details (title, description, color, parent, archived status) for a known project ID. This is more efficient than searching when you already have the ID. Returns the full project entity with metadata.',
+      'Retrieve a single project by its ID. Use this when you need complete project details (title, description, color, parent, archived status) for a known project ID. Requires read access to the project. This is more efficient than searching when you already have the ID (direct ID lookup vs text search). Use search_projects if you don\'t know the project ID. Returns the full project entity with metadata.',
       GetProjectSchema,
       async (args, ctx) => this.projectTools.getProject(args as z.infer<typeof GetProjectSchema>, ctx)
     );
 
     this.registerTool(
       'get_all_projects',
-      'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter) and filtering by archived status (filter_archived). Returns an array of projects with pagination metadata.',
+      'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter) and filtering by archived status (filter_archived). Use get_project for detailed information about a specific project when you know its ID. Returns an array of projects with pagination metadata (total, page, hasMore).',
       GetAllProjectsSchema,
       async (args, ctx) => this.projectTools.getAllProjects(args as z.infer<typeof GetAllProjectsSchema>, ctx)
     );
@@ -149,7 +149,7 @@ export class ToolRegistry {
 
     this.registerTool(
       'get_task',
-      'Retrieve a single task by its ID. Use this when you need complete task details (title, description, priority, assignees, labels, relations) for a known task ID. This is more efficient than searching when you already have the ID. Returns the full task entity with all relationships including related tasks, labels, and assignees.',
+      'Retrieve a single task by its ID. Use this when you need complete task details (title, description, priority, assignees, labels, relations) for a known task ID. Requires read access to the task. This is more efficient than searching when you already have the ID (direct ID lookup vs text search). Returns the full task entity with all relationships as expanded objects: related tasks (subtasks, parent tasks, blocking, duplicates, etc. with full task details), labels (with title, color, description), and assignees (with username, email, name).',
       GetTaskSchema,
       async (args, ctx) => this.taskTools.getTask(args as z.infer<typeof GetTaskSchema>, ctx)
     );
@@ -385,7 +385,7 @@ export class ToolRegistry {
     // User Tools
     this.registerTool(
       'get_user_info',
-      'Retrieve authenticated user profile information. Use this to understand the current user context for personalized responses or to display user details. Returns safe user fields (id, username, email, name, preferences) while explicitly filtering sensitive data (passwords, tokens). No parameters required - uses authenticated session.',
+      'Retrieve authenticated user profile information. Use this to understand the current user context for personalized responses or to display user details. Returns safe user fields (id, username, email, name, created, updated, language, timezone, overdue_tasks_reminders_enabled) while explicitly filtering sensitive data (passwords, tokens, secrets). No parameters required - uses authenticated session.',
       GetUserInfoSchema,
       async (args, ctx) => this.userTools.getUserInfo(args as z.infer<typeof GetUserInfoSchema>, ctx)
     );
