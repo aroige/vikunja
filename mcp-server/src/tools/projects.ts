@@ -46,10 +46,24 @@ export const ArchiveProjectSchema = z.object({
     .describe('Archive status (required). Set true to archive (hide), false to unarchive (restore).'),
 });
 
+export const GetProjectSchema = z.object({
+  id: z.number().int().positive()
+    .describe('ID of the project to retrieve (required). Returns full project details including title, description, color, parent, and archived status.'),
+});
+
+export const GetAllProjectsSchema = z.object({
+  page: z.number().int().positive().optional().default(1)
+    .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 projects.'),
+  filter_archived: z.boolean().optional()
+    .describe('Filter by archive status (optional). Set true for archived only, false for active only, omit for all.'),
+});
+
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
 export type DeleteProjectInput = z.infer<typeof DeleteProjectSchema>;
 export type ArchiveProjectInput = z.infer<typeof ArchiveProjectSchema>;
+export type GetProjectInput = z.infer<typeof GetProjectSchema>;
+export type GetAllProjectsInput = z.infer<typeof GetAllProjectsSchema>;
 
 /**
  * Tool result for project operations
@@ -219,6 +233,119 @@ export class ProjectTools {
       return {
         success: false,
         message: 'Failed to change project archive status',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get a single project by ID
+   */
+  async getProject(
+    input: GetProjectInput,
+    userContext: UserContext
+  ): Promise<ProjectToolResult> {
+    try {
+      // Rate limiting check
+      await this.rateLimiter.checkLimit(userContext.token);
+
+      // Retrieve project with token passed directly
+      const project = await this.client.get<VikunjaProject>(
+        `/api/v1/projects/${input.id}`,
+        undefined, // no query params
+        userContext.token
+      );
+
+      logger.info('Project retrieved', {
+        projectId: project.id,
+        userId: userContext.userId,
+      });
+
+      return {
+        success: true,
+        message: `Project "${project.title}" retrieved successfully`,
+        project,
+      };
+    } catch (error) {
+      logger.error('Failed to retrieve project', {
+        error,
+        projectId: input.id,
+        userId: userContext.userId,
+      });
+
+      // Handle specific error cases
+      let message = 'Failed to retrieve project';
+      if (error instanceof Error) {
+        const statusCode = (error as any).response?.status;
+        if (statusCode === 404) {
+          message = `Project with ID ${input.id} not found`;
+        } else if (statusCode === 403) {
+          message = 'You do not have permission to access this project';
+        }
+      }
+
+      return {
+        success: false,
+        message,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get all projects with optional filtering
+   */
+  async getAllProjects(
+    input: GetAllProjectsInput,
+    userContext: UserContext
+  ): Promise<ProjectToolResult & { projects?: VikunjaProject[]; total?: number; page?: number; hasMore?: boolean }> {
+    try {
+      // Rate limiting check
+      await this.rateLimiter.checkLimit(userContext.token);
+
+      // Build query parameters
+      const params: Record<string, any> = {
+        page: input.page || 1,
+      };
+      
+      if (input.filter_archived !== undefined) {
+        params['is_archived'] = input.filter_archived;
+      }
+
+      // Retrieve projects list with token passed directly
+      const projects = await this.client.get<VikunjaProject[]>(
+        `/api/v1/projects`,
+        params,
+        userContext.token
+      );
+
+      logger.info('Projects list retrieved', {
+        count: projects.length,
+        page: input.page || 1,
+        userId: userContext.userId,
+      });
+
+      // Heuristic for hasMore: if we got 50 results, there might be more
+      const hasMore = projects.length >= 50;
+      const page = input.page || 1;
+
+      return {
+        success: true,
+        message: `Found ${projects.length} projects`,
+        projects,
+        total: projects.length,
+        page,
+        hasMore,
+      };
+    } catch (error) {
+      logger.error('Failed to retrieve projects list', {
+        error,
+        userId: userContext.userId,
+      });
+
+      return {
+        success: false,
+        message: 'Failed to retrieve projects list',
         error: error instanceof Error ? error.message : String(error),
       };
     }

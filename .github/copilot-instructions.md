@@ -26,6 +26,7 @@ tests/
 Bash 4.0+ (deployment scripts), Go 1.21+ (Vikunja backend), Node.js 22+ (frontend build, MCP server): Follow standard conventions
 
 ## Recent Changes
+- 010-mcp-missing-tools: Added TypeScript 5.3+, Node.js 22+ + @modelcontextprotocol/sdk ^1.0.0, Express 4.x, Zod 3.22+, ioredis 5.3+, winston 3.11+, axios 1.6+
 - 009-weekday-weekend-repeats: Added Go 1.21+ (backend), TypeScript 5.x with Node.js 22+ (frontend, MCP server)
 - 008-mcp-server-improvements: Added TypeScript 5.3+, Node.js 22+ + @modelcontextprotocol/sdk ^1.0.0, Express 4.x, Zod 3.22+, ioredis 5.3+, winston 3.11+, axios 1.6+
 - 007-fix-saved-filters: Added Go 1.21+

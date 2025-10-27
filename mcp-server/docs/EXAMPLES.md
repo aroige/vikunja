@@ -653,6 +653,193 @@ class CachedMCPClient {
 
 ---
 
+## Direct Entity Access (Read-Only Tools)
+
+### Example 12: Get Project Details
+
+**Scenario**: Retrieve complete information about a specific project by ID.
+
+**Claude Desktop Interaction:**
+```
+User: "Show me details for project 11"
+
+Claude: I'll fetch that project's information.
+```
+
+**Tool Call:**
+```json
+{
+  "tool": "get_project",
+  "arguments": {
+    "id": 11
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Project 'Personal Tasks' retrieved successfully",
+  "project": {
+    "id": 11,
+    "title": "Personal Tasks",
+    "description": "My personal todo list",
+    "hex_color": "#3498db",
+    "parent_project_id": 0,
+    "is_archived": false,
+    "created": "2025-01-15T10:30:00Z",
+    "updated": "2025-10-26T14:00:00Z",
+    "owner": {
+      "id": 1,
+      "username": "testuser"
+    }
+  }
+}
+```
+
+### Example 13: List All Projects
+
+**Scenario**: Discover all accessible projects for the user.
+
+**n8n Workflow:**
+```json
+{
+  "tool": "get_all_projects",
+  "arguments": {
+    "page": 1,
+    "filter_archived": false
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Found 3 projects",
+  "projects": [
+    {
+      "id": 1,
+      "title": "Work Tasks",
+      "is_archived": false
+    },
+    {
+      "id": 11,
+      "title": "Personal Tasks",
+      "is_archived": false
+    },
+    {
+      "id": 25,
+      "title": "Home Projects",
+      "is_archived": false
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "hasMore": false
+}
+```
+
+### Example 14: Get Task with Relationships
+
+**Scenario**: Fetch complete task details including assignees, labels, and related tasks.
+
+**Python Script:**
+```python
+async def get_task_details(task_id):
+    client = VikunjaMCPClient(
+        api_url="http://localhost:3457",
+        api_token="your-token"
+    )
+    
+    result = await client.call_tool("get_task", {
+        "id": task_id
+    })
+    
+    print(f"Task: {result['task']['title']}")
+    print(f"Priority: {result['task']['priority']}")
+    print(f"Assignees: {len(result['task']['assignees'])}")
+    print(f"Labels: {len(result['task']['labels'])}")
+    
+    # Check related tasks
+    related = result['task']['related_tasks']
+    if related.get('blocking'):
+        print(f"Blocking {len(related['blocking'])} tasks")
+    
+    return result
+```
+
+### Example 15: Get Current User Info
+
+**Scenario**: Retrieve authenticated user profile for context-aware responses.
+
+**Tool Call:**
+```json
+{
+  "tool": "get_user_info",
+  "arguments": {}
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User information retrieved for testuser",
+  "user": {
+    "id": 1,
+    "username": "testuser",
+    "email": "user@example.com",
+    "name": "Test User",
+    "created": "2025-01-01T00:00:00Z",
+    "updated": "2025-10-27T00:00:00Z",
+    "language": "en",
+    "timezone": "America/New_York",
+    "overdue_tasks_reminders_enabled": true
+  }
+}
+```
+
+**Note**: Sensitive fields (password, tokens, secrets) are automatically filtered for security.
+
+### Example 16: Chained Read Operations
+
+**Scenario**: Get user info, list their projects, and fetch details of a specific task.
+
+**Claude Desktop Workflow:**
+```
+User: "Show me my profile, list my projects, and get task 42 details"
+
+Claude: I'll fetch all that information for you.
+```
+
+**Tool Sequence:**
+```json
+[
+  {
+    "tool": "get_user_info",
+    "arguments": {}
+  },
+  {
+    "tool": "get_all_projects",
+    "arguments": {
+      "page": 1
+    }
+  },
+  {
+    "tool": "get_task",
+    "arguments": {
+      "id": 42
+    }
+  }
+]
+```
+
+**Use Case**: AI agents can use this workflow to understand the user's context before suggesting task organization or project management strategies.
+
+---
+
 ## Next Steps
 
 - **API Reference**: See [API.md](./API.md) for complete tool documentation

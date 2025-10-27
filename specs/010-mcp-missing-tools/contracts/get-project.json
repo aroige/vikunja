@@ -1,0 +1,95 @@
+{
+  "name": "get_project",
+  "description": "Retrieve a single project by its ID. Use this when you need complete project details (title, description, color, parent, archived status) for a known project ID. This is more efficient than searching when you already have the ID. Returns the full project entity with metadata.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "number",
+        "description": "ID of the project to retrieve (required). Must be a positive integer. Returns full project details including title, description, color, parent, and archived status.",
+        "minimum": 1
+      }
+    },
+    "required": ["id"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation succeeded"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable result description"
+      },
+      "project": {
+        "type": "object",
+        "description": "Full project entity (present when success=true)",
+        "properties": {
+          "id": { "type": "number" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "hex_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "parent_project_id": { "type": "number", "nullable": true },
+          "is_archived": { "type": "boolean" },
+          "created": { "type": "string", "format": "date-time" },
+          "updated": { "type": "string", "format": "date-time" },
+          "owner": { "type": "object" }
+        }
+      },
+      "error": {
+        "type": "string",
+        "description": "Error code or message (present when success=false). Common codes: NOT_FOUND, FORBIDDEN, UNAUTHORIZED"
+      }
+    },
+    "required": ["success", "message"]
+  },
+  "examples": [
+    {
+      "description": "Retrieve project 11 to get its name",
+      "input": { "id": 11 },
+      "output": {
+        "success": true,
+        "message": "Project \"Personal Tasks\" retrieved successfully",
+        "project": {
+          "id": 11,
+          "title": "Personal Tasks",
+          "description": "My personal todo list",
+          "hex_color": "#3498db",
+          "parent_project_id": null,
+          "is_archived": false,
+          "created": "2025-01-15T10:30:00Z",
+          "updated": "2025-10-26T14:00:00Z",
+          "owner": { "id": 1, "username": "user1" }
+        }
+      }
+    },
+    {
+      "description": "Project not found error",
+      "input": { "id": 999 },
+      "output": {
+        "success": false,
+        "message": "Project with ID 999 not found",
+        "error": "NOT_FOUND"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": "NOT_FOUND",
+      "httpStatus": 404,
+      "description": "Project with the specified ID does not exist or user lacks permission to view it"
+    },
+    {
+      "code": "FORBIDDEN",
+      "httpStatus": 403,
+      "description": "User does not have permission to access this project"
+    },
+    {
+      "code": "VALIDATION_ERROR",
+      "httpStatus": 400,
+      "description": "Invalid project ID (must be positive integer)"
+    }
+  ]
+}

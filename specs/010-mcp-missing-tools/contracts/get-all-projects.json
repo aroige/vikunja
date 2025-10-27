@@ -1,0 +1,137 @@
+{
+  "name": "get_all_projects",
+  "description": "List all projects accessible to the authenticated user. Use this for workspace discovery and organization tasks (e.g., \"What projects do I have?\" or \"Show me all my workspaces\"). Unlike search_projects, this does not require a search query and returns all projects. Supports filtering by archived status and pagination.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "page": {
+        "type": "number",
+        "description": "Page number for pagination (optional, default: 1). Each page returns up to 50 projects. Use subsequent pages to retrieve all projects if hasMore=true in response.",
+        "minimum": 1,
+        "default": 1
+      },
+      "filter_archived": {
+        "type": "boolean",
+        "description": "Filter by archive status (optional). Set true for archived projects only, false for active projects only, omit to include both archived and active projects."
+      }
+    },
+    "required": []
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation succeeded"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable result description"
+      },
+      "projects": {
+        "type": "array",
+        "description": "Array of project entities (present when success=true)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "number" },
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "hex_color": { "type": "string" },
+            "parent_project_id": { "type": "number", "nullable": true },
+            "is_archived": { "type": "boolean" },
+            "created": { "type": "string", "format": "date-time" },
+            "updated": { "type": "string", "format": "date-time" }
+          }
+        }
+      },
+      "total": {
+        "type": "number",
+        "description": "Count of projects returned in this page"
+      },
+      "page": {
+        "type": "number",
+        "description": "Current page number"
+      },
+      "hasMore": {
+        "type": "boolean",
+        "description": "Whether more pages exist (true if current page has 50 projects, suggesting more may exist)"
+      },
+      "error": {
+        "type": "string",
+        "description": "Error code or message (present when success=false)"
+      }
+    },
+    "required": ["success", "message"]
+  },
+  "examples": [
+    {
+      "description": "List all active projects (default)",
+      "input": {},
+      "output": {
+        "success": true,
+        "message": "Found 3 projects",
+        "projects": [
+          {
+            "id": 1,
+            "title": "Work Tasks",
+            "description": "Professional todo list",
+            "hex_color": "#2ecc71",
+            "parent_project_id": null,
+            "is_archived": false,
+            "created": "2025-01-01T00:00:00Z",
+            "updated": "2025-10-20T10:00:00Z"
+          },
+          {
+            "id": 11,
+            "title": "Personal Tasks",
+            "description": "Personal errands and goals",
+            "hex_color": "#3498db",
+            "parent_project_id": null,
+            "is_archived": false,
+            "created": "2025-01-15T10:30:00Z",
+            "updated": "2025-10-26T14:00:00Z"
+          },
+          {
+            "id": 25,
+            "title": "Home Projects",
+            "description": "DIY and maintenance",
+            "hex_color": "#e74c3c",
+            "parent_project_id": null,
+            "is_archived": false,
+            "created": "2025-03-10T08:00:00Z",
+            "updated": "2025-09-15T16:30:00Z"
+          }
+        ],
+        "total": 3,
+        "page": 1,
+        "hasMore": false
+      }
+    },
+    {
+      "description": "List only archived projects",
+      "input": { "filter_archived": true },
+      "output": {
+        "success": true,
+        "message": "Found 1 projects",
+        "projects": [
+          {
+            "id": 100,
+            "title": "2024 Planning",
+            "is_archived": true
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "hasMore": false
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": "VALIDATION_ERROR",
+      "httpStatus": 400,
+      "description": "Invalid pagination parameters (page must be positive integer)"
+    }
+  ]
+}

@@ -28,6 +28,8 @@ const mockUserContext: UserContext = {
   username: 'testuser',
   email: 'test@example.com',
   token: 'test-token',
+  permissions: ['read', 'write'],
+  validatedAt: new Date(),
 };
 
 describe('ToolRegistry', () => {
@@ -40,9 +42,9 @@ describe('ToolRegistry', () => {
   });
 
   describe('Tool Registration', () => {
-    it('should register all 35 tools (including 5 label management tools and 1 attachment tool)', () => {
+    it('should register all 39 tools (including new read operations)', () => {
       const tools = registry.getTools();
-      expect(tools).toHaveLength(35);
+      expect(tools).toHaveLength(39);
     });
 
     it('should register project tools', () => {
