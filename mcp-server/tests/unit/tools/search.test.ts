@@ -134,13 +134,30 @@ describe('Search Tools', () => {
       expect(result.tasks![0].labels).toHaveLength(2);
     });
 
-    it('should validate input with Zod schema', () => {
-      const invalidInput = {
-        query: '', // Empty query should fail
+    it('should validate input with Zod schema - empty query is now valid', () => {
+      // Empty query is now allowed (defaults to '')
+      const validInput = {
+        query: '',
       };
 
-      const result = SearchTasksSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
+      const result = SearchTasksSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.query).toBe('');
+      }
+    });
+
+    it('should validate input with Zod schema - omitted query gets default', () => {
+      // Omitted query defaults to ''
+      const validInput = {
+        filter_done: false,
+      };
+
+      const result = SearchTasksSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.query).toBe(''); // Should default to empty string
+      }
     });
   });
 
