@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema } from './projects.js';
+import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema, ListProjectMembersSchema } from './projects.js';
 import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, DeleteTaskSchema, MoveTaskSchema, GetTaskSchema } from './tasks.js';
 import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, RemoveLabelSchema, CreateLabelSchema } from './assignments.js';
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
@@ -109,6 +109,13 @@ export class ToolRegistry {
       'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter, default page 1) and filtering by archived status (filter_archived: true for only archived, false for only active, omit for all). Use get_project for detailed information about a specific project when you know its ID. Returns an array of projects with pagination metadata (total, page, hasMore).',
       GetAllProjectsSchema,
       async (args, ctx) => this.projectTools.getAllProjects(args as z.infer<typeof GetAllProjectsSchema>, ctx)
+    );
+
+    this.registerTool(
+      'list_project_members',
+      'List all users who have access to a specific project. Use this to discover who can be assigned to tasks in the project or to understand project collaboration. Returns array of members with user details (id, username, email, name) and their access level (0=read, 1=write, 2=admin). Requires read access to the project. Use this before assign_task to see available assignees.',
+      ListProjectMembersSchema,
+      async (args, ctx) => this.projectTools.listProjectMembers(args as z.infer<typeof ListProjectMembersSchema>, ctx)
     );
 
     // Task Tools

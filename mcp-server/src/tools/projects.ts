@@ -58,12 +58,18 @@ export const GetAllProjectsSchema = z.object({
     .describe('Filter by archive status (optional). Set true for archived only, false for active only, omit for all.'),
 });
 
+export const ListProjectMembersSchema = z.object({
+  project_id: z.number().int().positive()
+    .describe('ID of the project to list members for (required). Returns all users who have access to this project with their permission levels.'),
+});
+
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
 export type DeleteProjectInput = z.infer<typeof DeleteProjectSchema>;
 export type ArchiveProjectInput = z.infer<typeof ArchiveProjectSchema>;
 export type GetProjectInput = z.infer<typeof GetProjectSchema>;
 export type GetAllProjectsInput = z.infer<typeof GetAllProjectsSchema>;
+export type ListProjectMembersInput = z.infer<typeof ListProjectMembersSchema>;
 
 /**
  * Tool result for project operations
@@ -346,6 +352,51 @@ export class ProjectTools {
       return {
         success: false,
         message: 'Failed to retrieve projects list',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * List all members (users) who have access to a project
+   */
+  async listProjectMembers(
+    input: ListProjectMembersInput,
+    userContext: UserContext
+  ): Promise<ProjectToolResult & { members?: Array<{ user: any; access_level: number }> }> {
+    try {
+      // Rate limiting check
+      await this.rateLimiter.checkLimit(userContext.token);
+
+      // Retrieve project members/shares
+      // Vikunja API endpoint: GET /projects/{id}/projectusers
+      const members = await this.client.get<Array<{ user: any; access_level: number }>>(
+        `/api/v1/projects/${input.project_id}/projectusers`,
+        {},
+        userContext.token
+      );
+
+      logger.info('Project members retrieved', {
+        projectId: input.project_id,
+        memberCount: members.length,
+        userId: userContext.userId,
+      });
+
+      return {
+        success: true,
+        message: `Found ${members.length} members for project ${input.project_id}`,
+        members,
+      };
+    } catch (error) {
+      logger.error('Failed to retrieve project members', {
+        error,
+        projectId: input.project_id,
+        userId: userContext.userId,
+      });
+
+      return {
+        success: false,
+        message: `Failed to retrieve members for project ${input.project_id}`,
         error: error instanceof Error ? error.message : String(error),
       };
     }

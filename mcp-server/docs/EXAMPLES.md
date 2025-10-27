@@ -838,6 +838,74 @@ Claude: I'll fetch all that information for you.
 
 **Use Case**: AI agents can use this workflow to understand the user's context before suggesting task organization or project management strategies.
 
+### Example 17: List Project Members for Task Assignment
+
+**Scenario**: Find available assignees before assigning a task.
+
+**Claude Desktop Workflow:**
+```
+User: "Who can I assign tasks to in the Engineering project?"
+
+Claude: I'll check the members of that project for you.
+```
+
+**Tool Sequence:**
+```json
+[
+  {
+    "tool": "search_projects",
+    "arguments": {
+      "query": "Engineering"
+    }
+  },
+  {
+    "tool": "list_project_members",
+    "arguments": {
+      "project_id": 11
+    }
+  }
+]
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Found 3 members for project 11",
+  "members": [
+    {
+      "user": {
+        "id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "name": "Alice Smith"
+      },
+      "access_level": 2
+    },
+    {
+      "user": {
+        "id": 2,
+        "username": "bob",
+        "email": "bob@example.com",
+        "name": "Bob Jones"
+      },
+      "access_level": 1
+    },
+    {
+      "user": {
+        "id": 3,
+        "username": "charlie",
+        "email": "charlie@example.com",
+        "name": "Charlie Brown"
+      },
+      "access_level": 0
+    }
+  ]
+}
+```
+
+**Use Case**: Before calling `assign_task`, agents can use this to discover valid user IDs and understand permission levels (0=read, 1=write, 2=admin). This solves the common problem: "Which tasks have the @Computer label?" → list labels → get ID → list tasks with that label.
+
 ---
 
 ## Next Steps
