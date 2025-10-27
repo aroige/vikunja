@@ -78,6 +78,109 @@ export interface SearchToolResult {
 }
 
 /**
+ * Build Vikunja filter string from search parameters
+ * 
+ * Constructs a filter string using Vikunja's filter syntax that gets processed
+ * by the backend for efficient database filtering. This is more efficient than
+ * client-side filtering as it leverages database indexes and EXISTS subqueries.
+ * 
+ * Filter syntax:
+ * - Operators: =, !=, >, >=, <, <=, like, in, not in
+ * - Boolean: && (AND), || (OR), () for grouping
+ * - Subtables (labels, assignees): Use EXISTS subqueries automatically
+ * 
+ * **Label Filter Logic**:
+ * - Single label: "labels = 1" (tasks with label 1)
+ * - Multiple labels (AND): "labels = 1 && labels = 2" (tasks with BOTH labels)
+ * - Multiple labels (OR): "labels in 1,2,3" (tasks with label 1 OR 2 OR 3)
+ * 
+ * This function implements AND logic for multiple labels to match the
+ * filter_labels parameter behavior documented in the schema.
+ * 
+ * Examples:
+ * - "done = false"
+ * - "priority = 5"
+ * - "labels = 1 && labels = 2" (tasks with BOTH label 1 AND label 2)
+ * - "done = false && labels = 1" (incomplete tasks with label 1)
+ * - "assignees in 5" (tasks assigned to user 5)
+ * 
+ * @param input - Search parameters from tool input
+ * @param labelIds - Resolved label IDs (from filter_labels or filter_label_titles)
+ * @returns Vikunja filter string, or empty string if no filters
+ */
+function buildFilterString(input: SearchTasksInput, labelIds?: number[]): string {
+  const filterParts: string[] = [];
+
+  // Done status filter
+  if (input.filter_done !== undefined) {
+    filterParts.push(`done = ${input.filter_done}`);
+  }
+
+  // Priority filter
+  if (input.filter_priority !== undefined) {
+    filterParts.push(`priority = ${input.filter_priority}`);
+  }
+
+  // Label filters with AND logic (tasks must have ALL specified labels)
+  // Use separate "labels = X" conditions for each label, joined with &&
+  if (labelIds && labelIds.length > 0) {
+    for (const labelId of labelIds) {
+      filterParts.push(`labels = ${labelId}`);
+    }
+  }
+
+  // Assignee filters with OR logic (tasks assigned to ANY of the specified users)
+  // Use "assignees in X,Y,Z" for OR logic
+  if (input.filter_assignees && input.filter_assignees.length > 0) {
+    filterParts.push(`assignees in ${input.filter_assignees.join(',')}`);
+  }
+
+  // Combine all filters with AND logic
+  return filterParts.join(' && ');
+}
+
+/**
+ * Build filter string for getMyTasks (assignee + optional filters)
+ */
+function buildMyTasksFilterString(input: GetMyTasksInput, userId: number): string {
+  const filterParts: string[] = [];
+
+  // Always filter by current user as assignee
+  filterParts.push(`assignees in ${userId}`);
+
+  // Done status filter
+  if (input.filter_done !== undefined) {
+    filterParts.push(`done = ${input.filter_done}`);
+  }
+
+  // Priority filter
+  if (input.filter_priority !== undefined) {
+    filterParts.push(`priority = ${input.filter_priority}`);
+  }
+
+  return filterParts.join(' && ');
+}
+
+/**
+ * Build filter string for getProjectTasks (done + priority filters)
+ */
+function buildProjectTasksFilterString(input: GetProjectTasksInput): string {
+  const filterParts: string[] = [];
+
+  // Done status filter
+  if (input.filter_done !== undefined) {
+    filterParts.push(`done = ${input.filter_done}`);
+  }
+
+  // Priority filter
+  if (input.filter_priority !== undefined) {
+    filterParts.push(`priority = ${input.filter_priority}`);
+  }
+
+  return filterParts.join(' && ');
+}
+
+/**
  * Search tools for MCP protocol
  */
 export class SearchTools {
@@ -139,49 +242,31 @@ export class SearchTools {
       // Combine resolved label IDs with any filter_labels provided
       const labelIdsToFilter = input.filter_labels || resolvedLabelIds;
 
+      // Build Vikunja filter string for backend filtering
+      const filterString = buildFilterString(input, labelIdsToFilter);
+
       // Build query parameters
       const params: Record<string, unknown> = {
         s: input.query,
         page: input.page,
       };
 
-      if (input.filter_done !== undefined) {
-        params['filter_done'] = input.filter_done;
-      }
-      if (input.filter_priority !== undefined) {
-        params['filter_by'] = 'priority';
-        params['filter_value'] = input.filter_priority;
+      // Add filter parameter if we have any filters
+      if (filterString) {
+        params['filter'] = filterString;
       }
 
-      // Search tasks with token passed directly
+      // Search tasks with token passed directly - backend handles ALL filtering
       const tasks = await this.client.get<VikunjaTask[]>(
         '/api/v1/tasks/all',
         params,
         userContext.token
       );
 
-      // Apply additional filters if needed
-      let filteredTasks = tasks;
-      
-      if (labelIdsToFilter && labelIdsToFilter.length > 0) {
-        // AND logic: task must have ALL specified labels
-        filteredTasks = filteredTasks.filter((task) =>
-          labelIdsToFilter.every((labelId) =>
-            task.labels.some((label) => label.id === labelId)
-          )
-        );
-      }
-
-      if (input.filter_assignees && input.filter_assignees.length > 0) {
-        const filterAssignees = input.filter_assignees;
-        filteredTasks = filteredTasks.filter((task) =>
-          task.assignees.some((assignee) => filterAssignees.includes(assignee.id))
-        );
-      }
-
       logger.info('Tasks searched', {
         query: input.query,
-        resultsCount: filteredTasks.length,
+        filter: filterString,
+        resultsCount: tasks.length,
         labelTitlesResolved: input.filter_label_titles,
         labelIdsFiltered: labelIdsToFilter,
         userId: userContext.userId,
@@ -189,9 +274,9 @@ export class SearchTools {
 
       return {
         success: true,
-        message: `Found ${filteredTasks.length} tasks matching "${input.query}"`,
-        tasks: filteredTasks,
-        total: filteredTasks.length,
+        message: `Found ${tasks.length} tasks matching "${input.query}"`,
+        tasks: tasks,
+        total: tasks.length,
         page: input.page,
         hasMore: tasks.length === 50, // Assuming 50 per page
       };
@@ -268,22 +353,20 @@ export class SearchTools {
       // Rate limiting check
       await this.rateLimiter.checkLimit(userContext.token);
 
+      // Build Vikunja filter string for backend filtering
+      const filterString = buildMyTasksFilterString(input, userContext.userId);
+
       // Build query parameters
       const params: Record<string, unknown> = {
         page: input.page,
-        filter_by: 'assignees',
-        filter_value: userContext.userId,
       };
 
-      if (input.filter_done !== undefined) {
-        params['filter_done'] = input.filter_done;
-      }
-      if (input.filter_priority !== undefined) {
-        params['filter_by'] = 'priority';
-        params['filter_value'] = input.filter_priority;
+      // Add filter parameter
+      if (filterString) {
+        params['filter'] = filterString;
       }
 
-      // Get user's tasks with token passed directly
+      // Get user's tasks with token passed directly - backend handles ALL filtering
       const tasks = await this.client.get<VikunjaTask[]>(
         '/api/v1/tasks/all',
         params,
@@ -291,6 +374,7 @@ export class SearchTools {
       );
 
       logger.info('User tasks retrieved', {
+        filter: filterString,
         tasksCount: tasks.length,
         userId: userContext.userId,
       });
@@ -324,20 +408,20 @@ export class SearchTools {
       // Rate limiting check
       await this.rateLimiter.checkLimit(userContext.token);
 
+      // Build Vikunja filter string for backend filtering
+      const filterString = buildProjectTasksFilterString(input);
+
       // Build query parameters
       const params: Record<string, unknown> = {
         page: input.page,
       };
 
-      if (input.filter_done !== undefined) {
-        params['filter_done'] = input.filter_done;
-      }
-      if (input.filter_priority !== undefined) {
-        params['filter_by'] = 'priority';
-        params['filter_value'] = input.filter_priority;
+      // Add filter parameter if we have any filters
+      if (filterString) {
+        params['filter'] = filterString;
       }
 
-      // Get project tasks with token passed directly
+      // Get project tasks with token passed directly - backend handles ALL filtering
       const tasks = await this.client.get<VikunjaTask[]>(
         `/api/v1/projects/${input.project_id}/tasks`,
         params,
@@ -346,6 +430,7 @@ export class SearchTools {
 
       logger.info('Project tasks retrieved', {
         projectId: input.project_id,
+        filter: filterString,
         tasksCount: tasks.length,
         userId: userContext.userId,
       });

@@ -200,7 +200,7 @@ export class ToolRegistry {
     // Search Tools
     this.registerTool(
       'search_tasks',
-      'Search for tasks by query string with advanced filtering. Query parameter is optional - omit or use empty string for filter-only searches (e.g., "all tasks with @Computer label"). For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false), priority (filter_priority: 0-5 where 0=unset, 1=low, 5=critical), labels by ID (filter_labels, AND logic), labels by title (filter_label_titles for user-friendly search, e.g., ["@Computer", "@Home"], also AND logic), and assignees. Returns matching tasks with basic details. Note: Use filter_label_titles when you only know label names; it automatically looks up IDs by exact title match (case-insensitive).',
+      'Search for tasks by query string with advanced filtering. Efficiently handles large task sets (thousands of tasks). Query parameter is optional - omit or use empty string for filter-only searches (e.g., "all tasks with @Computer label"). For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false), priority (filter_priority: 0-5 where 0=unset, 1=low, 5=critical), labels by ID (filter_labels, AND logic: tasks must have ALL specified labels), labels by title (filter_label_titles for user-friendly search, e.g., ["@Computer", "@Home"], also AND logic), and assignees (filter_assignees, OR logic: tasks with ANY specified assignee). Returns matching tasks with basic details. Note: Use filter_label_titles when you only know label names; it automatically looks up IDs by exact title match (case-insensitive).',
       SearchTasksSchema,
       async (args, ctx) => this.searchTools.searchTasks(args as z.infer<typeof SearchTasksSchema>, ctx)
     );
@@ -214,14 +214,14 @@ export class ToolRegistry {
 
     this.registerTool(
       'get_my_tasks',
-      'Get all tasks assigned to the current user across all projects. Use this for personal task list views and "what are my tasks?" queries. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks sorted by due date with basic details.',
+      'Get all tasks assigned to the current user across all projects. Efficiently handles large task counts. Use this for personal task list views and "what are my tasks?" queries. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks sorted by due date with basic details.',
       GetMyTasksSchema,
       async (args, ctx) => this.searchTools.getMyTasks(args as z.infer<typeof GetMyTasksSchema>, ctx)
     );
 
     this.registerTool(
       'get_project_tasks',
-      'Get all tasks in a specific project. Use this for project-specific queries and "what needs to be done in project X?" views. Requires read access to the project. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks in the specified project with basic details.',
+      'Get all tasks in a specific project. Efficiently handles projects with many tasks. Use this for project-specific queries and "what needs to be done in project X?" views. Requires read access to the project. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks in the specified project with basic details.',
       GetProjectTasksSchema,
       async (args, ctx) => this.searchTools.getProjectTasks(args as z.infer<typeof GetProjectTasksSchema>, ctx)
     );

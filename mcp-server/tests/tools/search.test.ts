@@ -5,6 +5,68 @@ import { RateLimiter } from '../../src/ratelimit/limiter.js';
 import { UserContext } from '../../src/auth/types.js';
 import type { VikunjaTask } from '../../src/vikunja/types.js';
 
+/**
+ * Simulate Vikunja backend filtering logic for testing
+ * 
+ * This mimics how the Vikunja backend processes filter strings
+ * to return only matching tasks. Used in tests to verify that
+ * we're building correct filter strings and that backend filtering works.
+ * 
+ * Supports:
+ * - "done = true/false"
+ * - "priority = X"
+ * - "labels = X" (AND logic: separate conditions for each label)
+ * - "assignees in X,Y,Z" (OR logic: any of the assignees)
+ */
+function simulateBackendFiltering(tasks: VikunjaTask[], filterString: string | undefined): VikunjaTask[] {
+  if (!filterString) return tasks;
+
+  let filtered = tasks;
+
+  // Parse filter string (simple implementation for test purposes)
+  const filterParts = filterString.split(' && ').map(p => p.trim());
+
+  for (const part of filterParts) {
+    // Done filter: "done = true" or "done = false"
+    const doneMatch = part.match(/^done = (true|false)$/);
+    if (doneMatch) {
+      const doneValue = doneMatch[1] === 'true';
+      filtered = filtered.filter(task => task.done === doneValue);
+      continue;
+    }
+
+    // Priority filter: "priority = X"
+    const priorityMatch = part.match(/^priority = (\d+)$/);
+    if (priorityMatch) {
+      const priority = parseInt(priorityMatch[1], 10);
+      filtered = filtered.filter(task => task.priority === priority);
+      continue;
+    }
+
+    // Label filter (AND logic): "labels = X"
+    const labelMatch = part.match(/^labels = (\d+)$/);
+    if (labelMatch) {
+      const labelId = parseInt(labelMatch[1], 10);
+      filtered = filtered.filter(task =>
+        task.labels.some(label => label.id === labelId)
+      );
+      continue;
+    }
+
+    // Assignee filter (OR logic): "assignees in X,Y,Z"
+    const assigneeMatch = part.match(/^assignees in (.+)$/);
+    if (assigneeMatch) {
+      const assigneeIds = assigneeMatch[1].split(',').map(id => parseInt(id.trim(), 10));
+      filtered = filtered.filter(task =>
+        task.assignees.some(assignee => assigneeIds.includes(assignee.id))
+      );
+      continue;
+    }
+  }
+
+  return filtered;
+}
+
 describe('SearchTools', () => {
   let searchTools: SearchTools;
   let mockClient: VikunjaClient;
@@ -109,7 +171,7 @@ describe('SearchTools', () => {
   describe('searchTasks with filter_label_titles', () => {
     it('should resolve label titles to IDs and filter tasks correctly', async () => {
       // Mock label lookup
-      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string) => {
+      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string, params?: any) => {
         if (endpoint === '/api/v1/labels') {
           return [
             { id: 1, title: '@Computer' },
@@ -117,9 +179,9 @@ describe('SearchTools', () => {
             { id: 3, title: '@Work' },
           ];
         }
-        // Mock task search response
+        // Mock task search response with backend filtering simulation
         if (endpoint === '/api/v1/tasks/all') {
-          return [
+          const allTasks = [
             {
               id: 1,
               title: 'Task with @Computer label',
@@ -142,6 +204,9 @@ describe('SearchTools', () => {
               assignees: [],
             },
           ] as VikunjaTask[];
+          
+          // Simulate backend filtering
+          return simulateBackendFiltering(allTasks, params?.filter);
         }
         return [];
       });
@@ -351,7 +416,7 @@ describe('SearchTools', () => {
 
     it('should use AND logic for multiple label titles', async () => {
       // Mock label lookup
-      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string) => {
+      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string, params?: any) => {
         if (endpoint === '/api/v1/labels') {
           return [
             { id: 1, title: '@Computer' },
@@ -359,7 +424,7 @@ describe('SearchTools', () => {
           ];
         }
         if (endpoint === '/api/v1/tasks/all') {
-          return [
+          const allTasks = [
             {
               id: 1,
               title: 'Has both',
@@ -382,6 +447,9 @@ describe('SearchTools', () => {
               assignees: [],
             },
           ] as VikunjaTask[];
+          
+          // Simulate backend filtering
+          return simulateBackendFiltering(allTasks, params?.filter);
         }
         return [];
       });
@@ -403,9 +471,9 @@ describe('SearchTools', () => {
 
   describe('searchTasks with filter_labels (existing functionality)', () => {
     it('should still support filter_labels with IDs', async () => {
-      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string) => {
+      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string, params?: any) => {
         if (endpoint === '/api/v1/tasks/all') {
-          return [
+          const allTasks = [
             {
               id: 1,
               title: 'Task with label 1',
@@ -422,6 +490,9 @@ describe('SearchTools', () => {
               assignees: [],
             },
           ] as VikunjaTask[];
+          
+          // Simulate backend filtering
+          return simulateBackendFiltering(allTasks, params?.filter);
         }
         return [];
       });
