@@ -109,7 +109,7 @@ describe('Search Tools', () => {
         filter_labels: [1, 2],
       };
 
-      // Task with BOTH labels should pass
+      // Task with BOTH labels (backend filtering will return this)
       const taskWithBothLabels = {
         ...mockTask,
         labels: [
@@ -118,20 +118,24 @@ describe('Search Tools', () => {
         ],
       };
 
-      // Task with only one label should be filtered out
-      const taskWithOneLabel = {
-        ...mockTask,
-        id: 999,
-        labels: [{ id: 1, title: 'Label 1', description: '', hex_color: '', created: '', updated: '' }],
-      };
-
-      vi.mocked(mockClient.get).mockResolvedValue([taskWithBothLabels, taskWithOneLabel]);
+      vi.mocked(mockClient.get).mockResolvedValue([taskWithBothLabels]);
 
       const result = await searchTools.searchTasks(input, userContext);
 
       expect(result.success).toBe(true);
-      expect(result.tasks).toHaveLength(1); // Only task with BOTH labels
+      expect(result.tasks).toHaveLength(1);
       expect(result.tasks![0].labels).toHaveLength(2);
+      
+      // Verify correct filter string is passed to API
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          s: 'test',
+          page: 1,
+          filter: 'labels = 1 && labels = 2',
+        }),
+        'test-token'
+      );
     });
 
     it('should validate input with Zod schema - empty query is now valid', () => {
@@ -214,11 +218,13 @@ describe('Search Tools', () => {
 
       expect(result.success).toBe(true);
       expect(result.tasks).toHaveLength(1);
+      
+      // Verify correct filter string is passed to API
       expect(mockClient.get).toHaveBeenCalledWith(
         '/api/v1/tasks/all',
         expect.objectContaining({
-          filter_by: 'assignees',
-          filter_value: userContext.userId,
+          page: 1,
+          filter: `assignees in ${userContext.userId}`,
         }),
         'test-token'
       );
@@ -265,14 +271,210 @@ describe('Search Tools', () => {
       const result = await searchTools.getProjectTasks(input, userContext);
 
       expect(result.success).toBe(true);
+      
+      // Verify correct filter string is passed to API
       expect(mockClient.get).toHaveBeenCalledWith(
         '/api/v1/projects/1/tasks',
         expect.objectContaining({
-          filter_by: 'priority',
-          filter_value: 5,
+          page: 1,
+          filter: 'priority = 5',
         }),
         'test-token'
       );
+    });
+  });
+
+  describe('Filter String Generation', () => {
+    it('should generate filter string for assignees with OR logic', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_assignees: [5, 6, 7],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'assignees in 5,6,7',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should generate combined filter string with multiple filters', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_done: false,
+        filter_priority: 3,
+        filter_labels: [1, 2],
+        filter_assignees: [5],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'done = false && priority = 3 && labels = 1 && labels = 2 && assignees in 5',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should not send filter parameter when no filters provided', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      const callArgs = vi.mocked(mockClient.get).mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('filter');
+      expect(callArgs[1]).toEqual({
+        s: 'test',
+        page: 1,
+      });
+    });
+
+    it('should generate filter string with single done filter', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_done: true,
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'done = true',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should generate filter string with single priority filter', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_priority: 5,
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'priority = 5',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should generate filter string with single label (no AND needed)', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_labels: [1],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'labels = 1',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should generate filter string with three labels (AND logic)', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_labels: [1, 2, 3],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'labels = 1 && labels = 2 && labels = 3',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should combine done and labels filters correctly', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_done: false,
+        filter_labels: [10, 20],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/tasks/all',
+        expect.objectContaining({
+          filter: 'done = false && labels = 10 && labels = 20',
+        }),
+        'test-token'
+      );
+    });
+
+    it('should handle empty assignees array (no filter)', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_assignees: [],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      const callArgs = vi.mocked(mockClient.get).mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('filter');
+    });
+
+    it('should handle empty labels array (no filter)', async () => {
+      const input = {
+        query: 'test',
+        page: 1,
+        filter_labels: [],
+      };
+
+      vi.mocked(mockClient.get).mockResolvedValue([mockTask]);
+
+      await searchTools.searchTasks(input, userContext);
+
+      const callArgs = vi.mocked(mockClient.get).mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('filter');
     });
   });
 });
