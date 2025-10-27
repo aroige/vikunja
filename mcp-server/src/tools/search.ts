@@ -18,10 +18,16 @@ export const SearchTasksSchema = z.object({
   filter_priority: z.number().int().min(0).max(5).optional()
     .describe('Filter by priority level (optional, 0-5). Only tasks with this exact priority are returned.'),
   filter_labels: z.array(z.number().int().positive()).optional()
-    .describe('Filter by label IDs (optional). Uses AND logic: tasks must have ALL specified labels. Example: [1, 2] returns tasks with both label 1 AND label 2.'),
+    .describe('Filter by label IDs (optional). Uses AND logic: tasks must have ALL specified labels. Example: [1, 2] returns tasks with both label 1 AND label 2. Use filter_label_titles if you only know label names.'),
+  filter_label_titles: z.array(z.string()).optional()
+    .describe('Filter by label titles/names (optional, alternative to filter_labels). Automatically looks up label IDs by exact title match. Uses AND logic like filter_labels. Example: ["@Computer", "@Home"] for tasks with both labels. Cannot be used together with filter_labels.'),
   filter_assignees: z.array(z.number().int().positive()).optional()
     .describe('Filter by assignee user IDs (optional). Returns tasks assigned to any of the specified users.'),
-});
+})
+  .refine(
+    (data) => !(data.filter_labels && data.filter_label_titles),
+    { message: 'Cannot use both filter_labels and filter_label_titles. Choose one.' }
+  );
 
 export const SearchProjectsSchema = z.object({
   query: z.string().min(1)
@@ -91,6 +97,48 @@ export class SearchTools {
       // Rate limiting check
       await this.rateLimiter.checkLimit(userContext.token);
 
+      // Resolve label titles to IDs if filter_label_titles provided
+      let resolvedLabelIds: number[] | undefined;
+      if (input.filter_label_titles && input.filter_label_titles.length > 0) {
+        resolvedLabelIds = [];
+        const notFoundLabels: string[] = [];
+
+        for (const labelTitle of input.filter_label_titles) {
+          // Search for label by exact title match
+          const labelsResponse = await this.client.get<Array<{ id: number; title: string }>>(
+            '/api/v1/labels',
+            { search: labelTitle, page: 1, page_size: 50 },
+            userContext.token
+          );
+
+          // Find exact match (search is case-insensitive partial match, so we need exact match)
+          const matchingLabel = labelsResponse.find(
+            (label) => label.title.toLowerCase() === labelTitle.toLowerCase()
+          );
+
+          if (matchingLabel) {
+            resolvedLabelIds.push(matchingLabel.id);
+          } else {
+            notFoundLabels.push(labelTitle);
+          }
+        }
+
+        if (notFoundLabels.length > 0) {
+          logger.warn('Label titles not found', {
+            notFoundLabels,
+            userId: userContext.userId,
+          });
+          return {
+            success: false,
+            message: `Label title(s) not found: ${notFoundLabels.join(', ')}. Use get_all_labels to see available labels.`,
+            error: `Labels not found: ${notFoundLabels.join(', ')}`,
+          };
+        }
+      }
+
+      // Combine resolved label IDs with any filter_labels provided
+      const labelIdsToFilter = input.filter_labels || resolvedLabelIds;
+
       // Build query parameters
       const params: Record<string, unknown> = {
         s: input.query,
@@ -115,10 +163,12 @@ export class SearchTools {
       // Apply additional filters if needed
       let filteredTasks = tasks;
       
-      if (input.filter_labels && input.filter_labels.length > 0) {
-        const filterLabels = input.filter_labels;
+      if (labelIdsToFilter && labelIdsToFilter.length > 0) {
+        // AND logic: task must have ALL specified labels
         filteredTasks = filteredTasks.filter((task) =>
-          task.labels.some((label) => filterLabels.includes(label.id))
+          labelIdsToFilter.every((labelId) =>
+            task.labels.some((label) => label.id === labelId)
+          )
         );
       }
 
@@ -132,6 +182,8 @@ export class SearchTools {
       logger.info('Tasks searched', {
         query: input.query,
         resultsCount: filteredTasks.length,
+        labelTitlesResolved: input.filter_label_titles,
+        labelIdsFiltered: labelIdsToFilter,
         userId: userContext.userId,
       });
 

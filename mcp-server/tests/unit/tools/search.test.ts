@@ -102,24 +102,36 @@ describe('Search Tools', () => {
       }, 'test-token');
     });
 
-    it('should apply label filters', async () => {
+    it('should apply label filters with AND logic', async () => {
       const input = {
         query: 'test',
         page: 1,
         filter_labels: [1, 2],
       };
 
-      const taskWithLabels = {
+      // Task with BOTH labels should pass
+      const taskWithBothLabels = {
         ...mockTask,
+        labels: [
+          { id: 1, title: 'Label 1', description: '', hex_color: '', created: '', updated: '' },
+          { id: 2, title: 'Label 2', description: '', hex_color: '', created: '', updated: '' },
+        ],
+      };
+
+      // Task with only one label should be filtered out
+      const taskWithOneLabel = {
+        ...mockTask,
+        id: 999,
         labels: [{ id: 1, title: 'Label 1', description: '', hex_color: '', created: '', updated: '' }],
       };
 
-      vi.mocked(mockClient.get).mockResolvedValue([taskWithLabels]);
+      vi.mocked(mockClient.get).mockResolvedValue([taskWithBothLabels, taskWithOneLabel]);
 
       const result = await searchTools.searchTasks(input, userContext);
 
       expect(result.success).toBe(true);
-      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks).toHaveLength(1); // Only task with BOTH labels
+      expect(result.tasks![0].labels).toHaveLength(2);
     });
 
     it('should validate input with Zod schema', () => {
