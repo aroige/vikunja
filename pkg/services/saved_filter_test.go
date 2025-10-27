@@ -19,6 +19,7 @@ package services
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/models"
@@ -625,4 +626,170 @@ func TestSavedFilterService_EndToEnd_FullFilterExecution(t *testing.T) {
 
 		t.Logf("✓ Empty filter returned %d tasks (all accessible)", resultCount)
 	})
+}
+
+// TestSavedFilterService_CreateWithCompletePayload is a regression test for the bug where
+// creating a saved filter with a complete payload (including owner object, timestamps, etc.)
+// would cause a 500 error. This test reproduces the exact scenario from the frontend.
+//
+// Bug Report: PUT /api/v1/filters with ID=0 and complete filter object causes 500 error
+// Expected: Should create a new saved filter successfully
+// Actual: Server returns 500 Internal Server Error
+func TestSavedFilterService_CreateWithCompletePayload(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	sfs := NewSavedFilterService(testEngine)
+	u := &user.User{ID: 1}
+
+	// This simulates the exact payload sent from the frontend when creating a new filter
+	// The frontend sends a complete object including owner, timestamps, etc.
+	sf := &models.SavedFilter{
+		ID:          0, // ID is 0 for new filters
+		Title:       "Computer",
+		Description: "",
+		Filters: &models.TaskCollection{
+			SortBy:             []string{"done", "id"},
+			OrderBy:            []string{"asc", "desc"},
+			Filter:             "done = false",
+			FilterIncludeNulls: true,
+			Search:             "",
+		},
+		// The frontend also sends an owner object, but it should be ignored
+		Owner: &user.User{
+			ID:       0,
+			Email:    "",
+			Username: "",
+			Name:     "",
+		},
+		// The frontend also sends timestamps, but they should be ignored
+		Created: time.Time{},
+		Updated: time.Time{},
+	}
+
+	// This should NOT cause a 500 error
+	err := sfs.Create(s, sf, u)
+	assert.NoError(t, err, "Create should not return an error with complete payload")
+	assert.NotZero(t, sf.ID, "Filter should be assigned an ID")
+	assert.Equal(t, u.ID, sf.OwnerID, "OwnerID should be set from authenticated user")
+
+	// Verify the filter was actually created
+	retrieved, err := sfs.Get(s, sf.ID, u)
+	assert.NoError(t, err)
+	assert.Equal(t, "Computer", retrieved.Title)
+	assert.Equal(t, "done = false", retrieved.Filters.Filter)
+	assert.Equal(t, []string{"done", "id"}, retrieved.Filters.SortBy)
+	assert.Equal(t, []string{"asc", "desc"}, retrieved.Filters.OrderBy)
+	assert.True(t, retrieved.Filters.FilterIncludeNulls)
+}
+
+// TestSavedFilterService_CreateWithNilFilters tests that creating a saved filter with nil Filters
+// returns a proper validation error instead of causing a panic/500 error
+func TestSavedFilterService_CreateWithNilFilters(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	sfs := NewSavedFilterService(testEngine)
+	u := &user.User{ID: 1}
+
+	sf := &models.SavedFilter{
+		Title:   "Invalid Filter",
+		Filters: nil, // This should cause a validation error
+	}
+
+	err := sfs.Create(s, sf, u)
+	assert.Error(t, err, "Create should return an error when Filters is nil")
+	assert.True(t, models.IsErrInvalidData(err), "Should return ErrInvalidData")
+	assert.Contains(t, err.Error(), "Filters cannot be empty")
+}
+
+// TestSavedFilterService_CreateWithEmptyFilterString tests creating a filter with an empty filter string
+func TestSavedFilterService_CreateWithEmptyFilterString(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	sfs := NewSavedFilterService(testEngine)
+	u := &user.User{ID: 1}
+
+	sf := &models.SavedFilter{
+		Title: "All Tasks Filter",
+		Filters: &models.TaskCollection{
+			Filter: "", // Empty filter string should be allowed
+		},
+	}
+
+	err := sfs.Create(s, sf, u)
+	assert.NoError(t, err, "Create should allow empty filter string")
+	assert.NotZero(t, sf.ID)
+
+	// Verify we can retrieve it
+	retrieved, err := sfs.Get(s, sf.ID, u)
+	assert.NoError(t, err)
+	assert.Empty(t, retrieved.Filters.Filter)
+}
+
+// TestSavedFilterService_CreateWithInvalidFilterExpression tests that invalid filter expressions
+// return proper validation errors
+func TestSavedFilterService_CreateWithInvalidFilterExpression(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	sfs := NewSavedFilterService(testEngine)
+	u := &user.User{ID: 1}
+
+	testCases := []struct {
+		name          string
+		filterExpr    string
+		shouldFail    bool
+		errorContains string
+	}{
+		{
+			name:       "Valid simple filter",
+			filterExpr: "done = false",
+			shouldFail: false,
+		},
+		{
+			name:       "Valid complex filter",
+			filterExpr: "done = false && priority >= 3",
+			shouldFail: false,
+		},
+		{
+			name:          "Invalid syntax - missing value",
+			filterExpr:    "done =",
+			shouldFail:    true,
+			errorContains: "invalid",
+		},
+		{
+			name:          "Invalid syntax - unbalanced parentheses",
+			filterExpr:    "(done = false",
+			shouldFail:    true,
+			errorContains: "invalid",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			sf := &models.SavedFilter{
+				Title: "Test Filter - " + tc.name,
+				Filters: &models.TaskCollection{
+					Filter: tc.filterExpr,
+				},
+			}
+
+			err := sfs.Create(s, sf, u)
+			if tc.shouldFail {
+				assert.Error(t, err)
+				if tc.errorContains != "" {
+					assert.Contains(t, strings.ToLower(err.Error()), tc.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.NotZero(t, sf.ID)
+			}
+		})
+	}
 }

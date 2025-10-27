@@ -148,6 +148,13 @@ func (sfs *SavedFilterService) GetAllForUser(s *xorm.Session, u *user.User, sear
 
 // Create creates a new saved filter.
 func (sfs *SavedFilterService) Create(s *xorm.Session, sf *models.SavedFilter, u *user.User) error {
+	// Validate that filters object is provided
+	if sf.Filters == nil {
+		return models.ErrInvalidData{
+			Message: "Filters cannot be empty",
+		}
+	}
+
 	// Validate filter string
 	_, err := models.GetTaskFiltersFromFilterString(sf.Filters.Filter, sf.Filters.FilterTimezone)
 	if err != nil {
