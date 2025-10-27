@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SearchTools } from '../../src/tools/search.js';
+import { SearchTools, SearchTasksSchema } from '../../src/tools/search.js';
 import { VikunjaClient } from '../../src/vikunja/client.js';
 import { RateLimiter } from '../../src/ratelimit/limiter.js';
 import { UserContext } from '../../src/auth/types.js';
@@ -33,6 +33,77 @@ describe('SearchTools', () => {
       permissions: [],
       validatedAt: new Date(),
     };
+  });
+
+  describe('searchTasks with optional query parameter', () => {
+    it('should allow empty query when using filter_label_titles', async () => {
+      // Mock label lookup
+      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string) => {
+        if (endpoint === '/api/v1/labels') {
+          return [{ id: 1, title: '@Computer' }];
+        }
+        if (endpoint === '/api/v1/tasks/all') {
+          return [
+            {
+              id: 1,
+              title: 'Task with label',
+              labels: [{ id: 1, title: '@Computer' }],
+              assignees: [],
+            },
+          ] as VikunjaTask[];
+        }
+        return [];
+      });
+
+      // Parse through schema to get default value
+      const parsed = SearchTasksSchema.parse({
+        filter_label_titles: ['@Computer'],
+      });
+
+      const result = await searchTools.searchTasks(
+        parsed,
+        userContext
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.tasks).toHaveLength(1);
+      // Verify empty string was passed to API (2nd call after label lookup)
+      const taskSearchCall = vi.mocked(mockClient.get).mock.calls.find(
+        call => call[0] === '/api/v1/tasks/all'
+      );
+      expect(taskSearchCall).toBeDefined();
+      expect(taskSearchCall![1]).toMatchObject({ s: '' });
+    });
+
+    it('should allow explicit empty string query', async () => {
+      vi.mocked(mockClient.get).mockImplementation(async (endpoint: string) => {
+        if (endpoint === '/api/v1/labels') {
+          return [{ id: 1, title: '@Computer' }];
+        }
+        if (endpoint === '/api/v1/tasks/all') {
+          return [
+            {
+              id: 1,
+              title: 'Task',
+              labels: [{ id: 1, title: '@Computer' }],
+              assignees: [],
+            },
+          ] as VikunjaTask[];
+        }
+        return [];
+      });
+
+      const result = await searchTools.searchTasks(
+        {
+          query: '', // Explicit empty string
+          filter_label_titles: ['@Computer'],
+        },
+        userContext
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.tasks).toHaveLength(1);
+    });
   });
 
   describe('searchTasks with filter_label_titles', () => {

@@ -9,8 +9,8 @@ import { logger } from '../utils/logger.js';
  * Input schemas for search tools
  */
 export const SearchTasksSchema = z.object({
-  query: z.string().min(1)
-    .describe('Search query string (required). Searches task titles and descriptions. Use this for flexible text-based search.'),
+  query: z.string().optional().default('')
+    .describe('Search query string (optional, default: empty string for no text search). Searches task titles and descriptions. Use empty string when filtering by labels, priority, or status only without text search.'),
   page: z.number().int().positive().optional().default(1)
     .describe('Page number for pagination (optional, default: 1). Each page returns up to 50 tasks.'),
   filter_done: z.boolean().optional()
