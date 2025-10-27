@@ -170,7 +170,11 @@ func (sfs *SavedFilterService) Create(s *xorm.Session, sf *models.SavedFilter, u
 
 	// Create default views for this saved filter's pseudo-project
 	err = models.CreateDefaultViewsForProject(s, &models.Project{ID: models.GetProjectIDFromSavedFilterID(sf.ID)}, u, true, false)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Update updates a saved filter.
