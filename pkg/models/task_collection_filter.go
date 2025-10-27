@@ -62,6 +62,25 @@ type taskFilter struct {
 	join       taskFilterConcatinator
 }
 
+// Accessor methods for taskFilter to allow service layer access.
+// These are necessary because taskFilter has unexported fields but the service layer
+// needs to inspect parsed filter data for business logic (e.g., bucket-specific filtering).
+
+// Field returns the field name this filter operates on (e.g., "priority", "bucket_id")
+func (tf *taskFilter) Field() string {
+	return tf.field
+}
+
+// Value returns the filter's comparison value (type varies based on field)
+func (tf *taskFilter) Value() interface{} {
+	return tf.value
+}
+
+// Comparator returns the comparison operator (e.g., "=", ">", "in")
+func (tf *taskFilter) Comparator() taskFilterComparator {
+	return tf.comparator
+}
+
 func parseTimeFromUserInput(timeString string, loc *time.Location) (value time.Time, err error) {
 	value, err = time.ParseInLocation(time.RFC3339, timeString, loc)
 	if err != nil {

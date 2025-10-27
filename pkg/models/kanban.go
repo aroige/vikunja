@@ -158,14 +158,17 @@ func GetDefaultBucketID(s *xorm.Session, view *ProjectView) (int64, error) {
 	return GetDefaultBucketIDFunc(s, view)
 }
 
-func GetTasksInBucketsForView(s *xorm.Session, view *ProjectView, projects []*Project, opts *taskSearchOptions, a web.Auth) ([]*Bucket, error) {
+// GetTasksInBucketsForView returns all buckets with tasks for a project view.
+// This delegates to the service layer implementation via dependency inversion.
+// @Deprecated: Use services.KanbanService.GetTasksInBucketsForView() directly from handlers.
+func GetTasksInBucketsForView(s *xorm.Session, view *ProjectView, projects []*Project, opts *TaskSearchOptions, a web.Auth) ([]*Bucket, error) {
 	if GetTasksInBucketsForViewFunc != nil {
 		return GetTasksInBucketsForViewFunc(s, view, projects, opts, a)
 	}
 
-	// This is a complex function that would need full implementation
-	// For now, return empty slice to prevent compilation errors
-	return []*Bucket{}, nil
+	// Stub - actual implementation moved to service layer
+	// This should never be called if dependency injection is set up properly
+	panic("GetTasksInBucketsForViewFunc not initialized - ensure services.InitKanbanService() is called")
 }
 
 // CalculateDefaultPosition calculates the default position for a bucket or similar entity.

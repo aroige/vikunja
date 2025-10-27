@@ -247,6 +247,51 @@ type taskSearchOptions struct {
 // TaskSearchOptions is an exported alias for taskSearchOptions for service layer use
 type TaskSearchOptions = taskSearchOptions
 
+// Accessor methods for TaskSearchOptions to allow service layer access to unexported fields.
+// These methods enable the service layer to build and modify search options for complex
+// queries (e.g., bucket-specific filtering in kanban views) without exposing internal
+// implementation details.
+
+// GetFilter returns the raw filter string
+func (opts *TaskSearchOptions) GetFilter() string {
+	return opts.filter
+}
+
+// SetFilter updates the filter string
+func (opts *TaskSearchOptions) SetFilter(filter string) {
+	opts.filter = filter
+}
+
+// GetFilterTimezone returns the timezone used for date filtering
+func (opts *TaskSearchOptions) GetFilterTimezone() string {
+	return opts.filterTimezone
+}
+
+// GetParsedFilters returns the parsed filter objects for inspection
+func (opts *TaskSearchOptions) GetParsedFilters() []*taskFilter {
+	return opts.parsedFilters
+}
+
+// SetParsedFilters updates the parsed filter objects
+func (opts *TaskSearchOptions) SetParsedFilters(filters []*taskFilter) {
+	opts.parsedFilters = filters
+}
+
+// GetSortBy returns the sort parameters
+func (opts *TaskSearchOptions) GetSortBy() []*sortParam {
+	return opts.sortby
+}
+
+// SetSortBy updates the sort parameters
+func (opts *TaskSearchOptions) SetSortBy(sortby []*sortParam) {
+	opts.sortby = sortby
+}
+
+// GetExpand returns the expansion options for task data
+func (opts *TaskSearchOptions) GetExpand() []TaskCollectionExpandable {
+	return opts.expand
+}
+
 // NewTaskSearchOptions creates a new TaskSearchOptions instance for service layer use
 func NewTaskSearchOptions(search string, page int, perPage int, sortby []*sortParam, parsedFilters []*taskFilter, filterIncludeNulls bool, filter string, filterTimezone string, isSavedFilter bool, projectIDs []int64, expand []TaskCollectionExpandable, projectViewID int64) *TaskSearchOptions {
 	return &TaskSearchOptions{

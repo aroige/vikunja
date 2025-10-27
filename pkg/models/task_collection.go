@@ -491,6 +491,11 @@ func CallGetTaskOrTasksInBucketsWithPagination(s *xorm.Session, a web.Auth, proj
 
 // CallGetRawTasksForProjects exposes getRawTasksForProjects for service layer use
 func CallGetRawTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth, search string, page int, perPage int, sortby []string, orderby []string, filterIncludeNulls bool, filter string, filterTimezone string, expand []TaskCollectionExpandable) (tasks []*Task, resultCount int, totalItems int64, err error) {
+	return CallGetRawTasksForProjectsWithViewID(s, projects, a, search, page, perPage, sortby, orderby, filterIncludeNulls, filter, filterTimezone, expand, 0)
+}
+
+// CallGetRawTasksForProjectsWithViewID exposes getRawTasksForProjects with view ID support for service layer use
+func CallGetRawTasksForProjectsWithViewID(s *xorm.Session, projects []*Project, a web.Auth, search string, page int, perPage int, sortby []string, orderby []string, filterIncludeNulls bool, filter string, filterTimezone string, expand []TaskCollectionExpandable, projectViewID int64) (tasks []*Task, resultCount int, totalItems int64, err error) {
 	// Create a temporary TaskCollection to use existing conversion logic
 	tf := &TaskCollection{
 		Search:             search,
@@ -500,10 +505,24 @@ func CallGetRawTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth
 		Filter:             filter,
 		FilterTimezone:     filterTimezone,
 		Expand:             expand,
+		ProjectViewID:      projectViewID,
+	}
+
+	// Load project view if provided
+	var view *ProjectView
+	if projectViewID != 0 {
+		view = &ProjectView{ID: projectViewID}
+		exists, err := s.Get(view)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		if !exists {
+			return nil, 0, 0, &ErrProjectViewDoesNotExist{ProjectViewID: projectViewID}
+		}
 	}
 
 	// Convert to taskSearchOptions
-	opts, err := getTaskFilterOptsFromCollection(tf, nil)
+	opts, err := getTaskFilterOptsFromCollection(tf, view)
 	if err != nil {
 		return nil, 0, 0, err
 	}

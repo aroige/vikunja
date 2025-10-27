@@ -318,6 +318,12 @@ func (pvs *ProjectViewService) GetByIDAndProject(s *xorm.Session, viewID, projec
 		}
 	}
 
+	// For saved filters (projectID < -1), ignore project_id constraint
+	// because the view is associated with the saved filter project
+	if projectID < -1 {
+		return pvs.GetByID(s, viewID)
+	}
+
 	view = &models.ProjectView{}
 	exists, err := s.
 		Where("id = ? AND project_id = ?", viewID, projectID).

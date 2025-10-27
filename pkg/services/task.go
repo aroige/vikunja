@@ -1070,8 +1070,8 @@ func (ts *TaskService) handleSavedFilter(s *xorm.Session, collection *models.Tas
 		return nil, 0, 0, err
 	}
 
-	// Get tasks with the saved filter applied
-	return ts.getTasksForProjects(s, projects, a, opts, view)
+	// Get tasks or buckets depending on view configuration
+	return ts.getTaskOrTasksInBuckets(s, a, projects, view, opts, false)
 }
 
 // processRegularCollection handles the standard project collection processing
@@ -1351,9 +1351,37 @@ func (ts *TaskService) getTaskOrTasksInBuckets(s *xorm.Session, a web.Auth, proj
 
 	if view != nil && !strings.Contains(opts.filter, taskPropertyBucketID) {
 		if view.BucketConfigurationMode != models.BucketConfigurationModeNone {
-			// For now, delegate bucket handling to models - this is complex functionality
-			// TODO: Move bucket logic to service layer
-			return []*models.Bucket{}, 0, 0, nil // Simplified for now
+			// Call the KanbanService to get tasks grouped into buckets
+			ks := NewKanbanService(s.Engine())
+
+			// Convert service taskSearchOptions to models.TaskSearchOptions
+			// For now, we only need to pass the filter string and sort params
+			modelOpts := &models.TaskSearchOptions{}
+			modelOpts.SetFilter(opts.filter)
+
+			// Convert sort params if present
+			if len(opts.sortby) > 0 {
+				modelSortParams := make([]*models.SortParam, len(opts.sortby))
+				for i, sp := range opts.sortby {
+					orderBy := models.OrderAscending
+					if sp.orderBy == orderDescending {
+						orderBy = models.OrderDescending
+					}
+					// Use view's ID as projectViewID if available
+					projectViewID := int64(0)
+					if view != nil {
+						projectViewID = view.ID
+					}
+					modelSortParams[i] = models.NewSortParam(sp.sortBy, orderBy, projectViewID)
+				}
+				modelOpts.SetSortBy(modelSortParams)
+			}
+
+			buckets, err := ks.GetTasksInBucketsForView(s, view, projects, modelOpts, a)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+			return buckets, len(buckets), int64(len(buckets)), nil
 		}
 	}
 

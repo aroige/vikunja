@@ -18,10 +18,12 @@ package services
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
+	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
@@ -252,6 +254,178 @@ func (ks *KanbanService) GetAllBuckets(s *xorm.Session, projectViewID int64, pro
 		if createdBy, has := users[bb.CreatedByID]; has {
 			bb.CreatedBy = createdBy
 		}
+	}
+
+	return buckets, nil
+}
+
+// GetTasksInBucketsForView returns all buckets with tasks for a project view
+// This method supports both manual buckets (retrieved from DB) and filter-based buckets (generated dynamically)
+func (ks *KanbanService) GetTasksInBucketsForView(s *xorm.Session, view *models.ProjectView, projects []*models.Project, opts *models.TaskSearchOptions, auth web.Auth) (bucketsWithTasks []*models.Bucket, err error) {
+	// Get all buckets for this view
+	buckets := []*models.Bucket{}
+
+	if view.BucketConfigurationMode == models.BucketConfigurationModeManual {
+		err = s.
+			Where("project_view_id = ?", view.ID).
+			OrderBy("position").
+			Find(&buckets)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if view.BucketConfigurationMode == models.BucketConfigurationModeFilter {
+		for id, bc := range view.BucketConfiguration {
+			buckets = append(buckets, &models.Bucket{
+				ID:          int64(id),
+				Title:       bc.Title,
+				ProjectID:   view.ProjectID,
+				Position:    float64(id),
+				CreatedByID: auth.GetID(),
+				Created:     time.Now(),
+				Updated:     time.Now(),
+			})
+		}
+	}
+
+	// Make a map from the bucket slice with their id as key so that we can use it to put the tasks in their buckets
+	bucketMap := make(map[int64]*models.Bucket, len(buckets))
+	userIDs := make([]int64, 0, len(buckets))
+	for _, bb := range buckets {
+		bucketMap[bb.ID] = bb
+		userIDs = append(userIDs, bb.CreatedByID)
+	}
+
+	// Get all users
+	users, err := ks.getUsersOrLinkSharesFromIDs(s, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, bb := range buckets {
+		if createdBy, has := users[bb.CreatedByID]; has {
+			bb.CreatedBy = createdBy
+		}
+	}
+
+	tasks := []*models.Task{}
+
+	// Set up sort options for kanban position
+	opts.SetSortBy([]*models.SortParam{
+		models.NewSortParam(models.TaskPropertyPosition, models.OrderAscending, view.ID),
+	})
+
+	// Check if we're filtering for a specific bucket
+	for _, filter := range opts.GetParsedFilters() {
+		if filter.Field() == models.TaskPropertyBucketID {
+			// User explicitly filtered for a specific bucket - only process that one.
+			// Limiting the map to the one filter we're looking for is the easiest way to ensure we only
+			// get tasks in this bucket
+			bucketID := filter.Value().(int64)
+			bucket := bucketMap[bucketID]
+
+			bucketMap = make(map[int64]*models.Bucket, 1)
+			bucketMap[bucketID] = bucket
+			break
+		}
+	}
+
+	// For each bucket, fetch tasks that belong to it by combining filters
+	originalFilter := opts.GetFilter()
+	for id, bucket := range bucketMap {
+		// Determine the filter string to use for this bucket.
+		// We need to combine the user's filter (if any) with the bucket-specific filter:
+		// - For manual buckets: add "bucket_id = X" to constrain to this bucket
+		// - For filter-based buckets: use the bucket's configured filter
+		// - Combine user filter with bucket filter using AND (&&) operator
+		filterString := originalFilter
+
+		if !strings.Contains(originalFilter, models.TaskPropertyBucketID) {
+
+			var bucketFilter string
+			if view.BucketConfigurationMode == models.BucketConfigurationModeFilter {
+				// Filter-based bucket: use the configured filter for this bucket
+				bucketFilter = "(" + view.BucketConfiguration[id].Filter.Filter + ")"
+			} else {
+				// Manual bucket: constrain to tasks explicitly assigned to this bucket
+				bucketFilter = "bucket_id = " + strconv.FormatInt(id, 10)
+			}
+
+			if originalFilter == "" {
+				filterString = bucketFilter
+			} else {
+				// Combine user's filter with bucket filter: (user_filter) && (bucket_filter)
+				filterString = "(" + originalFilter + ") && " + bucketFilter
+			}
+		}
+
+		// Parse filters for this bucket
+		parsedFilters, err := models.GetTaskFiltersFromFilterString(filterString, opts.GetFilterTimezone())
+		if err != nil {
+			return nil, err
+		}
+
+		// Build taskSearchOptions directly instead of going through the bridge that re-parses
+		bucketOpts := models.NewTaskSearchOptions(
+			"", // search
+			0,  // page
+			0,  // perPage
+			[]*models.SortParam{models.NewSortParam(models.TaskPropertyPosition, models.OrderAscending, view.ID)}, // sortby with position
+			parsedFilters,            // Use pre-parsed filters
+			false,                    // filterIncludeNulls
+			filterString,             // filter (for logging/reference)
+			opts.GetFilterTimezone(), // filterTimezone
+			false,                    // isSavedFilter
+			nil,                      // projectIDs (will be set by getRawTasksForProjects)
+			opts.GetExpand(),         // expand
+			view.ID,                  // projectViewID
+		)
+
+		// Use the exported helper function to get raw tasks
+		ts, _, total, err := models.GetRawTasksForProjectsForService(
+			s,
+			projects, // Use the projects parameter passed to this function
+			auth,
+			bucketOpts, // Pass pre-built opts with parsed filters
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		bucket.Count = total
+
+		// Set the BucketID on each task since it's not mapped from the database.
+		// Task.BucketID has xorm:"-" tag, so it must be set manually for API responses.
+		for _, t := range ts {
+			t.BucketID = id
+		}
+
+		tasks = append(tasks, ts...)
+	}
+
+	// Build a map of task ID -> task for efficient lookup when adding details
+	taskMap := make(map[int64]*models.Task, len(tasks))
+	for _, t := range tasks {
+		taskMap[t.ID] = t
+	}
+
+	// Enrich tasks with additional details (assignees, labels, attachments, etc.)
+	err = models.AddMoreInfoToTasks(s, taskMap, auth, view, opts.GetExpand())
+	if err != nil {
+		return nil, err
+	}
+
+	// Distribute tasks into their respective buckets
+	// All tasks which are not associated to any bucket will have bucket id 0 which is the nil value for int64
+	// Since we created a bucket with that id at the beginning, all tasks should be in there.
+	for _, task := range tasks {
+		// Check if the bucket exists in the map to prevent nil pointer panics
+		if _, exists := bucketMap[task.BucketID]; !exists {
+			log.Debugf("Tried to put task %d into bucket %d which does not exist in project %d", task.ID, task.BucketID, view.ProjectID)
+			continue
+		}
+		bucketMap[task.BucketID].Tasks = append(bucketMap[task.BucketID].Tasks, task)
 	}
 
 	return buckets, nil
@@ -738,6 +912,12 @@ func InitKanbanService() {
 		}
 		ks := NewKanbanService(db.GetEngine())
 		return ks.GetAllBuckets(s, projectViewID, projectID, u)
+	}
+
+	// Wire GetTasksInBucketsForView
+	models.GetTasksInBucketsForViewFunc = func(s *xorm.Session, view *models.ProjectView, projects []*models.Project, opts *models.TaskSearchOptions, a web.Auth) ([]*models.Bucket, error) {
+		ks := NewKanbanService(db.GetEngine())
+		return ks.GetTasksInBucketsForView(s, view, projects, opts, a)
 	}
 
 	// Wire TaskBucket operations

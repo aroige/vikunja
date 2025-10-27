@@ -315,6 +315,9 @@ func (d *dbTaskSearcher) Search(opts *taskSearchOptions) (tasks []*Task, totalCo
 	if strings.Contains(orderby, "task_positions.") {
 		distinct += ", task_positions.position"
 	}
+	if joinTaskBuckets {
+		distinct += ", task_buckets.bucket_id"
+	}
 
 	var expandSubtasks = false
 	for _, expandable := range opts.expand {
