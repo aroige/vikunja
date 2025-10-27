@@ -838,6 +838,177 @@ Claude: I'll fetch all that information for you.
 
 **Use Case**: AI agents can use this workflow to understand the user's context before suggesting task organization or project management strategies.
 
+### Example 17: List Project Members for Task Assignment
+
+**Scenario**: Find available assignees before assigning a task.
+
+**Claude Desktop Workflow:**
+```
+User: "Who can I assign tasks to in the Engineering project?"
+
+Claude: I'll check the members of that project for you.
+```
+
+**Tool Sequence:**
+```json
+[
+  {
+    "tool": "search_projects",
+    "arguments": {
+      "query": "Engineering"
+    }
+  },
+  {
+    "tool": "list_project_members",
+    "arguments": {
+      "project_id": 11
+    }
+  }
+]
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Found 3 members for project 11",
+  "members": [
+    {
+      "user": {
+        "id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "name": "Alice Smith"
+      },
+      "access_level": 2
+    },
+    {
+      "user": {
+        "id": 2,
+        "username": "bob",
+        "email": "bob@example.com",
+        "name": "Bob Jones"
+      },
+      "access_level": 1
+    },
+    {
+      "user": {
+        "id": 3,
+        "username": "charlie",
+        "email": "charlie@example.com",
+        "name": "Charlie Brown"
+      },
+      "access_level": 0
+    }
+  ]
+}
+```
+
+**Use Case**: Before calling `assign_task`, agents can use this to discover valid user IDs and understand permission levels (0=read, 1=write, 2=admin).
+
+---
+
+## Example 18: Search Tasks by Label Title (filter_label_titles)
+
+**User Request**: "Which tasks have the @Computer label?"
+
+**Problem Solved**: Previously required two steps: list labels → get ID → search tasks. Now agents can search by label name directly.
+
+**JSON-RPC Call:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "search_tasks",
+    "arguments": {
+      "query": "",
+      "filter_label_titles": ["@Computer"]
+    }
+  },
+  "id": 1
+}
+```
+
+**TypeScript:**
+```typescript
+async function findTasksByLabel(client: VikunjaMCPClient, labelName: string) {
+  // Direct search by label title
+  const result = await client.callTool('search_tasks', {
+    query: '',  // Empty query searches all tasks
+    filter_label_titles: [labelName]
+  });
+  
+  console.log(`Found ${result.tasks.length} tasks with label "${labelName}"`);
+  return result.tasks;
+}
+
+// Find tasks with multiple labels (AND logic)
+async function findTasksWithAllLabels(client: VikunjaMCPClient) {
+  const result = await client.callTool('search_tasks', {
+    query: '',
+    filter_label_titles: ['@Computer', '@Urgent']  // Tasks must have BOTH labels
+  });
+  
+  console.log(`Found ${result.tasks.length} tasks with both @Computer AND @Urgent`);
+  return result.tasks;
+}
+
+// Combine with other filters
+async function findUrgentComputerTasks(client: VikunjaMCPClient) {
+  const result = await client.callTool('search_tasks', {
+    query: 'bug',  // Text search in title/description
+    filter_label_titles: ['@Computer'],
+    filter_priority: 5,  // Only critical priority
+    filter_done: false  // Only incomplete tasks
+  });
+  
+  return result.tasks;
+}
+```
+
+**Python:**
+```python
+async def find_tasks_by_label(client, label_name: str):
+    """Direct search by label title."""
+    result = await client.call_tool("search_tasks", {
+        "query": "",  # Empty query searches all tasks
+        "filter_label_titles": [label_name]
+    })
+    
+    print(f"Found {len(result['tasks'])} tasks with label '{label_name}'")
+    return result['tasks']
+
+async def find_tasks_with_all_labels(client):
+    """Find tasks with multiple labels (AND logic)."""
+    result = await client.call_tool("search_tasks", {
+        "query": "",
+        "filter_label_titles": ["@Computer", "@Urgent"]  # Must have BOTH
+    })
+    
+    print(f"Found {len(result['tasks'])} tasks with both labels")
+    return result['tasks']
+
+async def find_urgent_computer_tasks(client):
+    """Combine label filter with other criteria."""
+    result = await client.call_tool("search_tasks", {
+        "query": "bug",  # Text search
+        "filter_label_titles": ["@Computer"],
+        "filter_priority": 5,  # Critical only
+        "filter_done": False  # Incomplete only
+    })
+    
+    return result['tasks']
+```
+
+**Notes:**
+- **Case-insensitive**: `@computer`, `@Computer`, and `@COMPUTER` all match
+- **Exact match**: Searches for exact label title, not partial match
+- **AND logic**: Multiple labels require tasks to have ALL specified labels
+- **Error handling**: Returns error if label title not found, prompting user to use `get_all_labels`
+- **Alternative**: Use `filter_labels` with numeric IDs if you already know the label IDs
+- **Cannot mix**: Cannot use both `filter_labels` and `filter_label_titles` in the same call
+
 ---
 
 ## Next Steps

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema } from './projects.js';
+import { ProjectTools, CreateProjectSchema, UpdateProjectSchema, DeleteProjectSchema, ArchiveProjectSchema, GetProjectSchema, GetAllProjectsSchema, ListProjectMembersSchema } from './projects.js';
 import { TaskTools, CreateTaskSchema, UpdateTaskSchema, CompleteTaskSchema, DeleteTaskSchema, MoveTaskSchema, GetTaskSchema } from './tasks.js';
 import { AssignmentTools, AssignTaskSchema, UnassignTaskSchema, AddLabelSchema, RemoveLabelSchema, CreateLabelSchema } from './assignments.js';
 import { SearchTools, SearchTasksSchema, SearchProjectsSchema, GetMyTasksSchema, GetProjectTasksSchema } from './search.js';
@@ -111,6 +111,13 @@ export class ToolRegistry {
       async (args, ctx) => this.projectTools.getAllProjects(args as z.infer<typeof GetAllProjectsSchema>, ctx)
     );
 
+    this.registerTool(
+      'list_project_members',
+      'List all users who have access to a specific project. Use this to discover who can be assigned to tasks in the project or to understand project collaboration. Returns array of members with user details (id, username, email, name) and their access level (0=read, 1=write, 2=admin). Requires read access to the project. Use this before assign_task to see available assignees.',
+      ListProjectMembersSchema,
+      async (args, ctx) => this.projectTools.listProjectMembers(args as z.infer<typeof ListProjectMembersSchema>, ctx)
+    );
+
     // Task Tools
     this.registerTool(
       'create_task',
@@ -193,7 +200,7 @@ export class ToolRegistry {
     // Search Tools
     this.registerTool(
       'search_tasks',
-      'Search for tasks by query string with advanced filtering. Use this when you need flexible text search with filters. For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false), priority (filter_priority: 0-5 where 0=unset, 1=low, 5=critical), labels (AND logic), and assignees. Returns matching tasks with basic details.',
+      'Search for tasks by query string with advanced filtering. Use this when you need flexible text search with filters. For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false), priority (filter_priority: 0-5 where 0=unset, 1=low, 5=critical), labels by ID (filter_labels, AND logic), labels by title (filter_label_titles for user-friendly search, e.g., ["@Computer", "@Home"], also AND logic), and assignees. Returns matching tasks with basic details. Note: Use filter_label_titles when you only know label names; it automatically looks up IDs by exact title match (case-insensitive).',
       SearchTasksSchema,
       async (args, ctx) => this.searchTools.searchTasks(args as z.infer<typeof SearchTasksSchema>, ctx)
     );

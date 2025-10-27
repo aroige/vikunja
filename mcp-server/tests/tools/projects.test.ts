@@ -363,3 +363,134 @@ describe('Project Tools - get_all_projects', () => {
     expect(result.hasMore).toBe(true); // Exactly 50 suggests more exist
   });
 });
+
+describe('Project Tools - list_project_members', () => {
+  let projectTools: ProjectTools;
+  let mockClient: VikunjaClient;
+  let mockRateLimiter: RateLimiter;
+  let userContext: UserContext;
+
+  const mockMembers = [
+    {
+      user: {
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        name: 'Alice Smith',
+      },
+      access_level: 2, // Admin
+    },
+    {
+      user: {
+        id: 2,
+        username: 'bob',
+        email: 'bob@example.com',
+        name: 'Bob Jones',
+      },
+      access_level: 1, // Write
+    },
+    {
+      user: {
+        id: 3,
+        username: 'charlie',
+        email: 'charlie@example.com',
+        name: 'Charlie Brown',
+      },
+      access_level: 0, // Read
+    },
+  ];
+
+  beforeEach(() => {
+    mockClient = new VikunjaClient();
+    mockRateLimiter = new RateLimiter(null as any);
+    projectTools = new ProjectTools(mockClient, mockRateLimiter);
+    
+    userContext = {
+      userId: 123,
+      username: 'testuser',
+      email: 'testuser@example.com',
+      token: 'test-token-123',
+      permissions: [],
+      validatedAt: new Date(),
+    };
+
+    // Mock rate limiter to always pass
+    vi.spyOn(mockRateLimiter, 'checkLimit').mockResolvedValue();
+  });
+
+  it('should successfully retrieve project members', async () => {
+    // Arrange
+    const input = { project_id: 11 };
+    vi.spyOn(mockClient, 'get').mockResolvedValue(mockMembers);
+
+    // Act
+    const result = await projectTools.listProjectMembers(input, userContext);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Found 3 members');
+    expect(result.members).toEqual(mockMembers);
+    expect(mockClient.get).toHaveBeenCalledWith(
+      '/api/v1/projects/11/projectusers',
+      {},
+      'test-token-123'
+    );
+  });
+
+  it('should handle empty member list', async () => {
+    // Arrange
+    const input = { project_id: 99 };
+    vi.spyOn(mockClient, 'get').mockResolvedValue([]);
+
+    // Act
+    const result = await projectTools.listProjectMembers(input, userContext);
+
+    // Assert
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Found 0 members');
+    expect(result.members).toEqual([]);
+  });
+
+  it('should handle API errors gracefully', async () => {
+    // Arrange
+    const input = { project_id: 404 };
+    vi.spyOn(mockClient, 'get').mockRejectedValue(new Error('Project not found'));
+
+    // Act
+    const result = await projectTools.listProjectMembers(input, userContext);
+
+    // Assert
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Failed to retrieve members');
+    expect(result.error).toBe('Project not found');
+  });
+
+  it('should call rate limiter before API request', async () => {
+    // Arrange
+    const input = { project_id: 11 };
+    const checkLimitSpy = vi.spyOn(mockRateLimiter, 'checkLimit');
+    vi.spyOn(mockClient, 'get').mockResolvedValue(mockMembers);
+
+    // Act
+    await projectTools.listProjectMembers(input, userContext);
+
+    // Assert
+    expect(checkLimitSpy).toHaveBeenCalledWith('test-token-123');
+    expect(checkLimitSpy).toHaveBeenCalled();
+  });
+
+  it('should distinguish access levels correctly', async () => {
+    // Arrange
+    const input = { project_id: 11 };
+    vi.spyOn(mockClient, 'get').mockResolvedValue(mockMembers);
+
+    // Act
+    const result = await projectTools.listProjectMembers(input, userContext);
+
+    // Assert
+    expect(result.members).toBeDefined();
+    expect(result.members![0].access_level).toBe(2); // Admin
+    expect(result.members![1].access_level).toBe(1); // Write
+    expect(result.members![2].access_level).toBe(0); // Read
+  });
+});
