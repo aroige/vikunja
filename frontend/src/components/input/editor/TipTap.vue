@@ -388,121 +388,125 @@ const PasteHandler = Extension.create({
 })
 
 
-const extensions : Extensions = [
-	// Starterkit:
-	StarterKit.configure({
-		codeBlock: false,
-		hardBreak: false,
-	}),
+function createExtensions(): Extensions {
+	const extensions: Extensions = [
+		// Starterkit:
+		StarterKit.configure({
+			codeBlock: false,
+			hardBreak: false,
+		}),
 
-	CodeBlockLowlight.configure({
-		lowlight: createLowlight(common),
-	}),
-	HardBreak.extend({
-		addKeyboardShortcuts() {
-			return {
-				'Shift-Enter': () => this.editor.commands.setHardBreak(),
-				'Mod-Enter': () => {
-					if (contentHasChanged.value) {
+		CodeBlockLowlight.configure({
+			lowlight: createLowlight(common),
+		}),
+		HardBreak.extend({
+			addKeyboardShortcuts() {
+				return {
+					'Shift-Enter': () => this.editor.commands.setHardBreak(),
+					'Mod-Enter': () => {
+						if (contentHasChanged.value) {
+							bubbleSave()
+						}
+						return true
+					},
+				}
+			},
+		}),
+
+		Placeholder.configure({
+			placeholder: ({editor}) => {
+				if (!isEditing.value) {
+					return ''
+				}
+
+				if (editor.getText() !== '' && !editor.isFocused) {
+					return ''
+				}
+
+				return props.placeholder !== ''
+					? props.placeholder
+					: t('input.editor.placeholder')
+			},
+		}),
+		Typography,
+		Underline,
+		NonInclusiveLink.configure({
+			openOnClick: false,
+			validate: (href: string) => (new RegExp(
+				`^(https?|${additionalLinkProtocols.join('|')}):\\/\\/`,
+				'i',
+			)).test(href),
+			protocols: additionalLinkProtocols,
+		}),
+		Table.configure({
+			resizable: true,
+		}),
+		TableRow,
+		TableHeader,
+		// Custom TableCell with backgroundColor attribute
+		CustomTableCell,
+
+		CustomImage,
+
+		TaskList,
+		TaskItem.configure({
+			nested: true,
+			onReadOnlyChecked: (node: Node, checked: boolean): boolean => {
+				if (!props.isEditEnabled) {
+					return false
+				}
+
+				// The following is a workaround for this bug:
+				// https://github.com/ueberdosis/tiptap/issues/4521
+				// https://github.com/ueberdosis/tiptap/issues/3676
+
+				editor.value!.state.doc.descendants((subnode, pos) => {
+					if (subnode === node) {
+						const {tr} = editor.value!.state
+						tr.setNodeMarkup(pos, undefined, {
+							...node.attrs,
+							checked,
+						})
+						editor.value!.view.dispatch(tr)
 						bubbleSave()
 					}
-					return true
-				},
-			}
-		},
-	}),
+				})
 
-	Placeholder.configure({
-		placeholder: ({editor}) => {
-			if (!isEditing.value) {
-				return ''
-			}
 
-			if (editor.getText() !== '' && !editor.isFocused) {
-				return ''
-			}
+				return true
+			},
+		}),
 
-			return props.placeholder !== ''
-				? props.placeholder
-				: t('input.editor.placeholder')
-		},
-	}),
-	Typography,
-	Underline,
-	NonInclusiveLink.configure({
-		openOnClick: false,
-		validate: (href: string) => (new RegExp(
-			`^(https?|${additionalLinkProtocols.join('|')}):\\/\\/`,
-			'i',
-		)).test(href),
-		protocols: additionalLinkProtocols,
-	}),
-	Table.configure({
-		resizable: true,
-	}),
-	TableRow,
-	TableHeader,
-	// Custom TableCell with backgroundColor attribute
-	CustomTableCell,
+		Commands.configure({
+			suggestion: suggestionSetup(t),
+		}),
 
-	CustomImage,
+		PasteHandler,
+	]
 
-	TaskList,
-	TaskItem.configure({
-		nested: true,
-		onReadOnlyChecked: (node: Node, checked: boolean): boolean => {
-			if (!props.isEditEnabled) {
-				return false
-			}
+	// Add a custom extension for the Escape key
+	if (props.enableDiscardShortcut) {
+		extensions.push(Extension.create({
+			name: 'escapeKey',
 
-			// The following is a workaround for this bug:
-			// https://github.com/ueberdosis/tiptap/issues/4521
-			// https://github.com/ueberdosis/tiptap/issues/3676
-
-			editor.value!.state.doc.descendants((subnode, pos) => {
-				if (subnode === node) {
-					const {tr} = editor.value!.state
-					tr.setNodeMarkup(pos, undefined, {
-						...node.attrs,
-						checked,
-					})
-					editor.value!.view.dispatch(tr)
-					bubbleSave()
+			addKeyboardShortcuts() {
+				return {
+					'Escape': () => {
+						exitEditMode()
+						return true
+					},
 				}
-			})
+			},
+		}))
+	}
 
-
-			return true
-		},
-	}),
-
-	Commands.configure({
-		suggestion: suggestionSetup(t),
-	}),
-
-	PasteHandler,
-]
-
-// Add a custom extension for the Escape key
-if (props.enableDiscardShortcut) {
-	extensions.push(Extension.create({
-		name: 'escapeKey',
-
-		addKeyboardShortcuts() {
-			return {
-				'Escape': () => {
-					exitEditMode()
-					return true
-				},
-			}
-		},
-	}))
+	return extensions
 }
 
 const editor = useEditor({
 	// eslint-disable-next-line vue/no-ref-object-reactivity-loss
 	editable: isEditing.value,
-	extensions: extensions,
+	extensions: createExtensions(),
 	onUpdate: () => {
 		bubbleNow()
 	},

@@ -66,6 +66,22 @@ export enum RepeatMode {
    * Example: "Water plants every 3 days" - creates new task 3 days after you complete it.
    */
   FROM_CURRENT = 2,
+
+  /**
+   * WEEKDAYS mode (3): Repeat only on weekdays (Monday-Friday).
+   * Best for: Work-related tasks that only occur on business days.
+   * Skips weekends automatically - completing a Friday task creates Monday recurrence.
+   * Example: "Daily standup" repeats Monday-Friday, skips weekends.
+   */
+  WEEKDAYS = 3,
+
+  /**
+   * WEEKENDS mode (4): Repeat only on weekends (Saturday-Sunday).
+   * Best for: Personal tasks that only occur on weekends.
+   * Skips weekdays automatically - completing a Sunday task creates Saturday recurrence.
+   * Example: "Clean house" repeats Saturday-Sunday only.
+   */
+  WEEKENDS = 4,
 }
 
 export interface VikunjaLabel {

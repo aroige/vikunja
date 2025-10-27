@@ -128,12 +128,42 @@ describe('Recurring Task Parameters', () => {
       }
     });
 
-    it('should reject repeat_mode values outside 0-2 range', () => {
+    it('should accept repeat_mode=3 (weekdays: Monday-Friday only)', () => {
+      const input = {
+        project_id: 1,
+        title: 'Daily standup',
+        repeat_after: 86400, // 1 day
+        repeat_mode: 3, // Weekdays only
+      };
+
+      const result = CreateTaskSchema.safeParse(input);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.repeat_mode).toBe(3);
+      }
+    });
+
+    it('should accept repeat_mode=4 (weekends: Saturday-Sunday only)', () => {
+      const input = {
+        project_id: 1,
+        title: 'Clean house',
+        repeat_after: 86400, // 1 day
+        repeat_mode: 4, // Weekends only
+      };
+
+      const result = CreateTaskSchema.safeParse(input);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.repeat_mode).toBe(4);
+      }
+    });
+
+    it('should reject repeat_mode values outside 0-4 range', () => {
       const input = {
         project_id: 1,
         title: 'Invalid mode',
         repeat_after: 86400,
-        repeat_mode: 3, // Invalid
+        repeat_mode: 5, // Invalid
       };
 
       const result = CreateTaskSchema.safeParse(input);
@@ -192,8 +222,8 @@ describe('Recurring Task Parameters', () => {
   });
 
   describe('UpdateTaskSchema - repeat_mode validation', () => {
-    it('should accept all valid repeat_mode values (0, 1, 2)', () => {
-      [0, 1, 2].forEach(mode => {
+    it('should accept all valid repeat_mode values (0, 1, 2, 3, 4)', () => {
+      [0, 1, 2, 3, 4].forEach(mode => {
         const input = {
           id: 123,
           repeat_mode: mode,
@@ -258,6 +288,40 @@ describe('Recurring Task Parameters', () => {
 
       const result = CreateTaskSchema.safeParse(input);
       expect(result.success).toBe(true);
+    });
+
+    it('should validate weekday repeat example (repeat_after=86400, mode=3)', () => {
+      const input = {
+        project_id: 1,
+        title: 'Daily standup',
+        description: 'Team standup Monday-Friday only',
+        due_date: '2024-01-08T09:00:00Z',
+        repeat_after: 86400, // 1 day
+        repeat_mode: 3, // Weekdays only (skips weekends)
+      };
+
+      const result = CreateTaskSchema.safeParse(input);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.repeat_mode).toBe(3);
+      }
+    });
+
+    it('should validate weekend repeat example (repeat_after=86400, mode=4)', () => {
+      const input = {
+        project_id: 1,
+        title: 'Clean house',
+        description: 'Weekend chore, Saturday-Sunday only',
+        due_date: '2024-01-06T10:00:00Z',
+        repeat_after: 86400, // 1 day
+        repeat_mode: 4, // Weekends only (skips weekdays)
+      };
+
+      const result = CreateTaskSchema.safeParse(input);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.repeat_mode).toBe(4);
+      }
     });
   });
 });

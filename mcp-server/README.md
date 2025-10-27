@@ -206,7 +206,7 @@ Vikunja supports recurring tasks through the `repeat_after` and `repeat_mode` pa
 
 ### Repeat Modes
 
-There are three repeat modes (`repeat_mode`):
+There are five repeat modes (`repeat_mode`):
 
 **Mode 0: DEFAULT** - Repeat from Due Date
 - Best for: Scheduled tasks like meetings, standups, or deadlines
@@ -249,6 +249,36 @@ There are three repeat modes (`repeat_mode`):
   // If completed on Jan 12, next task due Jan 15
   ```
 
+**Mode 3: WEEKDAYS** - Repeat Monday-Friday Only
+- Best for: Work-related tasks, business day routines, office tasks
+- Behavior: Automatically skips weekends. Completing on Friday creates Monday occurrence.
+- Example: Daily standup Monday through Friday
+  ```typescript
+  {
+    title: "Daily standup",
+    due_date: "2024-01-08T09:00:00Z",  // Monday 9am
+    repeat_after: 86400,  // 1 day in seconds
+    repeat_mode: 3  // Weekdays only
+  }
+  // Complete on Friday → Next occurrence is Monday
+  // Complete on Thursday → Next occurrence is Friday
+  ```
+
+**Mode 4: WEEKENDS** - Repeat Saturday-Sunday Only
+- Best for: Personal tasks, weekend chores, household activities
+- Behavior: Automatically skips weekdays. Completing on Sunday creates Saturday occurrence.
+- Example: Weekend house cleaning
+  ```typescript
+  {
+    title: "Clean house",
+    due_date: "2024-01-06T10:00:00Z",  // Saturday 10am
+    repeat_after: 86400,  // 1 day in seconds
+    repeat_mode: 4  // Weekends only
+  }
+  // Complete on Sunday → Next occurrence is Saturday (next weekend)
+  // Complete on Saturday → Next occurrence is Sunday
+  ```
+
 ### Common Intervals
 
 Useful `repeat_after` values (in seconds):
@@ -264,6 +294,8 @@ Useful `repeat_after` values (in seconds):
 ### Tips
 
 - **Monthly tasks**: Always use `repeat_after: 0` with `repeat_mode: 1`
+- **Weekday patterns**: Use mode 3 for work tasks that shouldn't occur on weekends
+- **Weekend patterns**: Use mode 4 for personal tasks that only happen on weekends
 - **Completion-based**: Use mode 2 for habits, maintenance, or flexible recurring work
 - **Scheduled events**: Use mode 0 with appropriate `repeat_after` for fixed schedules
 - **Updating recurrence**: Change `repeat_mode` to modify how future occurrences are calculated
