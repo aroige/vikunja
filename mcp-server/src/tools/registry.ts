@@ -106,7 +106,7 @@ export class ToolRegistry {
 
     this.registerTool(
       'get_all_projects',
-      'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter) and filtering by archived status (filter_archived). Use get_project for detailed information about a specific project when you know its ID. Returns an array of projects with pagination metadata (total, page, hasMore).',
+      'List all accessible projects without requiring a search query. Use this to discover available projects or get an overview of all workspaces. Supports pagination (page parameter, default page 1) and filtering by archived status (filter_archived: true for only archived, false for only active, omit for all). Use get_project for detailed information about a specific project when you know its ID. Returns an array of projects with pagination metadata (total, page, hasMore).',
       GetAllProjectsSchema,
       async (args, ctx) => this.projectTools.getAllProjects(args as z.infer<typeof GetAllProjectsSchema>, ctx)
     );
@@ -121,7 +121,7 @@ export class ToolRegistry {
 
     this.registerTool(
       'update_task',
-      'Update an existing task\'s properties. Use this to modify any task field (title, description, priority, due date, etc.). For completing only, consider complete_task. For moving projects, consider move_task. Supports updating recurrence settings: change repeat_after interval or repeat_mode behavior. Changing repeat_mode affects how the next occurrence is calculated. Requires write access to the parent project. Returns the updated task.',
+      'Update an existing task\'s properties. Use this to modify any task field (title, description, priority, due date, etc.). Priority values: 0=unset (default), 1=low, 2=medium, 3=high, 4=urgent, 5=critical. For completing only, consider complete_task. For moving projects, consider move_task. Supports updating recurrence settings: change repeat_after interval or repeat_mode behavior. Changing repeat_mode affects how the next occurrence is calculated. Requires write access to the parent project. Returns the updated task.',
       UpdateTaskSchema,
       async (args, ctx) => this.taskTools.updateTask(args as z.infer<typeof UpdateTaskSchema>, ctx)
     );
@@ -193,28 +193,28 @@ export class ToolRegistry {
     // Search Tools
     this.registerTool(
       'search_tasks',
-      'Search for tasks by query string with advanced filtering. Use this when you need flexible text search with filters. For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination and filtering by done status, priority, labels (AND logic), and assignees. Returns matching tasks with basic details.',
+      'Search for tasks by query string with advanced filtering. Use this when you need flexible text search with filters. For all user\'s tasks, use get_my_tasks. For project-specific tasks, use get_project_tasks. For single task by ID, use get_task. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false), priority (filter_priority: 0-5 where 0=unset, 1=low, 5=critical), labels (AND logic), and assignees. Returns matching tasks with basic details.',
       SearchTasksSchema,
       async (args, ctx) => this.searchTools.searchTasks(args as z.infer<typeof SearchTasksSchema>, ctx)
     );
 
     this.registerTool(
       'search_projects',
-      'Search for projects by query string. Use this to find projects by name or description when you don\'t know the exact ID. For direct access by ID, use get_project. For listing all projects, use get_all_projects. Supports filtering by archived status and pagination. Returns matching projects with basic details.',
+      'Search for projects by query string. Use this to find projects by name or description when you don\'t know the exact ID. For direct access by ID, use get_project. For listing all projects, use get_all_projects. Supports filtering by archived status (filter_archived: true to show only archived, false for only active, omit for all) and pagination (page parameter, default page 1). Returns matching projects with basic details.',
       SearchProjectsSchema,
       async (args, ctx) => this.searchTools.searchProjects(args as z.infer<typeof SearchProjectsSchema>, ctx)
     );
 
     this.registerTool(
       'get_my_tasks',
-      'Get all tasks assigned to the current user across all projects. Use this for personal task list views and "what are my tasks?" queries. Supports pagination and filtering by done status and priority. Returns tasks sorted by due date with basic details.',
+      'Get all tasks assigned to the current user across all projects. Use this for personal task list views and "what are my tasks?" queries. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks sorted by due date with basic details.',
       GetMyTasksSchema,
       async (args, ctx) => this.searchTools.getMyTasks(args as z.infer<typeof GetMyTasksSchema>, ctx)
     );
 
     this.registerTool(
       'get_project_tasks',
-      'Get all tasks in a specific project. Use this for project-specific queries and "what needs to be done in project X?" views. Requires read access to the project. Supports pagination and filtering by done status and priority. Returns tasks in the specified project with basic details.',
+      'Get all tasks in a specific project. Use this for project-specific queries and "what needs to be done in project X?" views. Requires read access to the project. Supports pagination (page parameter, default page 1) and filtering by done status (filter_done: true/false) and priority (filter_priority: 0-5). Returns tasks in the specified project with basic details.',
       GetProjectTasksSchema,
       async (args, ctx) => this.searchTools.getProjectTasks(args as z.infer<typeof GetProjectTasksSchema>, ctx)
     );
@@ -222,28 +222,28 @@ export class ToolRegistry {
     // Bulk Tools
     this.registerTool(
       'bulk_update_tasks',
-      'Update multiple tasks at once with the same changes (max 100 tasks). Use this instead of individual update_task calls for better performance when applying identical changes to many tasks. Example: Mark 20 tasks as high priority. Requires write access to all affected tasks. Returns array of updated tasks.',
+      'Update multiple tasks at once with the same changes (max 100 tasks per call). Use this instead of individual update_task calls for better performance when applying identical changes to many tasks. Example: Mark 20 tasks as high priority (priority=3). Priority values: 0=unset, 1=low, 2=medium, 3=high, 4=urgent, 5=critical. Requires write access to all affected tasks. Returns array of updated tasks.',
       BulkUpdateTasksSchema,
       async (args, ctx) => this.bulkTools.bulkUpdateTasks(args as z.infer<typeof BulkUpdateTasksSchema>, ctx)
     );
 
     this.registerTool(
       'bulk_complete_tasks',
-      'Mark multiple tasks as complete at once (max 100 tasks). Use this for batch completion operations. More efficient than calling complete_task multiple times. Requires write access to all affected tasks. Returns array of completed tasks.',
+      'Mark multiple tasks as complete at once (max 100 tasks per call). Use this for batch completion operations. More efficient than calling complete_task multiple times. Requires write access to all affected tasks. Returns array of completed tasks.',
       BulkCompleteTasksSchema,
       async (args, ctx) => this.bulkTools.bulkCompleteTasks(args as z.infer<typeof BulkCompleteTasksSchema>, ctx)
     );
 
     this.registerTool(
       'bulk_assign_tasks',
-      'Assign a user to multiple tasks at once (max 100 tasks). Use this for batch delegation. More efficient than calling assign_task multiple times. Requires write access to all affected tasks. Returns success confirmation with count.',
+      'Assign a user to multiple tasks at once (max 100 tasks per call). Use this for batch delegation. More efficient than calling assign_task multiple times. Requires write access to all affected tasks. Returns success confirmation with count.',
       BulkAssignTasksSchema,
       async (args, ctx) => this.bulkTools.bulkAssignTasks(args as z.infer<typeof BulkAssignTasksSchema>, ctx)
     );
 
     this.registerTool(
       'bulk_add_labels',
-      'Add a label to multiple tasks at once (max 100 tasks). Use this for batch categorization. Example: Tag all Q4 tasks with "urgent" label. More efficient than calling add_label multiple times. Requires write access to all affected tasks. Returns success confirmation with count.',
+      'Add a label to multiple tasks at once (max 100 tasks per call). Use this for batch categorization. Example: Tag all Q4 tasks with "urgent" label. More efficient than calling add_label multiple times. Requires write access to all affected tasks. Returns success confirmation with count.',
       BulkAddLabelsSchema,
       async (args, ctx) => this.bulkTools.bulkAddLabels(args as z.infer<typeof BulkAddLabelsSchema>, ctx)
     );
@@ -251,7 +251,7 @@ export class ToolRegistry {
     // Task Relation Tools
     this.registerTool(
       'create_task_relation',
-      'Create a relationship between two tasks (subtask, blocker, related, etc.). Bidirectional relations created automatically. Hierarchical relations (subtask/parenttask) prevent cycles. Use this for task dependencies, hierarchies, or associations. Requires write access to both tasks. Returns the created relation.',
+      'Create a relationship between two tasks (subtask, blocker, related, etc.). Relation kinds: "subtask" (hierarchical child), "parenttask" (hierarchical parent), "related" (loose association), "duplicates" (same task), "blocking" (dependency: this blocks other), "blocked" (dependency: other blocks this), "precedes" (order: this before other), "follows" (order: this after other), "copiedfrom" (clone source), "copiedto" (clone target). Bidirectional relations created automatically (e.g., subtask creates inverse parenttask). Hierarchical relations (subtask/parenttask) prevent cycles. Use this for task dependencies, hierarchies, or associations. Requires write access to both tasks. Returns the created relation.',
       CreateTaskRelationSchema,
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof CreateTaskRelationSchema>;
@@ -292,7 +292,7 @@ export class ToolRegistry {
 
     this.registerTool(
       'get_task_comments',
-      'Retrieve all comments for a task with pagination (default: page_size=50, max=100). Comments in chronological order with author info. Use this to understand task history and team discussion before taking action. Requires read access to the task. Returns comments array with metadata.',
+      'Retrieve all comments for a task with pagination (page parameter, default page 1, page_size defaults to 50, max 100 per page). Comments in chronological order with author info (username, name, email). Use this to understand task history and team discussion before taking action. Requires read access to the task. Returns comments array with pagination metadata.',
       GetTaskCommentsSchema,
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof GetTaskCommentsSchema>;
@@ -323,7 +323,7 @@ export class ToolRegistry {
     // Label Management Tools
     this.registerTool(
       'get_all_labels',
-      'List all labels visible to you with optional search and pagination (default: page_size=50, max=100). Labels are project-independent tags for categorizing tasks. Visibility: labels on accessible tasks + labels you created. Use this to discover available labels or search by title.',
+      'List all labels visible to you with optional search (query parameter for text search) and pagination (page parameter, default page 1, page_size defaults to 50, max 100 per page). Labels are project-independent tags for categorizing tasks. Visibility: labels on accessible tasks + labels you created. Use this to discover available labels or search by title. Returns array of label objects with full details.',
       GetAllLabelsSchema,
       async (args, ctx) => {
         const validatedArgs = args as z.infer<typeof GetAllLabelsSchema>;
