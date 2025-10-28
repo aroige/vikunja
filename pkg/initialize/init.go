@@ -74,6 +74,13 @@ func InitEngines() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	// Sync PostgreSQL sequences to prevent duplicate key errors after migrations/imports
+	err = db.SyncPostgreSQLSequences()
+	if err != nil {
+		log.Warningf("Failed to sync PostgreSQL sequences: %v", err)
+		// Don't fatal - this is a maintenance operation
+	}
 }
 
 // FullInitWithoutAsync does a full init without any async handlers (cron or events)

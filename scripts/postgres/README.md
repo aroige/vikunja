@@ -2,6 +2,24 @@
 
 This directory contains PostgreSQL-specific maintenance scripts for Vikunja.
 
+## Automatic Sequence Synchronization
+
+**Starting from this version, Vikunja automatically synchronizes PostgreSQL sequences on startup!**
+
+The sequence synchronization happens automatically during initialization when using PostgreSQL. This prevents "duplicate key value violates unique constraint" errors that commonly occur after:
+- Data migrations from SQLite
+- Database restores
+- Data imports with explicit IDs
+
+The automatic sync is logged at DEBUG level and runs safely on every startup. No manual intervention is needed in normal operation.
+
+## Manual Scripts
+
+The manual scripts in this directory are provided for:
+- Troubleshooting sequence issues
+- Running sync operations without restarting Vikunja
+- Verifying sequence states after data operations
+
 ## Scripts
 
 ### check_sequences.sql
@@ -14,9 +32,12 @@ psql -h localhost -U vikunja -d vikunja_db -f scripts/postgres/check_sequences.s
 ```
 
 **What it checks:**
-- `projects_id_seq` vs actual project IDs
-- `project_views_id_seq` vs actual project view IDs
-- `saved_filters_id_seq` vs actual saved filter IDs
+- All 22 tables with auto-increment sequences:
+  - `api_tokens`, `buckets`, `labels`, `label_tasks`, `link_shares`
+  - `projects`, `project_views`, `reactions`, `saved_filters`, `subscriptions`
+  - `tasks`, `task_assignees`, `task_attachments`, `task_comments`
+  - `task_relations`, `task_reminders`, `teams`, `team_members`, `team_projects`
+  - `unsplash_photos`, `users_projects`, `webhooks`
 
 **Output interpretation:**
 - `difference` > 0: Sequence is behind (PROBLEM - will cause duplicate key errors)
@@ -33,16 +54,16 @@ psql -h localhost -U vikunja -d vikunja_db -f scripts/postgres/fix_sequences.sql
 ```
 
 **What it fixes:**
-- Synchronizes all auto-increment sequences with their table's MAX(id)
-- Prevents "duplicate key value violates unique constraint" errors
-- Includes verification output showing before/after values
+- Synchronizes all 22 auto-increment sequences with their table's MAX(id)
+- Prevents "duplicate key value violates unique constraint" errors on any table
+- Includes verification output showing synchronized values for non-empty tables
 
 ## When to use these scripts
 
 ### Symptoms of out-of-sync sequences:
-- Error: `pq: duplicate key value violates unique constraint "projects_pkey"`
-- Error: `pq: duplicate key value violates unique constraint "project_views_pkey"`
-- 500 errors when creating projects or saved filters
+- Error: `pq: duplicate key value violates unique constraint "<table>_pkey"`
+- Error: `pq: duplicate key value violates unique constraint "<table>_id_seq"`
+- 500 errors when creating any entity (projects, tasks, labels, teams, etc.)
 
 ### Common causes:
 1. **Data migration from SQLite**: SQLite doesn't use sequences, so they need manual sync
