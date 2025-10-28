@@ -16,3 +16,13 @@ docker-manifest-unstable.tmpl
 /frontend/node_modules/
 /frontend/.direnv
 /frontend/dist
+
+# n8n workflows (don't include in Docker image - deployed separately)
+n8n-workflows/
+
+# MCP server (don't include in main Vikunja image - separate service)
+mcp-server/node_modules/
+mcp-server/dist/
+mcp-server/logs/
+mcp-server/.env
+mcp-server/*.log

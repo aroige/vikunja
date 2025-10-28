@@ -52,6 +52,17 @@ function loadConfig(): Config {
 				? parseInt(process.env['SESSION_ORPHANED_TIMEOUT_SECONDS'], 10)
 				: 60,
 		},
+		database: {
+			host: process.env['DB_HOST'] ?? 'localhost',
+			port: process.env['DB_PORT'] ? parseInt(process.env['DB_PORT'], 10) : 5432,
+			database: process.env['DB_NAME'] ?? 'n8n_memory',
+			user: process.env['DB_USER'] ?? 'postgres',
+			password: process.env['DB_PASSWORD'] ?? '',
+			maxConnections: process.env['DB_MAX_CONNECTIONS']
+				? parseInt(process.env['DB_MAX_CONNECTIONS'], 10)
+				: 10,
+			enabled: process.env['DB_ENABLED'] !== 'false',
+		},
 		llm: process.env['LLM_PROVIDER']
 			? {
 					provider: process.env['LLM_PROVIDER'] as 'openai' | 'anthropic' | 'ollama',

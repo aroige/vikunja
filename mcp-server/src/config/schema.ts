@@ -49,6 +49,19 @@ export const SessionConfigSchema = z.object({
 });
 
 /**
+ * PostgreSQL database configuration schema
+ */
+export const DatabaseConfigSchema = z.object({
+	host: z.string().default('localhost'),
+	port: z.number().int().positive().default(5432),
+	database: z.string().default('n8n_memory'),
+	user: z.string().default('postgres'),
+	password: z.string().default(''),
+	maxConnections: z.number().int().positive().default(10),
+	enabled: z.boolean().default(true), // Allow disabling for development
+});
+
+/**
  * Logging configuration schema
  */
 export const LoggingConfigSchema = z.object({
@@ -76,6 +89,7 @@ export const ConfigSchema = z.object({
 	auth: AuthConfigSchema,
 	rateLimits: RateLimitConfigSchema,
 	session: SessionConfigSchema,
+	database: DatabaseConfigSchema,
 	llm: LLMConfigSchema.optional(),
 	logging: LoggingConfigSchema,
 });
@@ -86,5 +100,6 @@ export type RedisConfig = z.infer<typeof RedisConfigSchema>;
 export type AuthConfig = z.infer<typeof AuthConfigSchema>;
 export type RateLimitConfig = z.infer<typeof RateLimitConfigSchema>;
 export type SessionConfig = z.infer<typeof SessionConfigSchema>;
+export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
 export type LoggingConfig = z.infer<typeof LoggingConfigSchema>;
 export type LLMConfig = z.infer<typeof LLMConfigSchema>;

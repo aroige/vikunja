@@ -313,25 +313,51 @@ Useful `repeat_after` values (in seconds):
 Create a `.env` file:
 
 ```env
+# Required
 VIKUNJA_API_URL=http://localhost:3456
-MCP_PORT=3457
+
+# JWT Secret for confirmation tokens (REQUIRED in production)
+# Generate with: openssl rand -base64 32
+JWT_SECRET=your-secure-secret-here
+
+# Optional - PostgreSQL table prefix
+TABLE_PREFIX=vk_
+
+# Optional - Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
+
+# Optional - Server
+MCP_PORT=3457
+NODE_ENV=production
+
+# Optional - Rate Limiting
 RATE_LIMIT_DEFAULT=100
 RATE_LIMIT_BURST=120
+
+# Optional - Logging
 LOG_LEVEL=info
+LOG_FORMAT=json
 ```
 
 Or set environment variables:
 
 ```bash
 # Required
-VIKUNJA_API_URL=http://localhost:3456
-VIKUNJA_API_TOKEN=your-token-here  # Or pass per-request
+VIKUNJA_API_URL=http://localhost:3456  # URL to Vikunja API
+JWT_SECRET=...                         # Secret for confirmation tokens (generate with: openssl rand -base64 32)
+
+# Authentication
+# Note: Vikunja API tokens are passed per-request via Authorization header,
+# not stored in environment variables
+
+# PostgreSQL
+TABLE_PREFIX=vk_                   # Optional table prefix (default: empty)
 
 # Optional
 MCP_PORT=3457                      # Default: 3457
+NODE_ENV=production                # Default: development
 MCP_HTTP_JSON_RESPONSE=false       # Enable JSON mode for n8n (default: false)
 REDIS_HOST=localhost               # Default: localhost
 REDIS_PORT=6379                    # Default: 6379
@@ -342,6 +368,8 @@ RATE_LIMIT_ADMIN_BYPASS=false      # Bypass for admin tokens
 LOG_LEVEL=info                     # error|warn|info|debug
 LOG_FORMAT=json                    # json|simple
 ```
+
+**Security Note**: The `JWT_SECRET` is used to sign confirmation tokens for the search-before-action workflow (e.g., `complete_task` → user confirms → `confirm_complete_task`). These tokens expire after 5 minutes. In production, generate a secure random secret with `openssl rand -base64 32`.
 
 ### JSON Response Mode for n8n
 

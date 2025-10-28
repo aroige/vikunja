@@ -62,3 +62,16 @@ deploy/proxmox/*.log
 deploy/proxmox/tests/*.db
 deploy/proxmox/tests/*.log
 
+# n8n workflows (keep workflows and prompts, ignore execution data)
+n8n-workflows/.n8n/
+n8n-workflows/node_modules/
+n8n-workflows/*.log
+
+# MCP server
+mcp-server/node_modules/
+mcp-server/dist/
+mcp-server/coverage/
+mcp-server/logs/
+mcp-server/.env
+mcp-server/*.log
+

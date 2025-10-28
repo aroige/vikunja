@@ -112,6 +112,35 @@ export function logToolCall(
 }
 
 /**
+ * Log a tool execution result (with latency)
+ * This logs to Winston and optionally to PostgreSQL
+ */
+export function logToolExecution(data: {
+  traceId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+  status: 'success' | 'error' | 'needs_clarification';
+  agentType: 'supervisor' | 'vikunja_specialist' | 'calendar_specialist';
+  userId: string;
+  latencyMs: number;
+  tokensUsed?: number;
+}): void {
+  logger.info(`Tool execution: ${data.toolName} [${data.status}]`, {
+    traceId: data.traceId,
+    toolName: data.toolName,
+    status: data.status,
+    agentType: data.agentType,
+    userId: data.userId,
+    latencyMs: data.latencyMs,
+    tokensUsed: data.tokensUsed,
+  });
+
+  // Async database logging happens in db.ts (fire and forget)
+  // We don't import db.ts here to avoid circular dependencies
+}
+
+/**
  * Log HTTP transport events
  */
 export function logHttpTransport(
