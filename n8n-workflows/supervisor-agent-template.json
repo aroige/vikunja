@@ -1,0 +1,159 @@
+{
+  "name": "Supervisor Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "name": "Chat Trigger",
+      "type": "n8n-nodes-base.chatTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT cm.content, cm.role, cm.timestamp\nFROM conversation_messages cm\nJOIN agent_conversations ac ON cm.conversation_id = ac.id\nWHERE ac.user_id = $1 AND ac.agent_type = 'supervisor'\nORDER BY cm.timestamp DESC\nLIMIT 5",
+        "options": {
+          "queryReplacement": "={{ [$json.userId] }}"
+        }
+      },
+      "name": "Load Conversation History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [470, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "n8n_memory_db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $parameter['systemPrompt'] }}",
+        "options": {
+          "systemMessage": "={{ $parameter['systemPrompt'] }}"
+        }
+      },
+      "name": "Supervisor Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.routeTo }}",
+              "operation": "equals",
+              "value2": "vikunja_specialist"
+            }
+          ]
+        }
+      },
+      "name": "Route Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "conversation_messages",
+        "columns": "conversation_id, role, content, timestamp, metadata",
+        "additionalFields": {}
+      },
+      "name": "Save Response",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1130, 200],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "n8n_memory_db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": "={{ $parameter['vikunjaSpecialistWorkflowId'] }}"
+      },
+      "name": "Execute Vikunja Specialist",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1350, 200]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Supervisor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor Agent": {
+      "main": [
+        [
+          {
+            "node": "Route Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Decision": {
+      "main": [
+        [
+          {
+            "node": "Save Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Save Response": {
+      "main": [
+        [
+          {
+            "node": "Execute Vikunja Specialist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-28T00:00:00.000Z",
+  "versionId": "1"
+}

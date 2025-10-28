@@ -1,10 +1,12 @@
 # Phase 3 Implementation Checkpoint
 
 **Date**: 2025-10-28  
-**Status**: MCP Server Tools Complete ✅  
-**Next**: n8n Workflow Creation (T022-T029)
+**Status**: T026 Complete ✅ | T022-T025, T027-T029 Documented ⏳  
+**Next**: Create n8n workflows using SETUP_GUIDE.md
 
-## Completed Tasks (T017-T021)
+## Completed Tasks
+
+### T017-T021: MCP Server Tools ✅ (Phase 2 Complete)
 
 ### T017: search_tasks Tool ✅
 **File**: `mcp-server/src/tools/search-tools.ts`
@@ -40,9 +42,122 @@
 - Word-boundary matching for multilingual text
 - Handles non-ASCII characters
 
-## Next Steps (T022-T029)
+---
+
+### T026: Tool Execution Logging ✅
+**Files**: 
+- `mcp-server/src/utils/db.ts` - PostgreSQL client and logging functions
+- `mcp-server/src/config/schema.ts` - Database configuration schema
+- `mcp-server/src/config/index.ts` - Environment variables
+- `mcp-server/package.json` - Added `pg` and `@types/pg` dependencies
+- `mcp-server/.env.example` - PostgreSQL configuration documented
+
+**Implementation**:
+- PostgreSQL connection pool with graceful degradation
+- `logToolExecution()` function to write to `tool_execution_logs` table
+- `withToolLogging()` wrapper for automatic logging with latency tracking
+- Query functions: `queryToolExecutionLogs()`, `getTokenUsageStats()`
+- Database health checks
+- Example integration code in `src/examples/tool-logging-integration.ts`
+
+**Database Features**:
+- Automatic latency tracking (ms)
+- Token usage analytics (optional)
+- Status detection (success/error/needs_clarification)
+- Graceful fallback to Winston logging if DB unavailable
+- Fire-and-forget pattern (never blocks tool execution)
+
+**Testing**: ✅ TypeScript compilation successful
+
+---
+
+## Next Steps (T022-T029) - Documentation Complete ⏳
+
+**STATUS**: All tasks documented with step-by-step instructions. Awaiting n8n UI access for workflow creation.
+
+### Prerequisites Checklist
+
+**MCP Server**:
+- [x] Code complete with database logging
+- [x] PostgreSQL client implemented
+- [x] Configuration schema updated
+- [ ] Running with HTTP transport enabled (`MCP_HTTP_ENABLED=true`)
+- [ ] Database connection configured (`.env` with DB_* variables)
+- [ ] Accessible at http://localhost:3458
+
+**PostgreSQL Database**:
+- [x] Database exists: `n8n_memory`
+- [x] Tables created (from Phase 2 SQL scripts)
+- [ ] Accessible from n8n instance
+- [ ] Connection tested from MCP server
+
+**n8n Instance**:
+- [ ] Running at http://localhost:5678 (or configured URL)
+- [ ] Gemini API credentials configured
+- [ ] PostgreSQL credentials configured  
+- [ ] Can create new workflows
+
+**Vikunja Backend**:
+- [ ] API accessible at http://localhost:3456
+- [ ] Test tasks created for validation
+- [ ] Authentication tokens available
+
+### Workflow Creation Tasks
+
+**T022**: Create supervisor-agent.json
+- **Guide**: `n8n-workflows/SETUP_GUIDE.md` (section "Workflow 1")
+- **Nodes**: Chat Trigger → PostgreSQL Memory → LLM Agent → Route Decision
+- **Context Window**: 3-5 messages
+- **Export**: Save as `n8n-workflows/supervisor-agent.json`
+- **Status**: ⏳ Documented, awaiting n8n UI access
+
+**T023**: Create vikunja-specialist.json
+- **Guide**: `n8n-workflows/SETUP_GUIDE.md` (section "Workflow 2")
+- **Nodes**: Webhook → PostgreSQL Memory → LLM Agent (with MCP tools) → Error Handlers
+- **Context Window**: 10-15 messages
+- **MCP Tools**: search_tasks, complete_task, confirm_complete_task
+- **Export**: Save as `n8n-workflows/vikunja-specialist.json`
+- **Status**: ⏳ Documented, awaiting n8n UI access
+
+**T024**: Configure PostgreSQL memory in supervisor
+- **Guide**: SETUP_GUIDE.md "Step 3"
+- **Query**: Load last 5 messages for routing context
+- **Status**: ⏳ SQL query documented, needs n8n node configuration
+
+**T025**: Configure PostgreSQL memory in specialist
+- **Guide**: SETUP_GUIDE.md "Step 3" (specialist section)
+- **Query**: Load last 15 messages for task context
+- **Status**: ⏳ SQL query documented, needs n8n node configuration
+
+**T027**: No-match error handling
+- **Guide**: SETUP_GUIDE.md "Step 5"
+- **Pattern**: IF node → Set node with suggestions
+- **Status**: ⏳ Pattern documented, needs n8n nodes
+
+**T028**: Multiple-match handling
+- **Guide**: SETUP_GUIDE.md "Step 6"
+- **Pattern**: IF node → Function node (format list)
+- **Status**: ⏳ Pattern documented, needs n8n nodes
+
+**T029**: Confirmation workflow
+- **Guide**: SETUP_GUIDE.md "Step 7"
+- **Pattern**: IF node → Wait Webhook → IF (yes/no) → Execute/Cancel
+- **Status**: ⏳ Pattern documented, needs n8n nodes
+
+### Documentation Created
+
+✅ **Comprehensive Guides**:
+- `n8n-workflows/SETUP_GUIDE.md` - 500+ lines, step-by-step instructions
+- `n8n-workflows/README.md` - Overview, architecture, troubleshooting
+- `n8n-workflows/supervisor-agent-template.json` - Reference structure
+- `specs/011-ai-agent-architecture/PHASE3_SUMMARY.md` - Implementation summary
+
+✅ **Configuration Examples**:
+- `mcp-server/.env.example` - PostgreSQL configuration added
+- `mcp-server/src/examples/tool-logging-integration.ts` - Integration patterns
 
 ### Prerequisites
+
 1. **n8n Instance**: Ensure n8n is running and accessible
 2. **PostgreSQL**: Database for conversation memory (vk_ tables created in Phase 2)
 3. **MCP Server**: Running and accessible to n8n (HTTP transport)
