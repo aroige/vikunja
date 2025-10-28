@@ -62,11 +62,11 @@ description: "Task breakdown for AI-Powered Personal Assistant System"
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Implement search_tasks tool in mcp-server/src/tools/search-tools.ts (per contracts/mcp-tools.md)
-- [ ] T018 [P] [US1] Implement complete_task tool (search-first, return confirmation) in mcp-server/src/tools/task-tools.ts
-- [ ] T019 [P] [US1] Implement confirm_complete_task tool (execute with token) in mcp-server/src/tools/task-tools.ts
-- [ ] T020 [US1] Add search result validation (no match, single match, multiple matches) in mcp-server/src/services/task-service.ts
-- [ ] T021 [US1] Add multilingual task matching support in mcp-server/src/services/search-service.ts (FR-035)
+- [x] T017 [P] [US1] Implement search_tasks tool in mcp-server/src/tools/search-tools.ts (per contracts/mcp-tools.md)
+- [x] T018 [P] [US1] Implement complete_task tool (search-first, return confirmation) in mcp-server/src/tools/task-tools-agent.ts
+- [x] T019 [P] [US1] Implement confirm_complete_task tool (execute with token) in mcp-server/src/tools/task-tools-agent.ts
+- [x] T020 [US1] Add search result validation (no match, single match, multiple matches) in mcp-server/src/services/task-service.ts
+- [x] T021 [US1] Add multilingual task matching support in mcp-server/src/services/search-service.ts (FR-035)
 - [ ] T022 [US1] Create n8n supervisor workflow in n8n-workflows/supervisor-agent.json (chat trigger, LLM agent with routing)
 - [ ] T023 [US1] Create n8n Vikunja specialist workflow in n8n-workflows/vikunja-specialist.json (receive context, call MCP tools, return results)
 - [ ] T024 [US1] Configure PostgreSQL memory nodes in supervisor workflow (context window: 3-5 messages, shared database)

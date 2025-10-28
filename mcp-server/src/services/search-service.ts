@@ -117,15 +117,126 @@ export class SearchService {
   calculateRelevance(task: VikunjaTask, query: string): number {
     if (!query) return 0;
 
-    // Placeholder: Will be fully implemented in T021 (multilingual task matching)
+    // T021: Enhanced multilingual fuzzy matching
     const queryLower = query.toLowerCase();
     const titleLower = task.title.toLowerCase();
     const descLower = (task.description || '').toLowerCase();
 
+    // Exact match (highest score)
     if (titleLower === queryLower) return 1.0;
+    
+    // Title starts with query (very high)
+    if (titleLower.startsWith(queryLower)) return 0.9;
+    
+    // Exact word match in title
+    if (this.containsWord(titleLower, queryLower)) return 0.85;
+    
+    // Title contains query
     if (titleLower.includes(queryLower)) return 0.8;
+    
+    // Description starts with query
+    if (descLower.startsWith(queryLower)) return 0.7;
+    
+    // Exact word match in description
+    if (this.containsWord(descLower, queryLower)) return 0.65;
+    
+    // Description contains query
     if (descLower.includes(queryLower)) return 0.5;
+    
+    // Fuzzy match with edit distance (multilingual support)
+    const titleWords = titleLower.split(/\s+/);
+    const queryWords = queryLower.split(/\s+/);
+    
+    for (const titleWord of titleWords) {
+      for (const queryWord of queryWords) {
+        const similarity = this.calculateWordSimilarity(titleWord, queryWord);
+        if (similarity > 0.8) return 0.6;
+        if (similarity > 0.7) return 0.4;
+      }
+    }
+    
     return 0;
+  }
+
+  /**
+   * Check if text contains query as a complete word
+   * Supports multilingual text by using word boundaries
+   * 
+   * @param text - Text to search in
+   * @param query - Query to search for
+   * @returns True if query is found as a complete word
+   */
+  private containsWord(text: string, query: string): boolean {
+    // Use word boundary regex for multilingual support
+    const regex = new RegExp(`\\b${this.escapeRegExp(query)}\\b`, 'i');
+    return regex.test(text);
+  }
+
+  /**
+   * Escape special regex characters
+   */
+  private escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Calculate similarity between two words using Levenshtein distance
+   * Used for fuzzy matching across languages
+   * 
+   * @param word1 - First word
+   * @param word2 - Second word
+   * @returns Similarity score (0-1)
+   */
+  private calculateWordSimilarity(word1: string, word2: string): number {
+    const maxLength = Math.max(word1.length, word2.length);
+    if (maxLength === 0) return 1.0;
+    
+    const distance = this.levenshteinDistance(word1, word2);
+    return 1.0 - (distance / maxLength);
+  }
+
+  /**
+   * Calculate Levenshtein distance (edit distance) between two strings
+   * Classic dynamic programming algorithm for string similarity
+   * 
+   * @param str1 - First string
+   * @param str2 - Second string
+   * @returns Edit distance
+   */
+  private levenshteinDistance(str1: string, str2: string): number {
+    const len1 = str1.length;
+    const len2 = str2.length;
+    
+    // Create matrix
+    const matrix: number[][] = [];
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [];
+      for (let j = 0; j <= len2; j++) {
+        matrix[i]![j] = 0;
+      }
+    }
+    
+    // Initialize first row and column
+    for (let i = 0; i <= len1; i++) {
+      matrix[i]![0] = i;
+    }
+    for (let j = 0; j <= len2; j++) {
+      matrix[0]![j] = j;
+    }
+    
+    // Fill matrix
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[i]![j] = Math.min(
+          matrix[i - 1]![j]! + 1,      // deletion
+          matrix[i]![j - 1]! + 1,      // insertion
+          matrix[i - 1]![j - 1]! + cost // substitution
+        );
+      }
+    }
+    
+    return matrix[len1]![len2]!;
   }
 
   /**

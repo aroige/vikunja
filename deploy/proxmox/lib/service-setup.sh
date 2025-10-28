@@ -122,6 +122,13 @@ EOF
         local session_idle_timeout="${SESSION_IDLE_TIMEOUT:-1800}"
         local session_cleanup_interval="${SESSION_CLEANUP_INTERVAL:-300}"
         
+        # JWT Secret for Confirmation Tokens (REQUIRED in production)
+        # Generate with: openssl rand -base64 32
+        local jwt_secret="${JWT_SECRET:-development-secret-change-in-production}"
+        
+        # PostgreSQL table prefix (optional)
+        local table_prefix="${TABLE_PREFIX:-}"
+        
         unit_content=$(cat <<EOF
 [Unit]
 Description=Vikunja MCP Server (${color})
@@ -135,6 +142,13 @@ WorkingDirectory=${working_dir}/mcp-server
 ExecStart=/usr/bin/node ${working_dir}/mcp-server/dist/index.js
 Environment="MCP_PORT=${port}"
 Environment="VIKUNJA_API_URL=${backend_url}"
+Environment="NODE_ENV=production"
+
+# JWT Secret for Confirmation Tokens (search-before-action workflow)
+Environment="JWT_SECRET=${jwt_secret}"
+
+# PostgreSQL table prefix for agent conversation tables
+Environment="TABLE_PREFIX=${table_prefix}"
 
 # HTTP Transport Configuration (disabled by default for stdio mode)
 Environment="MCP_HTTP_ENABLED=${mcp_http_enabled}"
