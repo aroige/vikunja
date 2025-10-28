@@ -642,11 +642,12 @@ func (p *ProjectService) getUserProjectsStatement(userID int64, search string, g
 		parentCondition := builder.Or(
 			builder.IsNull{"l.parent_project_id"},
 			builder.Eq{"l.parent_project_id": 0},
-			// else check for shared sub projects with a parent
+			// else check for sub projects with a parent where user has access
 			builder.And(
 				builder.Or(
 					builder.NotNull{"tm2.user_id"},
 					builder.NotNull{"ul.user_id"},
+					builder.Eq{"l.owner_id": userID}, // Include owned sub-projects
 				),
 				builder.NotNull{"l.parent_project_id"},
 			),

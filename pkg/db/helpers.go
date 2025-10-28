@@ -50,30 +50,11 @@ func MultiFieldSearch(fields []string, search string) builder.Cond {
 // MultiFieldSearchWithTableAlias performs an optimized search across multiple fields for ParadeDB
 // with support for table aliases. When tableAlias is provided, it will be used to prefix field names
 // for non-ParadeDB queries and the id field for ParadeDB queries.
+// Note: We use ILIKE for substring matching instead of ParadeDB's full-text search because
+// substring matching is more intuitive for project/task searches (e.g., "n8n" matching "📎n8n").
 func MultiFieldSearchWithTableAlias(fields []string, search, tableAlias string) builder.Cond {
-	if Type() == schemas.POSTGRES && paradedbInstalled {
-		if len(fields) == 1 {
-			// Single field search - use optimized match function
-			return builder.Expr("id @@@ paradedb.match(?, ?)", fields[0], search)
-		}
-		// Multi-field search - use disjunction_max for optimal performance
-		fieldMatches := make([]string, len(fields))
-		args := make([]interface{}, len(fields)*2)
-		for i, field := range fields {
-			fieldMatches[i] = "paradedb.match(?, ?)"
-			args[i*2] = field
-			args[i*2+1] = search
-		}
-
-		idField := "`id`"
-		if tableAlias != "" {
-			idField = "`" + tableAlias + "`.`id`"
-		}
-
-		return builder.Expr(idField+" @@@ paradedb.disjunction_max(ARRAY["+strings.Join(fieldMatches, ", ")+"])", args...)
-	}
-
-	// For non-PostgreSQL databases, use ILIKE on all fields
+	// Always use ILIKE on all fields for substring matching behavior
+	// ParadeDB's full-text search tokenization doesn't work well for substring searches
 	conditions := make([]builder.Cond, len(fields))
 	for i, field := range fields {
 		// Add table alias to field name if provided
