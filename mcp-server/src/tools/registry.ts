@@ -9,6 +9,8 @@ import { createTaskRelation, getTaskRelations, deleteTaskRelation, CreateTaskRel
 import { addTaskComment, getTaskComments, updateTaskComment, deleteTaskComment, AddTaskCommentSchema, GetTaskCommentsSchema, UpdateTaskCommentSchema, DeleteTaskCommentSchema } from './comments.js';
 import { getAllLabels, getLabel, updateLabel, deleteLabel, getTaskLabels, GetAllLabelsSchema, GetLabelSchema, UpdateLabelSchema, DeleteLabelSchema, GetTaskLabelsSchema } from './labels.js';
 import { getTaskAttachments, GetTaskAttachmentsSchema } from './attachments.js';
+import { SearchToolsAgent, SearchTasksAgentSchema } from './search-tools.js';
+import { TaskToolsAgent, CompleteTaskAgentSchema, ConfirmCompleteTaskSchema } from './task-tools-agent.js';
 import { VikunjaClient } from '../vikunja/client.js';
 import { RateLimiter } from '../ratelimit/limiter.js';
 import { UserContext } from '../auth/types.js';
@@ -45,6 +47,10 @@ export class ToolRegistry {
   private readonly searchTools: SearchTools;
   private readonly bulkTools: BulkTools;
   private readonly userTools: UserTools;
+  
+  // AI Agent-specific tools (Phase 3)
+  private readonly searchToolsAgent: SearchToolsAgent;
+  private readonly taskToolsAgent: TaskToolsAgent;
 
   private readonly tools: Map<string, MCPTool>;
   private readonly executors: Map<string, ToolExecutor>;
@@ -57,6 +63,10 @@ export class ToolRegistry {
     this.searchTools = new SearchTools(client, rateLimiter);
     this.bulkTools = new BulkTools(client, rateLimiter);
     this.userTools = new UserTools(client, rateLimiter);
+    
+    // Initialize AI agent tools (Phase 3)
+    this.searchToolsAgent = new SearchToolsAgent(client, rateLimiter);
+    this.taskToolsAgent = new TaskToolsAgent(client, rateLimiter);
 
     this.tools = new Map();
     this.executors = new Map();
@@ -395,6 +405,34 @@ export class ToolRegistry {
       'Retrieve authenticated user profile information. Use this to understand the current user context for personalized responses or to display user details. Returns safe user fields (id, username, email, name, created, updated, language, timezone, overdue_tasks_reminders_enabled) while explicitly filtering sensitive data (passwords, tokens, secrets). No parameters required - uses authenticated session.',
       GetUserInfoSchema,
       async (args, ctx) => this.userTools.getUserInfo(args as z.infer<typeof GetUserInfoSchema>, ctx)
+    );
+
+    // =============================================================================
+    // AI AGENT TOOLS (Phase 3 - User Story 1)
+    // =============================================================================
+    // These tools implement search-before-action pattern for 99%+ accuracy
+    // Designed for n8n workflows with proper confirmation workflows
+    // See: specs/011-ai-agent-architecture/contracts/mcp-tools.md
+
+    this.registerTool(
+      'agent_search_tasks',
+      '[AI AGENT TOOL] Search for tasks with enhanced filtering for agent workflows. Returns structured ToolResult with status codes (success, needs_clarification). Use this instead of search_tasks when building AI agent flows that require proper error handling and user clarification. Supports keyword search, project filtering, label filtering, status filtering (done/incomplete/all), and due date ranges. Returns TaskSummary objects with minimal fields for agent processing. For direct API use, prefer search_tasks.',
+      SearchTasksAgentSchema,
+      async (args, ctx) => this.searchToolsAgent.searchTasks(args as z.infer<typeof SearchTasksAgentSchema>, ctx)
+    );
+
+    this.registerTool(
+      'agent_complete_task',
+      '[AI AGENT TOOL] Initiate task completion with search-first pattern. NEVER directly completes a task - always searches first and returns a confirmation request. Returns ToolResult with status "confirm_required" containing a time-limited JWT token (5 min expiry). Use agent_confirm_complete_task to execute the completion. This two-step pattern ensures 99%+ accuracy by preventing wrong task completions. For direct completion without confirmation, use complete_task. Required for n8n agent workflows per FR-001 (search-before-action).',
+      CompleteTaskAgentSchema,
+      async (args, ctx) => this.taskToolsAgent.completeTask(args as z.infer<typeof CompleteTaskAgentSchema>, ctx)
+    );
+
+    this.registerTool(
+      'agent_confirm_complete_task',
+      '[AI AGENT TOOL] Execute task completion after user confirmation. Validates the JWT confirmation token from agent_complete_task and completes the task if valid. Token expires after 5 minutes for security. Returns ToolResult with status "success" or "error". This is the second step in the two-phase completion workflow. Never call this directly - must be preceded by agent_complete_task. For direct completion, use complete_task.',
+      ConfirmCompleteTaskSchema,
+      async (args, ctx) => this.taskToolsAgent.confirmCompleteTask(args as z.infer<typeof ConfirmCompleteTaskSchema>, ctx)
     );
   }
 
