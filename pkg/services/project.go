@@ -715,7 +715,7 @@ ORDER BY all_projects.position `+limitSQL, args...).Find(&currentProjects)
 	}
 
 	if len(currentProjects) == 0 {
-		return nil, 0, err
+		return []*models.Project{}, 0, err
 	}
 
 	totalCount, err = s.
