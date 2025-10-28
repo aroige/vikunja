@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+dist-dev/
+build/
+
+# Coverage
+coverage/
+
+# Generated files
+*.gen.ts
+*.generated.ts
+
+# Third-party
+patches/
+
+# Temporary
+*.log
+.DS_Store
