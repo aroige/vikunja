@@ -656,7 +656,8 @@ func getSavedFilterProjects(s *xorm.Session, doer *user.User, search string) (sa
 
 // GetAllParentProjects returns all parents of a given project
 func GetAllParentProjects(s *xorm.Session, projectID int64) (allProjects map[int64]*Project, err error) {
-	allProjects = make(map[int64]*Project)
+	// First fetch into a slice since xorm's Find() doesn't work properly with maps
+	var projectSlice []*Project
 	err = s.SQL(`WITH RECURSIVE all_projects AS (
 		    SELECT
 		        p.*
@@ -671,7 +672,17 @@ func GetAllParentProjects(s *xorm.Session, projectID int64) (allProjects map[int
 		        projects p
 		            INNER JOIN all_projects pc ON p.ID = pc.parent_project_id
 		)
-		SELECT DISTINCT * FROM all_projects`, projectID).Find(&allProjects)
+		SELECT DISTINCT * FROM all_projects`, projectID).Find(&projectSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert slice to map keyed by project ID
+	allProjects = make(map[int64]*Project, len(projectSlice))
+	for _, p := range projectSlice {
+		allProjects[p.ID] = p
+	}
+
 	return
 }
 

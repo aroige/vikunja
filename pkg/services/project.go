@@ -867,13 +867,13 @@ func (p *ProjectService) Create(s *xorm.Session, project *models.Project, u *use
 
 	fullProject, err := p.GetByIDSimple(s, project.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get created project by ID %d: %w", project.ID, err)
 	}
 
 	// Load full project details including owner, views, etc.
 	err = fullProject.ReadOne(s, u)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load full project details for project ID %d: %w", project.ID, err)
 	}
 
 	return fullProject, nil
