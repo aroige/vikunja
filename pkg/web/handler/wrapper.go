@@ -39,15 +39,29 @@ func WithDBAndUser(handlerFunc HandlerFunc, needsTransaction bool) echo.HandlerF
 		s := db.NewSession()
 		defer s.Close()
 
+		// Start transaction if needed
+		if needsTransaction {
+			if err := s.Begin(); err != nil {
+				return HandleHTTPError(err)
+			}
+		}
+
 		// Get current user
 		u, err := user.GetCurrentUser(c)
 		if err != nil {
+			if needsTransaction {
+				_ = s.Rollback()
+			}
 			return HandleHTTPError(err)
 		}
 
 		// Execute the business logic
 		err = handlerFunc(s, u, c)
 		if err != nil {
+			// Rollback transaction on error if needed
+			if needsTransaction {
+				_ = s.Rollback()
+			}
 			// If it's already an echo.HTTPError, return it directly
 			httpErr := &echo.HTTPError{}
 			if errors.As(err, &httpErr) {
@@ -78,9 +92,20 @@ func WithDB(handlerFunc func(s *xorm.Session, c echo.Context) error, needsTransa
 		s := db.NewSession()
 		defer s.Close()
 
+		// Start transaction if needed
+		if needsTransaction {
+			if err := s.Begin(); err != nil {
+				return HandleHTTPError(err)
+			}
+		}
+
 		// Execute the business logic
 		err := handlerFunc(s, c)
 		if err != nil {
+			// Rollback transaction on error if needed
+			if needsTransaction {
+				_ = s.Rollback()
+			}
 			// If it's already an echo.HTTPError, return it directly
 			httpErr := &echo.HTTPError{}
 			if errors.As(err, &httpErr) {

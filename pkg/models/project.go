@@ -681,7 +681,7 @@ func GetAllParentProjects(s *xorm.Session, projectID int64) (allProjects map[int
 		        p.*
 		    FROM
 		        projects p
-		            INNER JOIN all_projects pc ON p.ID = pc.parent_project_id
+		            INNER JOIN all_projects pc ON p.id = pc.parent_project_id
 		)
 		SELECT DISTINCT * FROM all_projects`, projectID).Find(&projectSlice)
 	if err != nil {
