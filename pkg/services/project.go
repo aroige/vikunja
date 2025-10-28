@@ -901,7 +901,7 @@ func (p *ProjectService) validate(s *xorm.Session, project *models.Project) (err
 		// that can hang indefinitely if there's a cycle in the database
 		visited := make(map[int64]bool)
 		visited[project.ID] = true
-		
+
 		currentParentID := project.ParentProjectID
 		for currentParentID != 0 {
 			// Check for cycle
