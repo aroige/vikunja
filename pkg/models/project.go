@@ -805,24 +805,28 @@ func (p *Project) checkIsArchivedRecursive(s *xorm.Session, visited map[int64]bo
 		// This prevents infinite recursion
 		return nil
 	}
-	visited[p.ID] = true
-
-	if p.ParentProjectID > 0 {
-		parent := &Project{ID: p.ParentProjectID}
-		return parent.checkIsArchivedRecursive(s, visited)
-	}
-
+	
 	if p.ID == 0 { // don't check new projects
 		return nil
 	}
+	
+	visited[p.ID] = true
 
+	// Load the full project to get all its properties including parent
 	project, err := GetProjectSimpleByID(s, p.ID)
 	if err != nil {
 		return err
 	}
 
+	// Check if this project is archived
 	if project.IsArchived {
 		return ErrProjectIsArchived{ProjectID: p.ID}
+	}
+
+	// Recursively check parent if it exists
+	if project.ParentProjectID > 0 {
+		parent := &Project{ID: project.ParentProjectID}
+		return parent.checkIsArchivedRecursive(s, visited)
 	}
 
 	return nil
