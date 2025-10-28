@@ -805,11 +805,11 @@ func (p *Project) checkIsArchivedRecursive(s *xorm.Session, visited map[int64]bo
 		// This prevents infinite recursion
 		return nil
 	}
-	
+
 	if p.ID == 0 { // don't check new projects
 		return nil
 	}
-	
+
 	visited[p.ID] = true
 
 	// Load the full project to get all its properties including parent
