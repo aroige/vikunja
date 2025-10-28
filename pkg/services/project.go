@@ -904,12 +904,23 @@ func (p *ProjectService) validate(s *xorm.Session, project *models.Project) (err
 		var parent *models.Project
 		parent = allProjects[project.ParentProjectID]
 
+		// Check if the parent project exists
+		if parent == nil {
+			return &models.ErrProjectDoesNotExist{ID: project.ParentProjectID}
+		}
+
 		// Check if there's a cycle in the parent relation
 		parentsVisited := make(map[int64]bool)
 		parentsVisited[project.ID] = true
 		for parent.ParentProjectID != 0 {
 
 			parent = allProjects[parent.ParentProjectID]
+
+			// If the parent doesn't exist in the map, it means there's a broken chain
+			// This can happen if a parent project was deleted or never existed
+			if parent == nil {
+				return &models.ErrProjectDoesNotExist{ID: project.ParentProjectID}
+			}
 
 			if parentsVisited[parent.ID] {
 				return &models.ErrProjectCannotHaveACyclicRelationship{

@@ -318,6 +318,39 @@ func TestProjectService_Create_Validation(t *testing.T) {
 		assert.IsType(t, &models.ErrProjectCannotBelongToAPseudoParentProject{}, err)
 	})
 
+	t.Run("should reject project with non-existent parent", func(t *testing.T) {
+		project := &models.Project{
+			Title:           "Test Project",
+			ParentProjectID: 999999, // Non-existent parent
+		}
+
+		_, err := ps.Create(s, project, u)
+		assert.Error(t, err)
+		assert.IsType(t, &models.ErrProjectDoesNotExist{}, err)
+	})
+
+	t.Run("should reject project when parent has broken parent chain", func(t *testing.T) {
+		// First create a parent project with an invalid parent_project_id
+		// We need to insert it directly into DB to bypass validation
+		brokenParent := &models.Project{
+			Title:           "Broken Parent",
+			OwnerID:         u.ID,
+			ParentProjectID: 999999, // Non-existent grandparent
+		}
+		_, err := s.Insert(brokenParent)
+		require.NoError(t, err)
+
+		// Now try to create a child of the broken parent
+		project := &models.Project{
+			Title:           "Test Project",
+			ParentProjectID: brokenParent.ID,
+		}
+
+		_, err = ps.Create(s, project, u)
+		assert.Error(t, err)
+		assert.IsType(t, &models.ErrProjectDoesNotExist{}, err)
+	})
+
 	t.Run("should reject project with duplicate identifier", func(t *testing.T) {
 		// First create a project with an identifier
 		project1 := &models.Project{
