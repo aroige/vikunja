@@ -913,13 +913,13 @@ func (p *ProjectService) validate(s *xorm.Session, project *models.Project) (err
 		parentsVisited := make(map[int64]bool)
 		parentsVisited[project.ID] = true
 		for parent.ParentProjectID != 0 {
-
-			parent = allProjects[parent.ParentProjectID]
+			nextParentID := parent.ParentProjectID
+			parent = allProjects[nextParentID]
 
 			// If the parent doesn't exist in the map, it means there's a broken chain
 			// This can happen if a parent project was deleted or never existed
 			if parent == nil {
-				return &models.ErrProjectDoesNotExist{ID: project.ParentProjectID}
+				return &models.ErrProjectDoesNotExist{ID: nextParentID}
 			}
 
 			if parentsVisited[parent.ID] {

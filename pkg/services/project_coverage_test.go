@@ -418,4 +418,39 @@ func TestProjectService_Update_PositionCalculation(t *testing.T) {
 		assert.NotNil(t, created)
 		assert.Equal(t, 12345.67, created.Position)
 	})
+
+	t.Run("should handle parent with cyclic parent chain gracefully", func(t *testing.T) {
+		// Create project A
+		projectA := &models.Project{
+			Title:   "Project A",
+			OwnerID: u.ID,
+		}
+		_, err := s.Insert(projectA)
+		require.NoError(t, err)
+
+		// Create project B with A as parent
+		projectB := &models.Project{
+			Title:           "Project B",
+			OwnerID:         u.ID,
+			ParentProjectID: projectA.ID,
+		}
+		_, err = s.Insert(projectB)
+		require.NoError(t, err)
+
+		// Create a cycle by making A's parent B (directly in DB to bypass validation)
+		_, err = s.Exec("UPDATE projects SET parent_project_id = ? WHERE id = ?", projectB.ID, projectA.ID)
+		require.NoError(t, err)
+
+		// Now try to create a child of B - this should be rejected due to cycle detection
+		project := &models.Project{
+			Title:           "Child of B",
+			ParentProjectID: projectB.ID,
+		}
+
+		created, err := ps.Create(s, project, u)
+		// The validation should detect the cycle and reject it
+		assert.Error(t, err)
+		assert.IsType(t, &models.ErrProjectCannotHaveACyclicRelationship{}, err)
+		assert.Nil(t, created)
+	})
 }

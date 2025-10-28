@@ -795,9 +795,21 @@ GROUP BY ph.original_project_id`, args...).
 
 // CheckIsArchived returns an ErrProjectIsArchived if the project or any of its parent projects is archived.
 func (p *Project) CheckIsArchived(s *xorm.Session) (err error) {
+	return p.checkIsArchivedRecursive(s, make(map[int64]bool))
+}
+
+func (p *Project) checkIsArchivedRecursive(s *xorm.Session, visited map[int64]bool) (err error) {
+	// Check for cycles
+	if visited[p.ID] {
+		// Cycle detected, but we don't return an error - just stop checking
+		// This prevents infinite recursion
+		return nil
+	}
+	visited[p.ID] = true
+
 	if p.ParentProjectID > 0 {
-		p := &Project{ID: p.ParentProjectID}
-		return p.CheckIsArchived(s)
+		parent := &Project{ID: p.ParentProjectID}
+		return parent.checkIsArchivedRecursive(s, visited)
 	}
 
 	if p.ID == 0 { // don't check new projects
