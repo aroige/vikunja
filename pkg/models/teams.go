@@ -160,7 +160,8 @@ func AddMoreInfoToTeams(s *xorm.Session, teams []*Team) (err error) {
 	}
 
 	// Get all owners and team members
-	users := make(map[int64]*TeamUser)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var userSlice []*TeamUser
 	err = s.
 		Select("*").
 		Table("users").
@@ -174,9 +175,15 @@ func AddMoreInfoToTeams(s *xorm.Session, teams []*Team) (err error) {
 				builder.In("teams.id", teamIDs),
 			),
 		).
-		Find(&users)
+		Find(&userSlice)
 	if err != nil {
 		return
+	}
+
+	// Convert to map
+	users := make(map[int64]*TeamUser, len(userSlice))
+	for _, u := range userSlice {
+		users[u.ID] = u
 	}
 	for _, u := range users {
 		if _, exists := teamMap[u.TeamID]; !exists {

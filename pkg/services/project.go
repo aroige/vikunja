@@ -184,11 +184,19 @@ func (p *ProjectService) GetMapByIDs(s *xorm.Session, projectIDs []int64) (map[i
 		return make(map[int64]*models.Project), nil
 	}
 
-	projects := make(map[int64]*models.Project, len(projectIDs))
-	err := s.In("id", projectIDs).Find(&projects)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var projectSlice []*models.Project
+	err := s.In("id", projectIDs).Find(&projectSlice)
 	if err != nil {
 		return nil, err
 	}
+
+	// Convert to map
+	projects := make(map[int64]*models.Project, len(projectSlice))
+	for _, proj := range projectSlice {
+		projects[proj.ID] = proj
+	}
+
 	return projects, nil
 }
 

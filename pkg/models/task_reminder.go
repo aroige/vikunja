@@ -76,22 +76,36 @@ func getTaskUsersForTasks(s *xorm.Session, taskIDs []int64, cond builder.Cond) (
 	}
 
 	// Get all creators of tasks
-	creators := make(map[int64]*user.User, len(taskIDs))
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var creatorSlice []*user.User
 	err = s.
 		Select("users.*").
 		Join("LEFT", "tasks", "tasks.created_by_id = users.id").
 		In("tasks.id", taskIDs).
 		Where(cond).
 		GroupBy("tasks.id, users.id, users.username, users.email, users.name, users.timezone").
-		Find(&creators)
+		Find(&creatorSlice)
 	if err != nil {
 		return
 	}
 
-	taskMap := make(map[int64]*Task, len(taskIDs))
-	err = s.In("id", taskIDs).Find(&taskMap)
+	// Convert to map
+	creators := make(map[int64]*user.User, len(creatorSlice))
+	for _, u := range creatorSlice {
+		creators[u.ID] = u
+	}
+
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var taskSlice []*Task
+	err = s.In("id", taskIDs).Find(&taskSlice)
 	if err != nil {
 		return
+	}
+
+	// Convert to map
+	taskMap := make(map[int64]*Task, len(taskSlice))
+	for _, t := range taskSlice {
+		taskMap[t.ID] = t
 	}
 
 	for _, task := range taskMap {

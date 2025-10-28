@@ -423,13 +423,24 @@ func GetProjectSimpleByTaskID(s *xorm.Session, taskID int64) (l *Project, err er
 
 // GetProjectsMapSimpleByTaskIDs gets a list of projects by a task ids
 func GetProjectsMapSimpleByTaskIDs(s *xorm.Session, taskIDs []int64) (ps map[int64]*Project, err error) {
-	ps = make(map[int64]*Project)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var projectSlice []*Project
 	err = s.
 		Select("projects.*").
 		Table(Project{}).
 		Join("INNER", "tasks", "projects.id = tasks.project_id").
 		In("tasks.id", taskIDs).
-		Find(&ps)
+		Find(&projectSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to map
+	ps = make(map[int64]*Project, len(projectSlice))
+	for _, proj := range projectSlice {
+		ps[proj.ID] = proj
+	}
+
 	return
 }
 

@@ -290,12 +290,19 @@ func (share *LinkSharing) ReadAll(s *xorm.Session, a web.Auth, search string, pa
 		userIDs = append(userIDs, s.SharedByID)
 	}
 
-	users := make(map[int64]*user.User)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var userSlice []*user.User
 	if len(userIDs) > 0 {
-		err = s.In("id", userIDs).Find(&users)
+		err = s.In("id", userIDs).Find(&userSlice)
 		if err != nil {
 			return nil, 0, 0, err
 		}
+	}
+
+	// Convert to map
+	users := make(map[int64]*user.User, len(userSlice))
+	for _, u := range userSlice {
+		users[u.ID] = u
 	}
 
 	for _, s := range shares {

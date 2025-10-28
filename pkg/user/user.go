@@ -235,10 +235,17 @@ func GetUsersByUsername(s *xorm.Session, usernames []string, withEmails bool) (u
 		return
 	}
 
-	users = make(map[int64]*User)
-	err = s.In("username", usernames).Find(&users)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var userSlice []*User
+	err = s.In("username", usernames).Find(&userSlice)
 	if err != nil {
 		return
+	}
+
+	// Convert to map
+	users = make(map[int64]*User, len(userSlice))
+	for _, u := range userSlice {
+		users[u.ID] = u
 	}
 
 	if !withEmails {
@@ -265,11 +272,18 @@ func GetUsersByIDs(s *xorm.Session, userIDs []int64) (users map[int64]*User, err
 }
 
 func GetUsersByCond(s *xorm.Session, cond builder.Cond) (users map[int64]*User, err error) {
-	users = make(map[int64]*User)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var userSlice []*User
 
-	err = s.Where(cond).Find(&users)
+	err = s.Where(cond).Find(&userSlice)
 	if err != nil {
 		return
+	}
+
+	// Convert to map
+	users = make(map[int64]*User, len(userSlice))
+	for _, u := range userSlice {
+		users[u.ID] = u
 	}
 
 	// Obfuscate all user emails

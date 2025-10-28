@@ -649,10 +649,17 @@ func addRelatedTasksToTasks(s *xorm.Session, taskIDs []int64, taskMap map[int64]
 		return
 	}
 
-	fullRelatedTasks := make(map[int64]*Task)
-	err = s.In("id", relatedTaskIDs).Find(&fullRelatedTasks)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var relatedTaskSlice []*Task
+	err = s.In("id", relatedTaskIDs).Find(&relatedTaskSlice)
 	if err != nil {
 		return
+	}
+
+	// Convert to map
+	fullRelatedTasks := make(map[int64]*Task, len(relatedTaskSlice))
+	for _, task := range relatedTaskSlice {
+		fullRelatedTasks[task.ID] = task
 	}
 
 	taskFavorites, err := getFavorites(s, relatedTaskIDs, a, FavoriteKindTask)

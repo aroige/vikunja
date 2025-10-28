@@ -220,10 +220,17 @@ func ReindexAllTasks() (err error) {
 		return fmt.Errorf("could not update last sync: %s", err.Error())
 	}
 
-	tasks := make(map[int64]*Task)
-	err = s.Find(tasks)
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var taskSlice []*Task
+	err = s.Find(&taskSlice)
 	if err != nil {
 		return fmt.Errorf("could not get all tasks: %s", err.Error())
+	}
+
+	// Convert to map
+	tasks := make(map[int64]*Task, len(taskSlice))
+	for _, t := range taskSlice {
+		tasks[t.ID] = t
 	}
 
 	err = indexDummyTask()
@@ -533,8 +540,6 @@ func convertTaskToTypesenseTask(task *Task, positions []*TaskPositionWithView, b
 // This function is only used to catch up with the Typesense Sync when it didn't index for some reason
 
 func SyncUpdatedTasksIntoTypesense() (err error) {
-	tasks := make(map[int64]*Task)
-
 	s := db.NewSession()
 	_ = s.Begin()
 	defer s.Close()
@@ -562,13 +567,21 @@ func SyncUpdatedTasksIntoTypesense() (err error) {
 		return
 	}
 
+	// Use slice first since xorm Find() doesn't work properly with maps on PostgreSQL
+	var taskSlice []*Task
 	err = s.
 		Where("updated >= ?", lastSync.SyncStartedAt).
 		And("updated != created"). // new tasks are already indexed via the event handler
-		Find(tasks)
+		Find(&taskSlice)
 	if err != nil {
 		_ = s.Rollback()
 		return
+	}
+
+	// Convert to map
+	tasks := make(map[int64]*Task, len(taskSlice))
+	for _, t := range taskSlice {
+		tasks[t.ID] = t
 	}
 
 	if len(tasks) > 0 {
