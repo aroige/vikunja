@@ -57,7 +57,20 @@ in {
     VIKUNJA_DATABASE_TYPE = "sqlite";
     VIKUNJA_DATABASE_PATH = "vikunja.db";
 		VIKUNJA_SERVICE_INTERFACE = "127.0.0.1:3456";
+		VIKUNJA_LOG_LEVEL = "DEBUG";
   };
+#	 env = {
+#    VIKUNJA_SERVICE_FRONTENDURL = "http://localhost:4173";
+#		 VIKUNJA_SERVICE_INTERFACE = "127.0.0.1:3456";
+#    VIKUNJA_DATABASE_TYPE = "postgres";
+#		 VIKUNJA_SERVICE_ENABLEREGISTRATION = "true";
+#		 VIKUNJA_DATABASE_HOST = "192.168.50.63";
+#		 VIKUNJA_DATABASE_PORT = "5432";
+#		 VIKUNJA_DATABASE_DATABASE = "vikunja";
+#		 VIKUNJA_DATABASE_USER = "postgres";
+#		 VIKUNJA_DATABASE_PASSWORD = "";
+#		 VIKUNJA_LOG_LEVEL = "DEBUG";
+#  };
 
   # Starts the API and frontend
   processes = {
