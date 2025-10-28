@@ -896,39 +896,33 @@ func (p *ProjectService) validate(s *xorm.Session, project *models.Project) (err
 			}
 		}
 
-		allProjects, err := models.GetAllParentProjects(s, project.ParentProjectID)
-		if err != nil {
-			return err
-		}
-
-		var parent *models.Project
-		parent = allProjects[project.ParentProjectID]
-
-		// Check if the parent project exists
-		if parent == nil {
-			return &models.ErrProjectDoesNotExist{ID: project.ParentProjectID}
-		}
-
-		// Check if there's a cycle in the parent relation
-		parentsVisited := make(map[int64]bool)
-		parentsVisited[project.ID] = true
-		for parent.ParentProjectID != 0 {
-			nextParentID := parent.ParentProjectID
-			parent = allProjects[nextParentID]
-
-			// If the parent doesn't exist in the map, it means there's a broken chain
-			// This can happen if a parent project was deleted or never existed
-			if parent == nil {
-				return &models.ErrProjectDoesNotExist{ID: nextParentID}
-			}
-
-			if parentsVisited[parent.ID] {
+		// Manually traverse the parent chain to check for cycles and existence
+		// This is safer than using GetAllParentProjects which uses a recursive CTE
+		// that can hang indefinitely if there's a cycle in the database
+		visited := make(map[int64]bool)
+		visited[project.ID] = true
+		
+		currentParentID := project.ParentProjectID
+		for currentParentID != 0 {
+			// Check for cycle
+			if visited[currentParentID] {
 				return &models.ErrProjectCannotHaveACyclicRelationship{
 					ProjectID: project.ID,
 				}
 			}
+			visited[currentParentID] = true
 
-			parentsVisited[parent.ID] = true
+			// Load the parent project
+			parentProject, err := p.GetByIDSimple(s, currentParentID)
+			if err != nil {
+				if models.IsErrProjectDoesNotExist(err) {
+					return &models.ErrProjectDoesNotExist{ID: currentParentID}
+				}
+				return err
+			}
+
+			// Move to the next parent
+			currentParentID = parentProject.ParentProjectID
 		}
 	}
 
