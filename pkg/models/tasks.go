@@ -94,7 +94,27 @@ func AddMoreInfoToTasks(s *xorm.Session, taskMap map[int64]*Task, a web.Auth, vi
 	return AddMoreInfoToTasksFunc(s, taskMap, a, view, expand)
 }
 
-// Task represents a task in a project
+// Task represents a task in a project.
+//
+// # Handling Map Fields in Go Structs
+//
+// The Task struct contains several map fields (Reactions, RelatedTasks) and slices that
+// contain structs with maps (Comments with embedded Reactions). These fields create special
+// challenges when working with certain libraries:
+//
+//  1. **Validation**: The `valid:"-"` struct tag tells govalidator to skip these fields.
+//     Without this tag, govalidator would attempt to hash the struct and fail with
+//     "hash of unhashable type" because Go cannot hash maps.
+//
+//  2. **XORM Updates**: XORM's Update() method internally tries to hash structs, even when
+//     using .Cols() to specify exact columns. Use the ForXORMUpdate() method to get a copy
+//     with map fields cleared before calling Update().
+//
+//  3. **Partial Updates**: The MergeFrom() method provides safe partial update semantics
+//     without requiring external merge libraries (like mergo) which fail on map fields.
+//
+// These patterns ensure the Task struct works correctly across all database types
+// (PostgreSQL, MySQL, SQLite) without panicking on map field operations.
 type Task struct {
 	// The unique, numeric id of this task.
 	ID int64 `xorm:"bigint autoincr not null unique pk" json:"id" param:"projecttask"`
@@ -109,7 +129,7 @@ type Task struct {
 	// The time when the task is due.
 	DueDate time.Time `xorm:"DATETIME INDEX null 'due_date'" json:"due_date"`
 	// An array of reminders that are associated with this task.
-	Reminders []*TaskReminder `xorm:"-" json:"reminders"`
+	Reminders []*TaskReminder `xorm:"-" json:"reminders" valid:"-"`
 	// The project this task belongs to.
 	ProjectID int64 `xorm:"bigint INDEX not null" json:"project_id" param:"project"`
 	// An amount in seconds this task repeats itself. If this is set, when marking the task as done, it will mark itself as "undone" and then increase all remindes and the due date by its amount.
@@ -123,9 +143,9 @@ type Task struct {
 	// When this task ends.
 	EndDate time.Time `xorm:"DATETIME INDEX null 'end_date'" json:"end_date" query:"-"`
 	// An array of users who are assigned to this task
-	Assignees []*user.User `xorm:"-" json:"assignees"`
+	Assignees []*user.User `xorm:"-" json:"assignees" valid:"-"`
 	// An array of labels which are associated with this task. This property is read-only, you must use the separate endpoint to add labels to a task.
-	Labels []*Label `xorm:"-" json:"labels"`
+	Labels []*Label `xorm:"-" json:"labels" valid:"-"`
 	// The task color in hex
 	HexColor string `xorm:"varchar(6) null" json:"hex_color" valid:"runelength(0|7)" maxLength:"7"`
 	// Determines how far a task is left from being done
@@ -140,10 +160,10 @@ type Task struct {
 	UID string `xorm:"varchar(250) null" json:"-"`
 
 	// All related tasks, grouped by their relation kind
-	RelatedTasks RelatedTaskMap `xorm:"-" json:"related_tasks"`
+	RelatedTasks RelatedTaskMap `xorm:"-" json:"related_tasks" valid:"-"`
 
 	// All attachments this task has. This property is read-onlym, you must use the separate endpoint to add attachments to a task.
-	Attachments []*TaskAttachment `xorm:"-" json:"attachments"`
+	Attachments []*TaskAttachment `xorm:"-" json:"attachments" valid:"-"`
 
 	// If this task has a cover image, the field will return the id of the attachment that is the cover image.
 	CoverImageAttachmentID int64 `xorm:"bigint default 0" json:"cover_image_attachment_id"`
@@ -165,10 +185,10 @@ type Task struct {
 	BucketID int64 `xorm:"-" json:"bucket_id"`
 
 	// All buckets across all views this task is part of. Only present when fetching tasks with the `expand` parameter set to `buckets`.
-	Buckets []*Bucket `xorm:"-" json:"buckets,omitempty"`
+	Buckets []*Bucket `xorm:"-" json:"buckets,omitempty" valid:"-"`
 
 	// All comments of this task. Only present when fetching tasks with the `expand` parameter set to `comments`.
-	Comments []*TaskComment `xorm:"-" json:"comments,omitempty"`
+	Comments []*TaskComment `xorm:"-" json:"comments,omitempty" valid:"-"`
 
 	// Behaves exactly the same as with the TaskCollection.Expand parameter
 	Expand []TaskCollectionExpandable `xorm:"-" json:"-" query:"expand"`
@@ -180,7 +200,7 @@ type Task struct {
 	Position float64 `xorm:"-" json:"position"`
 
 	// Reactions on that task.
-	Reactions ReactionMap `xorm:"-" json:"reactions"`
+	Reactions ReactionMap `xorm:"-" json:"reactions" valid:"-"`
 
 	// The user who initially created the task.
 	CreatedBy   *user.User `xorm:"-" json:"created_by" valid:"-"`
@@ -220,6 +240,128 @@ func (t *Task) GetFrontendURL() string {
 func (t *Task) IsRepeating() bool {
 	return t.RepeatAfter > 0 ||
 		t.RepeatMode == TaskRepeatModeMonth
+}
+
+// MergeFrom updates the current task with non-zero values from the update payload.
+// This method implements partial update semantics - only fields that are explicitly set
+// in the update payload will overwrite the current task's values.
+//
+// This replaces the use of mergo.Merge which cannot handle structs containing map fields
+// (Reactions, RelatedTasks, Comments) and causes "hash of unhashable type" errors.
+//
+// Special handling:
+//   - Zero values (empty strings, zero numbers, zero times) are treated as "not set"
+//   - Boolean fields must be handled explicitly by the caller if false is meaningful
+//   - Read-only fields (ID, Created, Updated, etc.) are never merged
+//   - Map fields (Reactions, RelatedTasks) and slice fields are never merged here
+func (t *Task) MergeFrom(update *Task) {
+	// Text fields - only update if non-empty
+	if update.Title != "" {
+		t.Title = update.Title
+	}
+	if update.Description != "" {
+		t.Description = update.Description
+	}
+	if update.HexColor != "" {
+		t.HexColor = update.HexColor
+	}
+	if update.UID != "" {
+		t.UID = update.UID
+	}
+	if update.Identifier != "" {
+		t.Identifier = update.Identifier
+	}
+
+	// Numeric fields - only update if non-zero
+	if update.ProjectID != 0 {
+		t.ProjectID = update.ProjectID
+	}
+	if update.RepeatAfter != 0 {
+		t.RepeatAfter = update.RepeatAfter
+	}
+	if update.Priority != 0 {
+		t.Priority = update.Priority
+	}
+	if update.Index != 0 {
+		t.Index = update.Index
+	}
+	if update.CoverImageAttachmentID != 0 {
+		t.CoverImageAttachmentID = update.CoverImageAttachmentID
+	}
+	if update.BucketID != 0 {
+		t.BucketID = update.BucketID
+	}
+	if update.CreatedByID != 0 {
+		t.CreatedByID = update.CreatedByID
+	}
+
+	// Floating point fields
+	if update.PercentDone != 0 {
+		t.PercentDone = update.PercentDone
+	}
+	if update.Position != 0 {
+		t.Position = update.Position
+	}
+
+	// Enum fields - TaskRepeatMode zero value is valid, so always update
+	if update.RepeatMode != t.RepeatMode {
+		t.RepeatMode = update.RepeatMode
+	}
+
+	// Date/Time fields - only update if not zero
+	if !update.DueDate.IsZero() {
+		t.DueDate = update.DueDate
+	}
+	if !update.DoneAt.IsZero() {
+		t.DoneAt = update.DoneAt
+	}
+	if !update.StartDate.IsZero() {
+		t.StartDate = update.StartDate
+	}
+	if !update.EndDate.IsZero() {
+		t.EndDate = update.EndDate
+	}
+
+	// Boolean field - Done is always updated if true, or if explicitly set to false by caller
+	// The caller must handle the "set to false" case explicitly after calling MergeFrom
+	if update.Done {
+		t.Done = true
+	}
+
+	// Note: The following fields are intentionally NOT merged:
+	// - ID, Created, Updated (read-only)
+	// - Assignees, Labels, Attachments, RelatedTasks, Comments, Reactions (managed via separate endpoints)
+	// - Reminders, Buckets (managed separately)
+	// - IsFavorite, Subscription (user-specific, managed separately)
+	// - Done (requires explicit handling by caller)
+	// - Expand (request parameter, not persisted)
+}
+
+// ForXORMUpdate creates a copy of the task with all map and slice fields cleared.
+// This is required because XORM's Update() method tries to hash the entire struct
+// internally, even when using .Cols() to specify exact columns, which causes
+// "hash of unhashable type" panics for structs containing map fields.
+//
+// This method centralizes the workaround logic to avoid duplication across the codebase.
+//
+// Usage:
+//
+//	taskCopy := task.ForXORMUpdate()
+//	_, err := session.ID(task.ID).Cols("title", "description").Update(&taskCopy)
+func (t *Task) ForXORMUpdate() Task {
+	copy := *t
+	// Clear all map and slice fields that cause hashing issues
+	copy.Reactions = nil
+	copy.RelatedTasks = nil
+	copy.Comments = nil
+	copy.Attachments = nil
+	copy.Buckets = nil
+	copy.Assignees = nil
+	copy.Labels = nil
+	copy.Reminders = nil
+	copy.CreatedBy = nil
+	copy.Subscription = nil
+	return copy
 }
 
 type taskFilterConcatinator string

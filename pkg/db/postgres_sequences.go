@@ -70,18 +70,20 @@ func SyncPostgreSQLSequences() error {
 	defer session.Close()
 
 	// Sync each sequence
+	syncedCount := 0
 	for _, table := range tables {
 		sequenceName := table + "_id_seq"
 		sql := `SELECT setval($1, COALESCE((SELECT MAX(id) FROM ` + table + `), 1), true)`
 
 		_, err := session.Exec(sql, sequenceName)
 		if err != nil {
-			log.Warningf("Failed to sync sequence for table %s: %v", table, err)
-			// Continue with other tables even if one fails
+			// Log but don't fail - table might not exist in this version
+			log.Debugf("Skipping sequence sync for %s: %v", table, err)
 			continue
 		}
+		syncedCount++
 	}
 
-	log.Debugf("PostgreSQL sequence synchronization completed")
+	log.Debugf("PostgreSQL sequence synchronization completed (%d/%d sequences synced)", syncedCount, len(tables))
 	return nil
 }

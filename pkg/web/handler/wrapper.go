@@ -40,16 +40,19 @@ func WithDBAndUser(handlerFunc HandlerFunc, needsTransaction bool) echo.HandlerF
 		defer s.Close()
 
 		// Start transaction if needed
-		if needsTransaction {
+		// NOTE: Check if session is already in a transaction to avoid nested transactions
+		var transactionStarted bool
+		if needsTransaction && !s.IsInTx() {
 			if err := s.Begin(); err != nil {
 				return HandleHTTPError(err)
 			}
+			transactionStarted = true
 		}
 
 		// Get current user
 		u, err := user.GetCurrentUser(c)
 		if err != nil {
-			if needsTransaction {
+			if transactionStarted {
 				_ = s.Rollback()
 			}
 			return HandleHTTPError(err)
@@ -59,7 +62,7 @@ func WithDBAndUser(handlerFunc HandlerFunc, needsTransaction bool) echo.HandlerF
 		err = handlerFunc(s, u, c)
 		if err != nil {
 			// Rollback transaction on error if needed
-			if needsTransaction {
+			if transactionStarted {
 				_ = s.Rollback()
 			}
 			// If it's already an echo.HTTPError, return it directly
@@ -71,7 +74,7 @@ func WithDBAndUser(handlerFunc HandlerFunc, needsTransaction bool) echo.HandlerF
 		}
 
 		// Commit transaction if needed
-		if needsTransaction {
+		if transactionStarted {
 			if err := s.Commit(); err != nil {
 				return HandleHTTPError(err)
 			}
@@ -92,18 +95,21 @@ func WithDB(handlerFunc func(s *xorm.Session, c echo.Context) error, needsTransa
 		s := db.NewSession()
 		defer s.Close()
 
-		// Start transaction if needed
-		if needsTransaction {
+		// Start transaction if needed - ONLY for write operations
+		// NOTE: Check if session is already in a transaction to avoid nested transactions
+		var transactionStarted bool
+		if needsTransaction && !s.IsInTx() {
 			if err := s.Begin(); err != nil {
 				return HandleHTTPError(err)
 			}
+			transactionStarted = true
 		}
 
 		// Execute the business logic
 		err := handlerFunc(s, c)
 		if err != nil {
-			// Rollback transaction on error if needed
-			if needsTransaction {
+			// Rollback transaction on error if we started one
+			if transactionStarted {
 				_ = s.Rollback()
 			}
 			// If it's already an echo.HTTPError, return it directly
@@ -114,8 +120,8 @@ func WithDB(handlerFunc func(s *xorm.Session, c echo.Context) error, needsTransa
 			return HandleHTTPError(err)
 		}
 
-		// Commit transaction if needed
-		if needsTransaction {
+		// Commit transaction if we started one
+		if transactionStarted {
 			if err := s.Commit(); err != nil {
 				return HandleHTTPError(err)
 			}

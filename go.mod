@@ -17,7 +17,6 @@
 module code.vikunja.io/api
 
 require (
-	dario.cat/mergo v1.0.2
 	github.com/ThreeDotsLabs/watermill v1.4.7
 	github.com/adlio/trello v1.12.0
 	github.com/arran4/golang-ical v0.3.2
@@ -44,7 +43,6 @@ require (
 	github.com/hhsnopek/etag v0.0.0-20171206181245-aea95f647346
 	github.com/huandu/go-clone/generic v1.7.3
 	github.com/iancoleman/strcase v0.3.0
-	github.com/jaswdr/faker/v2 v2.8.0
 	github.com/jinzhu/copier v0.4.0
 	github.com/jszwedko/go-datemath v0.1.1-0.20230526204004-640a500621d6
 	github.com/labstack/echo-jwt/v4 v4.3.1

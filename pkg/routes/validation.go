@@ -52,6 +52,11 @@ func init() {
 
 // Validate validates stuff
 func (cv *CustomValidator) Validate(i interface{}) error {
+	// Note: Task struct contains map fields (Reactions, RelatedTasks, Comments) which
+	// would cause "hash of unhashable type" errors with govalidator. However, all these
+	// fields are marked with `valid:"-"` tag, so govalidator automatically skips them.
+	// No special handling is needed here.
+
 	if _, err := govalidator.ValidateStruct(i); err != nil {
 
 		var errs []string

@@ -33,7 +33,6 @@ import (
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/utils"
 	"code.vikunja.io/api/pkg/web"
-	"dario.cat/mergo"
 	"github.com/ganigeorgiev/fexpr"
 	"github.com/google/uuid"
 	"github.com/iancoleman/strcase"
@@ -2187,13 +2186,10 @@ func (ts *TaskService) updateSingleTask(s *xorm.Session, t *models.Task, u *user
 		}
 	}
 
-	// Merge the old task with the new task
-	// mergo ignores nil values, so we need to handle them manually below
-	if err := mergo.Merge(&ot, t, mergo.WithOverride); err != nil {
-		return nil, err
-	}
-
-	t.HexColor = utils.NormalizeHex(t.HexColor)
+	// Use the Task's MergeFrom method to properly handle partial updates
+	// This avoids the "hash of unhashable type" error that occurs with mergo v1.0+
+	// when structs contain map fields (Reactions, RelatedTasks, Comments)
+	ot.MergeFrom(t)
 
 	// Mergo does ignore nil values. Because of that, we need to check all parameters and set the updated to
 	// nil/their nil value in the struct which is inserted.
@@ -2247,10 +2243,26 @@ func (ts *TaskService) updateSingleTask(s *xorm.Session, t *models.Task, u *user
 		ot.CoverImageAttachmentID = 0
 	}
 
+	// Create a copy for XORM Update() call with map/slice fields cleared.
+	// XORM tries to hash the entire struct even when we specify .Cols(), causing
+	// "hash of unhashable type" panic for structs with map fields.
+	otForUpdate := ot.ForXORMUpdate()
+
 	_, err = s.ID(t.ID).
 		Cols(colsToUpdate...).
-		Update(ot)
+		Update(&otForUpdate)
+
+	// Preserve the RelatedTasks from the input before overwriting with ot
+	// This is needed for CalDAV and other callers that set RelatedTasks and expect it to persist
+	inputRelatedTasks := t.RelatedTasks
+
 	*t = ot
+
+	// Restore the RelatedTasks from input (they're not loaded from DB in ot)
+	if inputRelatedTasks != nil {
+		t.RelatedTasks = inputRelatedTasks
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -3766,8 +3778,6 @@ func (ts *TaskService) addReactionsToTasks(s *xorm.Session, taskIDs []int64, tas
 
 // addCommentsToTasks adds comment data to tasks using the CommentService
 func (ts *TaskService) addCommentsToTasks(s *xorm.Session, taskIDs []int64, taskMap map[int64]*models.Task) error {
-	fmt.Printf("DEBUG: addCommentsToTasks called with taskIDs: %v\n", taskIDs)
-	fmt.Printf("DEBUG: Calling CommentService.AddCommentsToTasks\n")
 	return ts.Registry.Comment().AddCommentsToTasks(s, taskIDs, taskMap)
 }
 

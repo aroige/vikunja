@@ -20,7 +20,6 @@ import (
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
-	"dario.cat/mergo"
 	"xorm.io/xorm"
 )
 
@@ -115,18 +114,20 @@ func (bts *BulkTaskService) Update(s *xorm.Session, taskIDs []int64, taskUpdate 
 			return err
 		}
 
-		// Merge the update into the old task
-		// For whatever reason, xorm doesn't detect if done is updated, so we need to update this every time by hand
-		// Which is why we merge the actual task struct with the one we got from the user
-		// The user struct overrides values in the actual one.
-		if err := mergo.Merge(oldTask, taskUpdate, mergo.WithOverride); err != nil {
-			return err
-		}
+		// Use the Task's MergeFrom method to properly handle partial updates.
+		// This avoids the "hash of unhashable type" error that mergo v1.0+ produces
+		// when structs contain map fields (Reactions, RelatedTasks, Comments).
+		oldTask.MergeFrom(taskUpdate)
 
 		// And because a false is considered to be a null value, we need to explicitly check that case here.
 		if !taskUpdate.Done {
 			oldTask.Done = false
 		}
+
+		// Create a copy for XORM Update() call with map/slice fields cleared.
+		// XORM tries to hash the entire struct even when we specify .Cols(), causing
+		// "hash of unhashable type" panic for structs with map fields.
+		taskForUpdate := oldTask.ForXORMUpdate()
 
 		// Save the updated task
 		_, err = s.ID(oldTask.ID).
@@ -139,7 +140,7 @@ func (bts *BulkTaskService) Update(s *xorm.Session, taskIDs []int64, taskUpdate 
 				"priority",
 				"start_date",
 				"end_date").
-			Update(oldTask)
+			Update(&taskForUpdate)
 		if err != nil {
 			return err
 		}
