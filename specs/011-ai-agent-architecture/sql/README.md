@@ -74,6 +74,7 @@ export PGPASSWORD=your_password  # Optional, will prompt if not set
 | `[prefix_]conversation_messages` | Individual message storage | T008 |
 | `[prefix_]tool_execution_logs` | Audit trail for tool calls | T009 |
 | `[prefix_]agent_configurations` | Agent settings and capabilities | T010 |
+| `[prefix_]session_state` | Structured per-user workflow/session data | T021d |
 
 **Note**: `[prefix_]` represents your optional table prefix (e.g., `vikunja_`)
 
@@ -102,12 +103,14 @@ Expected output (without prefix):
 - `agent_conversations`
 - `conversation_messages`
 - `tool_execution_logs`
+- `session_state`
 
 Expected output (with `vikunja_` prefix):
 - `vikunja_agent_configurations`
 - `vikunja_agent_conversations`
 - `vikunja_conversation_messages`
 - `vikunja_tool_execution_logs`
+- `vikunja_session_state`
 
 View configurations:
 

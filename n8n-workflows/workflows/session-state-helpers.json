@@ -1,0 +1,62 @@
+{
+  "name": "session-state-helpers",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "LoadSessionState",
+      "name": "Load Session State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [300,200],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT data FROM session_state WHERE user_id = $1",
+        "additionalFields": {},
+        "values": {
+          "string": [
+            { "name": "user_id", "value": "={{$json.userId}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "FunctionNormalizeLoad",
+      "name": "Normalize Load Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [550,200],
+      "parameters": {
+        "functionCode": "const rows = items[0].json.data ? [items[0].json] : items;\nif (!rows.length || !rows[0].data) {\n  return [{ json: { sessionState: {} } }];\n}\nreturn [{ json: { sessionState: rows[0].data } }];"}
+    },
+    {
+      "id": "MergePatch",
+      "name": "Merge Patch Into State",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [300,450],
+      "parameters": {
+        "functionCode": "// Expects original sessionState in $json.sessionState and patch in $json.patch\nconst orig = $json.sessionState || {};\nconst patch = $json.patch || {};\nconst next = { ...orig };\nfor (const [k,v] of Object.entries(patch)) {\n  if (v === null) { delete next[k]; } else { next[k] = v; }\n}\nreturn [{ json: { userId: $json.userId, merged: next } }];"}
+    },
+    {
+      "id": "SaveSessionState",
+      "name": "Save Session State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [550,450],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO session_state (user_id, data) VALUES ($1, $2::jsonb) ON CONFLICT (user_id) DO UPDATE SET data = $2::jsonb, updated_at = NOW();",
+        "values": {
+          "string": [
+            { "name": "user_id", "value": "={{$json.userId}}" },
+            { "name": "data", "value": "={{JSON.stringify($json.merged)}}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -44,10 +44,12 @@ if [ -n "$TABLE_PREFIX" ]; then
   echo "  - ${TABLE_PREFIX}conversation_messages"
   echo "  - ${TABLE_PREFIX}tool_execution_logs"
   echo "  - ${TABLE_PREFIX}agent_configurations"
+  echo "  - ${TABLE_PREFIX}session_state"
   echo ""
   echo "Functions to be dropped:"
   echo "  - ${TABLE_PREFIX}update_agent_conversations_updated_at()"
   echo "  - ${TABLE_PREFIX}update_agent_configurations_updated_at()"
+  echo "  - ${TABLE_PREFIX}update_session_state_updated_at()"
 else
   echo "Table Prefix: (none)"
   echo ""
@@ -56,10 +58,12 @@ else
   echo "  - conversation_messages"
   echo "  - tool_execution_logs"
   echo "  - agent_configurations"
+  echo "  - session_state"
   echo ""
   echo "Functions to be dropped:"
   echo "  - update_agent_conversations_updated_at()"
   echo "  - update_agent_configurations_updated_at()"
+  echo "  - update_session_state_updated_at()"
 fi
 
 echo ""
@@ -89,10 +93,12 @@ psql -c "DROP TABLE IF EXISTS ${TABLE_PREFIX}conversation_messages CASCADE;" && 
 psql -c "DROP TABLE IF EXISTS ${TABLE_PREFIX}tool_execution_logs CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}tool_execution_logs"
 psql -c "DROP TABLE IF EXISTS ${TABLE_PREFIX}agent_conversations CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}agent_conversations"
 psql -c "DROP TABLE IF EXISTS ${TABLE_PREFIX}agent_configurations CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}agent_configurations"
+psql -c "DROP TABLE IF EXISTS ${TABLE_PREFIX}session_state CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}session_state"
 
 # Drop functions
 psql -c "DROP FUNCTION IF EXISTS ${TABLE_PREFIX}update_agent_conversations_updated_at() CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}update_agent_conversations_updated_at()"
 psql -c "DROP FUNCTION IF EXISTS ${TABLE_PREFIX}update_agent_configurations_updated_at() CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}update_agent_configurations_updated_at()"
+psql -c "DROP FUNCTION IF EXISTS ${TABLE_PREFIX}update_session_state_updated_at() CASCADE;" && echo "✓ Dropped ${TABLE_PREFIX}update_session_state_updated_at()"
 
 echo ""
 echo "============================================"

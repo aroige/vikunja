@@ -1,0 +1,77 @@
+{
+  "name": "vikunja-specialist",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "WorkflowTrigger",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.noOpTrigger",
+      "typeVersion": 1,
+      "position": [200,200],
+      "parameters": {}
+    },
+    {
+      "id": "NormalizeInput",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [420,200],
+      "parameters": {
+        "functionCode": "const { userId, traceId, intent, query, sessionState, rawUserMessage } = $json;\nreturn [{ userId, traceId, intent, query, sessionState: sessionState||{}, rawUserMessage }];"
+      }
+    },
+    {
+      "id": "AgentVikunja",
+      "name": "Vikunja Specialist Agent",
+      "type": "n8n-nodes-base.aiAgent",
+      "typeVersion": 1,
+      "position": [660,200],
+      "parameters": {
+        "model": "gemini-2.0-flash-lite",
+        "systemMessage": "{{PROMPT_VIKUNJA_SPECIALIST_CONTENT}}",
+        "memoryType": "window",
+        "contextWindowSize": 12,
+        "sessionKey": "={{$json.userId}}",
+        "outputFormat": "json",
+        "tools": [
+          {
+            "type": "http",
+            "name": "search_tasks",
+            "method": "POST",
+            "url": "http://localhost:3458/tools/search_tasks"
+          },
+          {
+            "type": "http",
+            "name": "complete_task",
+            "method": "POST",
+            "url": "http://localhost:3458/tools/complete_task"
+          },
+          {
+            "type": "http",
+            "name": "confirm_complete_task",
+            "method": "POST",
+            "url": "http://localhost:3458/tools/confirm_complete_task"
+          }
+        ]
+      }
+    },
+    {
+      "id": "MapToolResult",
+      "name": "Map Tool Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900,200],
+      "parameters": {
+        "functionCode": "// r is expected structured JSON per prompt contract\nconst r = $json;\n// In future: decide if session state patch needed (options, pendingConfirmation)\nreturn [{...r}];"
+      }
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {"main": [[{"node": "Normalize Input","type": "main","index": 0}]]},
+    "Normalize Input": {"main": [[{"node": "Vikunja Specialist Agent","type": "main","index": 0}]]},
+    "Vikunja Specialist Agent": {"main": [[{"node": "Map Tool Result","type": "main","index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -11,10 +11,11 @@ DROP TABLE IF EXISTS conversation_messages CASCADE;
 DROP TABLE IF EXISTS tool_execution_logs CASCADE;
 DROP TABLE IF EXISTS agent_conversations CASCADE;
 DROP TABLE IF EXISTS agent_configurations CASCADE;
+DROP TABLE IF EXISTS session_state CASCADE;
 
 -- Drop functions
 DROP FUNCTION IF EXISTS update_agent_conversations_updated_at() CASCADE;
 DROP FUNCTION IF EXISTS update_agent_configurations_updated_at() CASCADE;
 
-\echo 'All agent system tables and functions dropped successfully.'
+\echo 'All agent system tables (including session_state) and functions dropped successfully.'
 \echo 'Run setup_all.sql to recreate the schema.'
