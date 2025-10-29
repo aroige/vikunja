@@ -23,8 +23,8 @@ import { TaskSummary } from '../models/task.js';
  * Input schema for search_tasks tool (MCP contract)
  */
 export const SearchTasksAgentSchema = z.object({
-  keywords: z.string().min(1).max(200)
-    .describe('Keywords to search in task titles and descriptions'),
+  keywords: z.string().min(1).max(200).optional()
+    .describe('Keywords to search in task titles and descriptions. Optional - omit to get all tasks matching other filters.'),
   projectId: z.number().int().positive().optional()
     .describe('Filter by specific project ID (optional)'),
   labels: z.array(z.string()).max(10).optional()
@@ -162,9 +162,13 @@ export class SearchToolsAgent {
 
       // Build query parameters
       const params: Record<string, unknown> = {
-        s: input.keywords,
         page: 1,
       };
+
+      // Add keywords if provided
+      if (input.keywords) {
+        params['s'] = input.keywords;
+      }
 
       if (filterString) {
         params['filter'] = filterString;
@@ -179,12 +183,16 @@ export class SearchToolsAgent {
 
       // Handle no matches
       if (tasks.length === 0) {
+        const searchDesc = input.keywords 
+          ? `matching '${input.keywords}'` 
+          : 'with the specified filters';
+        
         const result: ClarificationResult<SearchTasksData> = {
           status: 'needs_clarification',
-          message: `I couldn't find any tasks matching '${input.keywords}'`,
+          message: `I couldn't find any tasks ${searchDesc}`,
           suggestedActions: [
             'Check if the task exists in a specific project',
-            'Verify the task name or try different keywords',
+            input.keywords ? 'Verify the task name or try different keywords' : 'Try adjusting your filters',
             'Check if the task is already completed (use status: "all")',
           ],
           traceId,
@@ -206,7 +214,7 @@ export class SearchToolsAgent {
         data: {
           tasks: taskSummaries,
           totalCount: taskSummaries.length,
-          query: input.keywords,
+          query: input.keywords || '', // Empty string if no keywords provided
         },
         traceId,
       };

@@ -18,6 +18,9 @@
 -- T010: AgentConfiguration schema
 \i 004_agent_configurations.sql
 
+-- T021d: SessionState schema
+\i 005_session_state.sql
+
 \echo 'Schema setup complete!'
 \echo ''
 \echo 'Verifying tables...'
@@ -30,7 +33,8 @@ WHERE table_schema = 'public'
     'agent_conversations',
     'conversation_messages',
     'tool_execution_logs',
-    'agent_configurations'
+    'agent_configurations',
+    'session_state'
   )
 ORDER BY table_name;
 

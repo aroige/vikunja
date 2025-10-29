@@ -1,0 +1,206 @@
+{
+  "name": "supervisor-agent",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "ChatTrigger",
+      "name": "Chat Trigger",
+      "type": "n8n-nodes-base.chatTrigger",
+      "typeVersion": 1,
+      "position": [200,200],
+      "parameters": {
+        "chatType": "webchat",
+        "public": true,
+        "chatId": "vikunja-supervisor"
+      }
+    },
+    {
+      "id": "InitContext",
+      "name": "Init Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [420,200],
+      "parameters": {
+        "functionCode": "const { randomUUID } = require('crypto');\nconst userId = $json.userId || 'test-user';\nreturn [{...$json, userId, traceId: `${userId}-${Date.now()}-${randomUUID()}`}];"
+      }
+    },
+    {
+      "id": "SupervisorAgent",
+      "name": "Supervisor Agent",
+      "type": "n8n-nodes-base.aiAgent",
+      "typeVersion": 1,
+      "position": [660,200],
+      "parameters": {
+        "model": "gemini-2.0-flash-lite",
+        "systemMessage": "{{PROMPT_SUPERVISOR_CONTENT}}",
+        "memoryType": "window",
+        "contextWindowSize": 5,
+        "sessionKey": "={{$json.userId}}",
+        "outputFormat": "json"
+      }
+    },
+    {
+      "id": "ValidateRouting",
+      "name": "Validate Routing JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900,200],
+      "parameters": {
+        "functionCode": "// Robust routing JSON extraction & normalization to single object\nlet raw='';\nif(typeof $json.text==='string' && $json.text.trim()) raw=$json.text;\nelse if(typeof $json.message==='string' && $json.message.trim()) raw=$json.message;\nelse { for (const v of Object.values($json)) { if(typeof v==='string'){ const t=v.trim(); if(t.startsWith('{')||t.startsWith('[')||t.startsWith('```')) { raw=t; break; } } } }\nraw=raw.trim();\nif(raw.startsWith('```')) { raw=raw.replace(/^```[a-zA-Z0-9]*\\s*\\n/,''); raw=raw.replace(/```\\s*$/,''); }\nraw=raw.replace(/^'''[a-zA-Z0-9]*\\s*\\n/,'').replace(/'''\\s*$/,'');\nconst inner=raw.match(/```[a-zA-Z0-9]*\\s*\\n([\\s\\S]*?)\\n```/); if(inner) raw=inner[1].trim();\nlet candidate=raw;\nif(!/^\\s*(\\{[\\s\\S]*\\}|\\[[\\s\\S]*\\])\\s*$/.test(raw)) { const fb=raw.indexOf('{'); const lb=raw.lastIndexOf('}'); if(fb>=0 && lb>fb) candidate=raw.slice(fb,lb+1); }\nlet parsed;\ntry { parsed=JSON.parse(candidate); } catch(e){ parsed={ parseError:e.message, originalSample: raw.slice(0,300) }; }\nif(Array.isArray(parsed) && parsed.length===1 && typeof parsed[0]==='object') { parsed=parsed[0]; parsed.unwrappedArray=true; }\nif(Array.isArray(parsed) && parsed.length>1) { parsed={ ...parsed[0], droppedItems: parsed.length-1, warning: 'Multiple objects returned; only first used.' }; }\nif(!parsed.route) parsed.route='vikunja_specialist';\nif(!parsed.intent) parsed.intent='unknown';\nreturn [parsed];"
+      }
+    },
+    {
+      "id": "NormalizeRouting",
+      "name": "Normalize Routing Object",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1020,200],
+      "parameters": {
+        "functionCode": "const o = $json;\nconst allowedRoutes = ['vikunja_specialist','none','calendar_specialist','documents_specialist'];\nif(!allowedRoutes.includes(o.route)) o.route='vikunja_specialist';\nconst allowedIntents = ['complete_task','recommendations','create_task','plan_project','reminder','unknown'];\nif(!allowedIntents.includes(o.intent)) o.intent='unknown';\nif(typeof o.confidence !== 'number') o.confidence = 1;\nif(typeof o.query !== 'string') o.query = ''; else o.query = o.query.trim();\nif(typeof o.rawUserMessage !== 'string') o.rawUserMessage = '';\nif(typeof o.meta !== 'object' || o.meta===null) o.meta = {};\nif(o.meta.selectionIndex != null){ const si = parseInt(o.meta.selectionIndex,10); if(!Number.isNaN(si) && si>0) o.meta.selectionIndex = si; else delete o.meta.selectionIndex; }\nreturn [o];"
+      }
+    },
+    {
+      "id": "RouteSwitch",
+      "name": "Route Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [1140,200],
+      "parameters": {
+        "value": "={{$json.route}}",
+        "rules": [
+          {"operation": "equal", "value": "vikunja_specialist"}
+        ]
+      }
+    },
+    {
+      "id": "LoadSessionState",
+      "name": "Load Session State",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1380,120],
+      "parameters": {
+        "workflowName": "session-state-helpers",
+        "input": {"userId": "={{$json.userId}}"}
+      }
+    },
+    {
+      "id": "MergeSessionState",
+      "name": "Merge Session State Into Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1600,120],
+      "parameters": {
+        "functionCode": "const state = $items('LoadSessionState')[0].json.sessionState || {};\nreturn [{...$json, sessionState: state}];"
+      }
+    },
+    {
+      "id": "CallVikunjaSpecialist",
+      "name": "Call Vikunja Specialist",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1820,120],
+      "parameters": {
+        "workflowName": "vikunja-specialist",
+        "input": {"userId": "={{$json.userId}}", "traceId": "={{$json.traceId}}", "intent": "={{$json.intent}}", "query": "={{$json.query}}", "sessionState": "={{$json.sessionState}}", "rawUserMessage": "={{$json.rawUserMessage}}"}
+      }
+    },
+    {
+      "id": "SelectionParser",
+      "name": "Selection Parser",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1820,280],
+      "parameters": {
+        "functionCode": "// Parses user selection messages when multiple_options previously shown\nconst txt = ($json.rawUserMessage||'').toLowerCase();\nconst ord = { first:1, second:2, third:3, fourth:4, fifth:5 };\nlet idx = null;\nconst m = txt.match(/\\b(\\d+)\\b/);\nif (m) idx = +m[1];\nelse for (const [k,v] of Object.entries(ord)) if (txt.includes(k)) { idx = v; break; }\nreturn [{...$json, selectionIndex: idx}];"
+      }
+    },
+    {
+      "id": "ProcessSpecialistResult",
+      "name": "Process Specialist Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2060,120],
+      "parameters": {
+        "functionCode": "const r = $json;\n// Prepare user-facing message based on status\nlet outMsg = r.message || '';\nif (r.status === 'multiple_options' && Array.isArray(r.options)) {\n  outMsg += '\n\nI found ' + r.options.length + ' tasks:';\n  r.options.forEach((o,i)=>{ outMsg += `\n${i+1}. ${o.title}${o.dueDate? ' (due '+o.dueDate+')':''}`; });\n  outMsg += '\nWhich one did you finish? (say a number like 1)';\n} else if (r.status === 'confirm_required' && r.taskId) {\n  outMsg = `Mark '${r.options && r.options[0] ? r.options[0].title : r.taskTitle || 'this task'}' complete? (yes/no)`;\n} else if (r.status === 'needs_clarification' && r.nextActions) {\n  outMsg += '\n\nSuggestions:\n' + r.nextActions.map(a=>' - '+a).join('\n');\n} else if (r.status === 'error') {\n  outMsg = 'There was an error: ' + outMsg + '\nTry again or refine your request.';\n}\nreturn [{ structured: r, response: outMsg }];"
+      }
+    },
+    {
+      "id": "BranchConfirmOrSelect",
+      "name": "Branch Confirm / Select",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [2300,120],
+      "parameters": {
+        "value": "={{$json.structured.status}}",
+        "rules": [
+          {"operation": "equal", "value": "confirm_required"},
+          {"operation": "equal", "value": "multiple_options"}
+        ]
+      }
+    },
+    {
+      "id": "HandleConfirmationInput",
+      "name": "Handle Confirmation Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2540,60],
+      "parameters": {
+        "functionCode": "// User reply after confirm_required status. Expect yes/no.\nconst txt = ($json.rawUserMessage||'').toLowerCase();\nlet confirmed = /^(y|yes)$/i.test(txt.trim());\nreturn [{...$json, userConfirmed: confirmed}];"
+      }
+    },
+    {
+      "id": "CallConfirmTool",
+      "name": "Call confirm_complete_task Tool",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [2780,60],
+      "parameters": {
+        "workflowName": "vikunja-specialist",
+        "input": {"mode": "confirm", "confirmationToken": "={{$json.structured.confirmationToken}}", "traceId": "={{$json.structured.traceId}}", "userId": "={{$json.structured.userId || $json.userId}}"}
+      }
+    },
+    {
+      "id": "HandleMultipleSelectionInput",
+      "name": "Handle Multiple Selection Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2540,180],
+      "parameters": {
+        "functionCode": "// Interpret selection index from raw user message and map to option\nconst txt = ($json.rawUserMessage||'').toLowerCase();\nconst ord = { first:1, second:2, third:3, fourth:4, fifth:5 };\nlet idx = null;\nconst m = txt.match(/\\b(\\d+)\\b/);\nif (m) idx = +m[1]; else { for (const [k,v] of Object.entries(ord)) if (txt.includes(k)) { idx = v; break; } }\nconst opts = $json.structured.options||[];\nif (!idx || idx < 1 || idx > opts.length) {\n  return [{ ...$json, selectionError: true, response: 'Please provide a valid number between 1 and '+opts.length+'.' }];\n}\nconst chosen = opts[idx-1];\nreturn [{ ...$json, selectionIndex: idx, chosenOption: chosen }];"
+      }
+    },
+    {
+      "id": "PersistSessionState",
+      "name": "Persist Session State",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [3020,120],
+      "parameters": {
+        "workflowName": "session-state-helpers",
+        "input": {
+          "userId": "={{$json.userId}}",
+          "patch": "={{$json.structured.status === 'multiple_options' ? { lastTaskOptions: $json.structured.options } : ($json.userConfirmed ? { pendingConfirmation: null, lastTaskOptions: null } : ($json.structured.status === 'confirm_required' ? { pendingConfirmation: { taskId: $json.structured.taskId, confirmationToken: $json.structured.confirmationToken } } : {})) }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {"main": [[{"node": "Init Context","type": "main","index": 0}]]},
+    "Init Context": {"main": [[{"node": "Supervisor Agent","type": "main","index": 0}]]},
+    "Supervisor Agent": {"main": [[{"node": "Validate Routing JSON","type": "main","index": 0}]]},
+    "Validate Routing JSON": {"main": [[{"node": "Normalize Routing Object","type": "main","index": 0}]]},
+    "Normalize Routing Object": {"main": [[{"node": "Route Switch","type": "main","index": 0}]]},
+    "Route Switch": {"main": [[{"node": "Load Session State","type": "main","index": 0}]]},
+    "Load Session State": {"main": [[{"node": "Merge Session State Into Context","type": "main","index": 0}]]},
+    "Merge Session State Into Context": {"main": [[{"node": "Call Vikunja Specialist","type": "main","index": 0}]]},
+    "Call Vikunja Specialist": {"main": [[{"node": "Process Specialist Result","type": "main","index": 0}]]},
+    "Process Specialist Result": {"main": [[{"node": "Branch Confirm / Select","type": "main","index": 0}]]},
+    "Branch Confirm / Select": {"main": [[{"node": "Handle Confirmation Input","type": "main","index": 0},{"node": "Handle Multiple Selection Input","type": "main","index": 1}]]},
+    "Handle Confirmation Input": {"main": [[{"node": "Call confirm_complete_task Tool","type": "main","index": 0}]]},
+    "Call confirm_complete_task Tool": {"main": [[{"node": "Persist Session State","type": "main","index": 0}]]},
+    "Handle Multiple Selection Input": {"main": [[{"node": "Persist Session State","type": "main","index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

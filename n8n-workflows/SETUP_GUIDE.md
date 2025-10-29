@@ -53,38 +53,25 @@ This guide provides step-by-step instructions for creating n8n workflows for the
 5. Click **"Execute Node"** to test
 6. You should see a chat URL appear - copy this for testing
 
-### Step 3: Add PostgreSQL Memory Node (T024)
+### Step 3: Add Init Context Node (T024 modernized)
+
+We no longer manually query PostgreSQL for conversation memory (removed pattern). Short‑term memory is handled by the AI Agent node's built‑in window buffer; structured state lives in `session_state` via the helper subworkflow.
 
 1. Click **"+"** after Chat Trigger
-2. Search for **"PostgreSQL"**
-3. Select **"Postgres"** node
-4. Click **"Create New Credential"**
-5. Configure PostgreSQL credentials:
-   - **Name**: `n8n_memory_db`
-   - **Host**: `192.168.50.63` (or your PostgreSQL host)
-   - **Database**: `n8n_memory`
-   - **User**: `postgres`
-   - **Password**: [your PostgreSQL password]
-   - **Port**: `5432`
-   - **SSL**: Disabled (or configured per your setup)
-6. Click **"Save"**
-7. Configure memory query:
-   - **Operation**: "Execute Query"
-   - **Query**: 
-     ```sql
-     SELECT cm.content, cm.role, cm.timestamp
-     FROM conversation_messages cm
-     JOIN agent_conversations ac ON cm.conversation_id = ac.id
-     WHERE ac.user_id = $1 AND ac.agent_type = 'supervisor'
-     ORDER BY cm.timestamp DESC
-     LIMIT 5
-     ```
-   - **Parameters**: `{{ $json.userId }}`
-   - **Return Type**: "JSON"
+2. Search for **"Function"**
+3. Select **"Function"** node
+4. Set name: **"Init Context"**
+5. Add code:
+   ```javascript
+   const { randomUUID } = require('crypto')
+   const userId = $json.userId || 'test-user'
+   return [{ ...$json, userId, traceId: `${userId}-${Date.now()}-${randomUUID()}` }]
+   ```
+6. (Optional) If you want session state (pendingConfirmation, lastTaskOptions), add **Execute Workflow** → choose `session-state-helpers` BEFORE the Agent and merge its output (see later section). Skip for a rapid first test.
 
-8. Rename node to **"Load Conversation History"**
+> Historical Note: The previous "Load Conversation History" PostgreSQL node is deprecated. Persisting full message history in DB can be added later for analytics; not required for MVP task completion.
 
-### Step 4: Add LLM Agent Node (Gemini)
+### Step 4: Add AI Agent Node (Gemini)
 
 1. Click **"+"** after PostgreSQL node
 2. Search for **"Agent"**
@@ -107,7 +94,7 @@ This guide provides step-by-step instructions for creating n8n workflows for the
 
 7. Rename node to **"Supervisor Agent"**
 
-### Step 5: Add Response Routing Logic
+### Step 5: Add Routing & Validation Logic
 
 1. Click **"+"** after Supervisor Agent
 2. Search for **"IF"**
@@ -116,7 +103,9 @@ This guide provides step-by-step instructions for creating n8n workflows for the
    - **Condition 1**: `{{ $json.routeTo }} === 'vikunja_specialist'`
    - **Label**: "Route to Vikunja"
 
-### Step 6: Save Conversation to Database
+### (Optional) Step 6: Persist Conversation Messages
+
+Skip for fastest setup. If you need auditing, add a **Postgres** node after routing to insert the assistant response into `conversation_messages`. This is not required for US1 confirmation flows because tool execution logs already capture traceId and outcomes.
 
 1. Click **"+"** on the TRUE branch of IF node
 2. Search for **"PostgreSQL"**
@@ -163,37 +152,11 @@ This guide provides step-by-step instructions for creating n8n workflows for the
 3. Name: **"Vikunja Specialist"**
 4. Click **"Save"**
 
-### Step 2: Add Webhook Trigger
+### Step 2: Add Subworkflow Trigger
+Use the **Execute Workflow** pattern from Supervisor. In the specialist workflow, add a **Workflow Trigger** (not Webhook) so it is only invoked internally.
 
-1. Click **"+"** in canvas
-2. Search for **"Webhook"**
-3. Select **"Webhook"** node
-4. Configure:
-   - **HTTP Method**: POST
-   - **Path**: `vikunja-specialist`
-   - **Response Mode**: "Last Node"
-   - **Response Data**: "All Entries"
-5. Rename to **"Receive from Supervisor"**
-
-### Step 3: Add PostgreSQL Memory (T025)
-
-1. Click **"+"** after Webhook
-2. Add **"PostgreSQL"** node
-3. Use credential: `n8n_memory_db`
-4. Configure memory query:
-   - **Operation**: "Execute Query"
-   - **Query**:
-     ```sql
-     SELECT cm.content, cm.role, cm.timestamp
-     FROM conversation_messages cm
-     JOIN agent_conversations ac ON cm.conversation_id = ac.id
-     WHERE ac.user_id = $1 AND ac.agent_type = 'vikunja_specialist'
-     ORDER BY cm.timestamp DESC
-     LIMIT 15
-     ```
-   - **Parameters**: `{{ $json.userId }}`
-   - **Return Type**: "JSON"
-6. Rename to **"Load Specialist Context"**
+### Step 3: Configure Window Memory (T025)
+Rely solely on Agent node window (12–15 messages). For structured state (pending confirmations, last options) call the `session-state-helpers` subworkflow: first **Execute Workflow** → `session-state-helpers` (Load path) before the Agent, and (optionally) again after to save patches.
 
 ### Step 4: Add LLM Agent with MCP Tools
 
@@ -232,120 +195,22 @@ This guide provides step-by-step instructions for creating n8n workflows for the
 
 8. Rename to **"Vikunja Specialist"**
 
-### Step 5: Add Error Handling - No Match (T027)
+### Step 5: Simplified Status Branching (T027-T029)
+Use one **Function** node after the Agent to map the tool response JSON (already structured per prompt contract) directly to final output; no multi-step IF chain needed. Example pseudo-code:
+```javascript
+const r = $json; // already structured
+// Optionally persist r.options or pendingConfirmation via session-state helpers
+return [{ json: r }];
+```
+Supervisor will handle confirmation and selection.
 
-1. Click **"+"** after Vikunja Specialist
-2. Add **"IF"** node
-3. Configure:
-   - **Condition**: `{{ $json.toolResult.type }} === 'needs_clarification' && {{ $json.toolResult.reason }} === 'NO_MATCH'`
-
-4. On TRUE branch:
-   - Add **"Set"** node
-   - Configure response:
-     ```json
-     {
-       "message": "I couldn't find an active task matching '{{ $json.query }}'. \n\nWhat would you like to do?\n- Check completed tasks: 'show completed {{ $json.query }} tasks'\n- Create a new task: 'create a {{ $json.query }} task'\n- Try a different search: 'search for [keywords]'",
-       "type": "clarification",
-       "suggestions": [
-         "show completed tasks",
-         "create new task",
-         "search again"
-       ]
-     }
-     ```
-   - Rename to **"No Match Response"**
-
-### Step 6: Add Error Handling - Multiple Matches (T028)
-
-1. On FALSE branch of previous IF
-2. Add another **"IF"** node
-3. Configure:
-   - **Condition**: `{{ $json.toolResult.type }} === 'needs_clarification' && {{ $json.toolResult.reason }} === 'MULTIPLE_MATCHES'`
-
-4. On TRUE branch:
-   - Add **"Function"** node
-   - Add code:
-     ```javascript
-     const tasks = $input.item.json.toolResult.tasks;
-     const formatted = tasks.map((task, i) => 
-       `${i+1}. ${task.title} (due ${task.dueDate || 'no date'})`
-     ).join('\n');
-     
-     return {
-       message: `I found ${tasks.length} tasks:\n\n${formatted}\n\nWhich one did you mean? (say 1, 2, etc.)`,
-       type: 'clarification',
-       tasks: tasks
-     };
-     ```
-   - Rename to **"Format Multiple Matches"**
-
-### Step 7: Add Confirmation Workflow (T029)
-
-1. On FALSE branch of multiple matches IF
-2. Add **"IF"** node for confirmation check
-3. Configure:
-   - **Condition**: `{{ $json.toolResult.type }} === 'confirm_required'`
-
-4. On TRUE branch:
-   - Add **"Set"** node
-   - Configure:
-     ```json
-     {
-       "message": "{{ $json.toolResult.message }}\n\nShould I mark it complete? (yes/no)",
-       "type": "confirmation",
-       "confirmationToken": "{{ $json.toolResult.confirmationToken }}",
-       "taskId": "{{ $json.toolResult.task.id }}"
-     }
-     ```
-   - Rename to **"Request Confirmation"**
-
-5. Add **"Wait for Webhook"** node (waits for user's "yes")
-   - **Resume Webhook URL**: Auto-generated
-   - **Timeout**: 300 seconds (5 minutes)
-
-6. After wait, add **"IF"** to check user response:
-   - **Condition**: `{{ $json.userResponse.toLowerCase().includes('yes') }}`
-
-7. On TRUE branch:
-   - Add **"HTTP Request"** node
-   - **URL**: `http://localhost:3458/tools/confirm_complete_task`
-   - **Method**: POST
-   - **Headers**: 
-     ```json
-     {
-       "Authorization": "Bearer {{ $json.vikunjaToken }}",
-       "Content-Type": "application/json"
-     }
-     ```
-   - **Body**:
-     ```json
-     {
-       "taskId": {{ $json.taskId }},
-       "confirmationToken": "{{ $json.confirmationToken }}",
-       "userId": "{{ $json.userId }}"
-     }
-     ```
-   - Rename to **"Execute Completion"**
-
-8. On FALSE branch (user said "no"):
-   - Add **"Set"** node
-   - Configure: `{ "message": "Okay, I won't mark it complete. Let me know if you need anything else!" }`
-   - Rename to **"Cancel Confirmation"**
-
-### Step 8: Save All Responses to Database
-
-1. Merge all branches with **"Merge"** node
-2. Add final **"PostgreSQL"** node
-3. Configure insert to `conversation_messages` table
-4. Rename to **"Save Specialist Response"**
-
-### Step 9: Export Workflow
+### Step 6: Export Workflow
 
 1. Click **"..."** menu → **"Download"**
 2. Save as: `n8n-workflows/vikunja-specialist.json`
 3. Commit to version control
 
-## Testing the Workflows
+## Testing the Workflows (Updated Supervisor-Owned Confirmation)
 
 ### Test Case 1: Single Match Completion
 
@@ -353,11 +218,10 @@ This guide provides step-by-step instructions for creating n8n workflows for the
 2. Input: **"I'm done watering plants"**
 3. Expected flow:
    - Supervisor routes to Vikunja Specialist
-   - Specialist calls `search_tasks` with query "watering plants"
-   - Specialist calls `complete_task` → returns confirmation request
-   - User sees: "Found task 'Water plants' (due today). Mark complete? (yes/no)"
-   - User: **"yes"**
-   - Specialist calls `confirm_complete_task`
+   - Specialist calls `complete_task` → returns `confirm_required` JSON with token
+   - Supervisor asks user: "Mark 'Water plants' complete? (yes/no)"
+   - User replies "yes"
+   - Supervisor calls `confirm_complete_task`
    - User sees: "✓ Task marked complete!"
 
 ### Test Case 2: Multiple Matches
@@ -373,7 +237,7 @@ This guide provides step-by-step instructions for creating n8n workflows for the
      Which one did you finish? (say 1 or 2)
      ```
    - User: **"1"**
-   - Confirmation flow continues
+   - Supervisor captures user selection "1" -> maps to option -> triggers confirmation flow
 
 ### Test Case 3: No Match
 
@@ -390,12 +254,12 @@ This guide provides step-by-step instructions for creating n8n workflows for the
      - Try a different search: 'search for [keywords]'
      ```
 
-### Test Case 4: Context Preservation
+### Test Case 4: Context Preservation & Selection Index Parsing
 
 1. Input: **"What should I focus on today?"**
-2. Specialist returns task list
+2. Specialist returns recommendations (future US2) or for US1 you can simulate prior list
 3. Input: **"Mark the first one complete"**
-4. Expected: Uses context to identify task from previous message
+4. Supervisor parses "first" → selectionIndex=1, resolves taskId from session_state.lastTaskOptions
 
 ## Database Verification
 

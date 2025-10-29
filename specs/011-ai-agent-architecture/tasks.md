@@ -54,6 +54,49 @@ description: "Task breakdown for AI-Powered Personal Assistant System"
 
 ---
 
+## Phase 2.5: Workflow Alignment & Contracts (Pre-US1 Hardening)
+
+**Purpose**: Close gaps between specification and initial workflow implementation approach before starting Phase 3. Ensures infrastructure-enforced patterns (FR-026, FR-027, FR-029, FR-032, FR-033) are correctly represented so Phase 3 work does not need rework.
+
+| Ref | Rationale Summary |
+|-----|-------------------|
+| FR-026 | Search-before-action + confirmation must live in tools + supervisor orchestration, not specialist waiting node |
+| FR-027a/b | Trace IDs + token usage must propagate from first user turn through all tool calls |
+| FR-029/032 | Shared conversation vs session state separation (short-term memory vs structured session data) |
+| FR-033a/b | Memory windows implemented via agent node config, not ad-hoc SQL LIMIT queries |
+
+### New Alignment Tasks
+
+- [x] T021a Define strict routing JSON contract in `n8n-workflows/prompts/supervisor.md` (append output schema block – route, intent, query, rawUserMessage, confidence) – prevents brittle IF routing.
+- [x] T021b Define specialist response JSON contract in `n8n-workflows/prompts/vikunja-specialist.md` (status, message, options[], taskId, confirmationToken, nextActions[], traceId) – single authoritative format for branching.
+- [x] T021c Add trace ID propagation guidance & snippet in `n8n-workflows/README.md` (generate once per incoming user message, pass unchanged to tools, log correlation) – satisfies FR-027a.
+- [x] T021d Create session state design doc `specs/011-ai-agent-architecture/session-state.md` (fields: pendingConfirmation, lastTaskOptions, timestamps; lifecycle & expiry) – operationalizing FR-032.
+- [x] T021e Create helper subworkflow `n8n-workflows/workflows/session-state-helpers.json` (LoadSessionState, SaveSessionState nodes using `session_state` table) – reuse across agents.
+- [x] T021f Update tasks T024/T025 approach note (memory windows via Agent node + session_state persistence, not “PostgreSQL memory node”) – clarify implementation strategy without changing acceptance intent.
+- [x] T021g Implement numeric & natural index selection parser in Supervisor workflow (map "1", "first", "number one" → index 1) – supports multi-match UX (FR-002).
+- [x] T021h Implement confirmation flow shift: supervisor owns user "yes" turn then calls `confirm_complete_task` – aligns with infrastructure enforcement (updates design prior to T029).
+- [x] T021i Refactor `n8n-workflows/SETUP_GUIDE.md` to remove non-existent "PostgreSQL memory node" terminology; document new contracts & flow diagrams.
+- [x] T021j Add tool status flow contract file `specs/011-ai-agent-architecture/contracts/tool-status-flow.md` (mapping MCP tool statuses → workflow branches) – prevents divergence across future specialists.
+
+#### Additional Pre-US1 Hardening (Must complete before T022 to guarantee MVP test reliability)
+
+- [ ] T021k Document confirmation token lifecycle & invalidation in `specs/011-ai-agent-architecture/session-state.md` (single-use, cleared on success, timeout rule) – reduces orphan confirmations.
+- [ ] T021l Add negative confirmation rejection path design to `n8n-workflows/prompts/supervisor.md` + `SETUP_GUIDE.md` ("no" clears pendingConfirmation, offers next actions) – covers user rejection flow (FR-003 extension).
+- [ ] T021m Specify invalid/ambiguous selection handling (out-of-range index, multi-match text like "the report one") in `prompts/supervisor.md` + `README.md` – prevents silent failures (FR-002 robustness).
+- [ ] T021n Expand test cases in `n8n-workflows/SETUP_GUIDE.md` (Cases 5–10: invalid selection, ambiguous selection, negative confirmation, tool error, traceId presence, fallback model) – comprehensive manual validation matrix.
+- [ ] T021o Add traceId + confirmationToken verification queries section to `SETUP_GUIDE.md` + `PHASE3_CHECKPOINT.md` – makes correlation observable (FR-027a/b).
+- [x] DEFERRED: T021p Add primary/fallback model env vars and guidance (`GEMINI_MODEL_PRIMARY`, `GEMINI_MODEL_FALLBACK`) in `n8n-workflows/README.md` + `.env.example` – mitigates model unavailability risk (Resilience).
+- [ ] T021q Add security considerations section (mask tokens, avoid logging secrets, rate limit note) in `n8n-workflows/README.md` + `SETUP_GUIDE.md` – baseline security hygiene (Security & Reliability Standard).
+- [ ] T021r Insert session state JSON before/after confirmation example + diff into `session-state.md` – improves developer mental model.
+- [ ] T021s Extend `contracts/tool-status-flow.md` with explicit `error` + `needs_clarification` fallback handling & retry guidance – ensures consistent branching (FR-003, FR-006 integration).
+- [ ] T021t Add token usage + performance baseline instructions (query ToolExecutionLog, compute tokens per completion) to `n8n-workflows/README.md` – prepares for SC-011 cost compliance tracking.
+
+**Checkpoint Extension**: All tasks T021a–T021t completed → proceed to T022 (workflow creation) with zero architectural rework risk.
+
+**Checkpoint**: All T021a–T021j MUST be done before starting T022 to avoid redo of workflows.
+
+---
+
 ## Phase 3: User Story 1 - Task Completion by Natural Language (Priority: P1) 🎯 MVP
 
 **Goal**: Users can complete tasks using natural language with 99%+ accuracy through search-before-action workflow
@@ -71,10 +114,11 @@ description: "Task breakdown for AI-Powered Personal Assistant System"
 - [ ] T023 [US1] Create n8n Vikunja specialist workflow in n8n-workflows/vikunja-specialist.json (receive context, call MCP tools, return results)
 - [ ] T024 [US1] Configure PostgreSQL memory nodes in supervisor workflow (context window: 3-5 messages, shared database)
 - [ ] T025 [US1] Configure PostgreSQL memory nodes in Vikunja specialist workflow (context window: 10-15 messages, shared database)
+	- NOTE (T021f): Implement as Agent node window memory + session_state helper subworkflow for structured state (not a dedicated "memory node").
 - [x] T026 [US1] Implement tool execution logging in mcp-server/src/utils/logger.ts (log to ToolExecutionLog table)
 - [ ] T027 [US1] Add error handling for no-match scenarios in Vikunja specialist workflow (per FR-003)
 - [ ] T028 [US1] Add error handling for multiple-match scenarios in Vikunja specialist workflow (present all options per FR-002)
-- [ ] T029 [US1] Add confirmation workflow in Vikunja specialist (wait for user "yes" before calling confirm_complete_task)
+- [ ] T029 [US1] Add cross-workflow confirmation handling (specialist returns confirm_required; supervisor collects user "yes" and calls confirm_complete_task with token)
 
 **Checkpoint**: User Story 1 complete - test with scenarios from quickstart.md (single match, multiple matches, no match, multilingual)
 

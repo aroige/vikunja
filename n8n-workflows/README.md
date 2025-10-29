@@ -11,8 +11,9 @@ This directory contains n8n workflow configurations for the AI-powered personal 
 
 ### Workflows (Created in n8n UI)
 
-- **`supervisor-agent.json`** - Main routing agent (T022) ⚠️ *To be created*
-- **`vikunja-specialist.json`** - Vikunja task management agent (T023) ⚠️ *To be created*
+- **`supervisor-agent.json`** - Main routing agent (T022) ⚠️ *Pending creation*
+- **`vikunja-specialist.json`** - Vikunja task management agent (T023) ⚠️ *Pending creation*
+- **`session-state-helpers.json`** - Session state load/save helpers (T021e) ✅
 - **`calendar-specialist.json`** - Calendar integration agent (Future: Phase 7)
 
 ### Templates
@@ -22,8 +23,8 @@ This directory contains n8n workflow configurations for the AI-powered personal 
 
 ### Prompts (Version Controlled)
 
-- **`prompts/supervisor.md`** - Supervisor agent system prompt (v1.0.0) ✅
-- **`prompts/vikunja-specialist.md`** - Vikunja specialist system prompt (v1.0.0) ✅
+- **`prompts/supervisor.md`** - Supervisor agent prompt (v1.1.0) ✅ JSON contract added (T021a)
+- **`prompts/vikunja-specialist.md`** - Vikunja specialist prompt (v1.1.0) ✅ Response contract added (T021b)
 - **`prompts/calendar-specialist.md`** - Calendar specialist prompt (Future)
 
 ### Tools (Custom Implementations)
@@ -61,17 +62,20 @@ This directory contains n8n workflow configurations for the AI-powered personal 
                           └────────────────────────────────┘
 ```
 
-## Workflow Creation Status
+## Workflow Creation Status (Post Phase 2.5 Alignment)
 
-| Task | Workflow | Status | Notes |
-|------|----------|--------|-------|
-| T022 | Supervisor Agent | ⚠️ To Create | Use SETUP_GUIDE.md |
-| T023 | Vikunja Specialist | ⚠️ To Create | Use SETUP_GUIDE.md |
-| T024 | Supervisor Memory | ⚠️ To Configure | PostgreSQL node |
-| T025 | Specialist Memory | ⚠️ To Configure | PostgreSQL node |
-| T027 | No-match handling | ⚠️ To Add | IF node + Set node |
-| T028 | Multiple-match handling | ⚠️ To Add | IF node + Function node |
-| T029 | Confirmation flow | ⚠️ To Add | Wait Webhook + IF nodes |
+| Task | Scope | Status | Updated Approach |
+|------|-------|--------|------------------|
+| T022 | Supervisor Agent | Pending | JSON routing contract; traceId generation |
+| T023 | Vikunja Specialist | Pending | Structured status JSON response |
+| T024 | Supervisor Memory | Pending | Agent window + session_state helpers |
+| T025 | Specialist Memory | Pending | Agent window + session_state helpers |
+| T027 | No-match handling | Pending | Branch on status=no_match |
+| T028 | Multiple-match handling | Pending | status=multiple_options + options persisted |
+| T029 | Confirmation flow | Pending | Supervisor handles final yes (T021h) |
+| T021e | Session helpers | DONE | `session-state-helpers.json` |
+| T021j | Status flow contract | DONE | `contracts/tool-status-flow.md` |
+| `[prefix_]session_state` | Structured workflow state (pendingConfirmation, lastTaskOptions, planning) | T021d |
 
 ## Prerequisites
 
@@ -90,6 +94,7 @@ This directory contains n8n workflow configurations for the AI-powered personal 
   - `conversation_messages`
   - `tool_execution_logs`
   - `agent_configurations`
+   - `session_state` (structured per-user workflow state)
 
 ### 3. MCP Server
 - Running at: http://localhost:3458
@@ -138,6 +143,19 @@ The guide walks through:
    - Verify PostgreSQL logs
    - Check MCP server tool execution logs
 
+   ### Session State vs Conversation Tables
+
+   | Aspect | `agent_conversations` / `conversation_messages` | `session_state` |
+   |--------|-----------------------------------------------|-----------------|
+   | Purpose | Persist (optional) full message history & metadata | Store compact structured workflow state (confirmation tokens, multi-match options, planning phases) |
+   | Size | Potentially large (messages accumulate) | Small JSON blob keyed by user |
+   | Access Pattern | May be read for analytics or long-term context (future stories) | Loaded once per user turn, patched when state changes |
+   | MVP Necessity | Optional (can skip initial inserts) | Recommended for multi-match + confirmation reliability |
+   | Expiry | Rows pruned via `expires_at` + cleanup job | Overwritten; implicit TTL logic in app (clear old fields) |
+   | Mutation Granularity | Append-only writes per message | Merge patch of JSON (shallow key updates) |
+
+   For US1 (task completion) you can achieve a working prototype without storing conversation messages. Session state enables precise multi-turn flows (confirmations, selections) without increasing token usage or DB writes excessively.
+
 ## Configuration
 
 ### Environment Variables
@@ -173,6 +191,34 @@ Create these credentials in n8n:
    - User: `postgres`
    - Password: [your password]
 
+## Trace ID Propagation (T021c)
+Generate once per user turn in Supervisor:
+```
+traceId = `${userId}-${Date.now()}-${uuid}`
+```
+Propagate unchanged to: Specialist call → MCP tool body → tool logs → final response. Never regenerate mid-flow.
+
+## Selection Index Parsing (T021g)
+Map natural language selections to indices:
+| Input | Index |
+|-------|-------|
+| `1` | 1 |
+| `first one` | 1 |
+| `number two` | 2 |
+| `the 3rd` | 3 |
+
+Pseudocode:
+```javascript
+const txt = ($json.rawUserMessage||'').toLowerCase();
+const ord = { first:1, second:2, third:3, fourth:4, fifth:5 };
+let idx = null;
+const m = txt.match(/\b(\d+)\b/);
+if (m) idx = +m[1];
+else for (const [k,v] of Object.entries(ord)) if (txt.includes(k)) { idx = v; break; }
+return [{ json: { selectionIndex: idx } }];
+```
+If `idx` is out of range for `lastTaskOptions`, ask user to pick again.
+
 ## Testing
 
 ### Manual Testing
@@ -188,9 +234,8 @@ Use the chat interface to test scenarios:
 
 # Test Case 2: Multiple matches
 "Done with report"
-→ List of 2+ tasks
-"1"
-→ Confirmation for task 1
+→ Specialist returns status=multiple_options with options stored in session_state
+"1" / "first" → Supervisor resolves selectionIndex, re-initiates completion → confirm_required
 
 # Test Case 3: No match
 "Finished organizing garage"
@@ -248,11 +293,10 @@ When updating prompts or workflow logic:
 
 ## Key Design Decisions
 
-### PostgreSQL Memory (Not Redis)
-- **Why**: Persistent storage across sessions
-- **Context Windows**: 
-  - Supervisor: 3-5 messages (routing decisions only)
-  - Specialists: 10-15 messages (task context needed)
+### Memory Strategy
+- **LLM Window Memory**: Agent node internal windows (Supervisor 5; Specialist 12–15)
+- **Structured Session State**: Persisted via `session-state-helpers.json` into `session_state` (pendingConfirmation, lastTaskOptions, planning)
+- **Why**: Separation of reasoning context vs deterministic workflow data (FR-029, FR-032)
 
 ### Search-Before-Action Pattern
 - **Why**: 99%+ accuracy requirement (SC-001)

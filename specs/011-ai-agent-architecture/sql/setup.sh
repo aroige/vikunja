@@ -40,6 +40,7 @@ if [ -n "$TABLE_PREFIX" ]; then
   echo "  - ${TABLE_PREFIX}conversation_messages"
   echo "  - ${TABLE_PREFIX}tool_execution_logs"
   echo "  - ${TABLE_PREFIX}agent_configurations"
+  echo "  - ${TABLE_PREFIX}session_state"
 else
   echo "Table Prefix: (none)"
   echo ""
@@ -47,6 +48,7 @@ else
   echo "  - agent_conversations"
   echo "  - conversation_messages"
   echo "  - tool_execution_logs"
+  echo "  - session_state"
   echo "  - agent_configurations"
 fi
 echo ""
@@ -60,9 +62,10 @@ apply_prefix() {
     # Replace both psql variable syntax AND plain table names with prefixed versions
     sed "s/:table_prefix\\\\/${TABLE_PREFIX}/g; \
          s/\b\(agent_conversations\|conversation_messages\|tool_execution_logs\|agent_configurations\)\b/${TABLE_PREFIX}\1/g; \
-         s/\b\(update_agent_conversations_updated_at\|update_agent_configurations_updated_at\)\b/${TABLE_PREFIX}\1/g; \
+  s/\b\(update_agent_conversations_updated_at\|update_agent_configurations_updated_at\|update_session_state_updated_at\)\b/${TABLE_PREFIX}\1/g; \
          s/\b\(idx_conversation_messages_\|idx_tool_execution_logs_\)\([a-z_]*\)\b/${TABLE_PREFIX}\1\2/g; \
-         s/\b\(check_tools_count\)\b/${TABLE_PREFIX}\1/g" "$file"
+  s/\b\(idx_session_state_\)\([a-z_]*\)\b/${TABLE_PREFIX}\1\2/g; \
+  s/\b\(check_tools_count\)\b/${TABLE_PREFIX}\1/g" "$file"
   else
     # Remove the psql variable syntax, leaving just the table names
     sed "s/:table_prefix\\\\//g" "$file"
@@ -91,19 +94,22 @@ echo ""
 echo "Creating schemas..."
 echo ""
 
-echo "1/4 Creating AgentConversation schema..."
+echo "1/5 Creating AgentConversation schema..."
 apply_prefix "001_agent_conversations.sql" | psql
 echo "✓ AgentConversation schema created"
 
-echo "2/4 Creating ConversationMessage schema..."
+echo "2/5 Creating ConversationMessage schema..."
 apply_prefix "002_conversation_messages.sql" | psql
 echo "✓ ConversationMessage schema created"
 
-echo "3/4 Creating ToolExecutionLog schema..."
+echo "3/5 Creating ToolExecutionLog schema..."
 apply_prefix "003_tool_execution_logs.sql" | psql
 echo "✓ ToolExecutionLog schema created"
 
-echo "4/4 Creating AgentConfiguration schema..."
+echo "4/5 Creating AgentConfiguration schema..."
+echo "5/5 Creating SessionState schema..."
+apply_prefix "005_session_state.sql" | psql
+echo "✓ SessionState schema created"
 apply_prefix "004_agent_configurations.sql" | psql
 echo "✓ AgentConfiguration schema created"
 
@@ -118,7 +124,7 @@ echo "Tables created:"
 if [ -n "$TABLE_PREFIX" ]; then
   psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE '${TABLE_PREFIX}%' ORDER BY table_name;"
 else
-  psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND (table_name LIKE '%agent%' OR table_name LIKE '%conversation%' OR table_name LIKE '%tool%') ORDER BY table_name;"
+  psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND (table_name LIKE '%agent%' OR table_name LIKE '%conversation%' OR table_name LIKE '%tool%' OR table_name LIKE '%session_state%') ORDER BY table_name;"
 fi
 
 echo ""

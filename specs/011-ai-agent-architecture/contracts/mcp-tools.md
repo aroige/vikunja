@@ -59,13 +59,13 @@ interface TaskSummary {
 ```json
 {
   "name": "search_tasks",
-  "description": "Search for tasks by keywords, project, labels, or due date filters. Use this BEFORE completing, updating, or deleting tasks to find the correct task ID.",
+  "description": "Search for tasks by keywords, project, labels, or due date filters. Use this BEFORE completing, updating, or deleting tasks to find the correct task ID. Keywords are OPTIONAL - you can search by filters only (e.g., all tasks due this week).",
   "inputSchema": {
     "type": "object",
     "properties": {
       "keywords": {
         "type": "string",
-        "description": "Keywords to search in task titles and descriptions",
+        "description": "Keywords to search in task titles and descriptions. OPTIONAL - omit to get all tasks matching other filters.",
         "minLength": 1,
         "maxLength": 200
       },
@@ -98,7 +98,7 @@ interface TaskSummary {
         "description": "User context (required for security)"
       }
     },
-    "required": ["keywords", "userId"]
+    "required": ["userId"]
   }
 }
 ```
@@ -166,6 +166,32 @@ interface NoMatchResult {
     ],
     "totalCount": 2,
     "query": "water plants"
+  },
+  "traceId": "user_123-1730000000000-uuid"
+}
+
+// Request (by date range only, no keywords)
+{
+  "status": "incomplete",
+  "dueDate": {
+    "from": "2025-10-29T00:00:00Z",
+    "to": "2025-11-05T23:59:59Z"
+  },
+  "userId": "user_123"
+}
+
+// Response (all tasks due this week)
+{
+  "status": "success",
+  "message": "Found 5 matching tasks",
+  "data": {
+    "tasks": [
+      {"id": 10, "title": "Finish Q4 report", "dueDate": "2025-10-30T17:00:00Z", ...},
+      {"id": 11, "title": "Review PR #123", "dueDate": "2025-11-01T12:00:00Z", ...},
+      {"id": 12, "title": "Call dentist", "dueDate": "2025-10-29T14:00:00Z", ...}
+    ],
+    "totalCount": 5,
+    "query": ""
   },
   "traceId": "user_123-1730000000000-uuid"
 }
